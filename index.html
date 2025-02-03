@@ -1,25 +1,66 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hola Mundo</title>
+    <title>Servidor de Mensajes</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f4f4f9;
+            margin: 20px;
         }
         h1 {
-            color: #5a2d82;
+            color: #333;
+        }
+        .message-container {
+            margin-bottom: 20px;
+        }
+        .message-container h3 {
+            margin: 10px 0;
+        }
+        .message-box {
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: #f9f9f9;
+            min-height: 50px;
         }
     </style>
 </head>
 <body>
-    <h1>Hola Mundo</h1>
+    <h1>Mensajes Recibidos</h1>
+    <div class="message-container">
+        <h3>Mensajes HTTP:</h3>
+        <div id="httpMessages" class="message-box">Esperando mensajes HTTP...</div>
+    </div>
+    <div class="message-container">
+        <h3>Mensajes TCP:</h3>
+        <div id="tcpMessages" class="message-box">Esperando mensajes TCP...</div>
+    </div>
+    <div class="message-container">
+        <h3>Mensajes UDP:</h3>
+        <div id="udpMessages" class="message-box">Esperando mensajes UDP...</div>
+    </div>
+
+    <script>
+        // Conectar al servidor WebSocket
+        const ws = new WebSocket('ws://localhost:5000');
+
+        // Manejar los mensajes recibidos a través del WebSocket
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            if (data.type === 'http') {
+                document.getElementById('httpMessages').innerText = data.message;
+            } else if (data.type === 'tcp') {
+                document.getElementById('tcpMessages').innerText = data.message;
+            } else if (data.type === 'udp') {
+                document.getElementById('udpMessages').innerText = data.message;
+            }
+        };
+
+        // Manejar errores del WebSocket
+        ws.onerror = function(error) {
+            console.error('Error en WebSocket:', error);
+        };
+    </script>
 </body>
 </html>
