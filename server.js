@@ -11,8 +11,8 @@ const httpServer = http.createServer((req, res) => {
   }
 });
 
-httpServer.listen(8080, () => {
-  console.log('Servidor HTTP escuchando en el puerto 8080');
+httpServer.listen(80, () => {
+  console.log('Servidor HTTP escuchando en el puerto 80');
 });
 
 // --- Servidor TCP ---
@@ -65,7 +65,7 @@ udpServer.bind(7776, () => {
 });
 
 // --- Servidor WebSocket ---
-const wsServer = new WebSocket.Server({ port: 5000 });
+const wsServer = new WebSocket.Server({ port:80 });
 
 wsServer.on('connection', (ws) => {
   console.log('Cliente WebSocket conectado');
@@ -74,4 +74,4 @@ wsServer.on('connection', (ws) => {
   ws.send(JSON.stringify({ type: 'info', message: 'Conexión WebSocket establecida.' }));
 });
 
-console.log('Servidor WebSocket escuchando en el puerto 5000');
+console.log('Servidor WebSocket escuchando en el puerto 80');
