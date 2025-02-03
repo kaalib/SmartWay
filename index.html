@@ -23,6 +23,7 @@
             padding: 10px;
             background-color: #f9f9f9;
             min-height: 50px;
+            white-space: pre-wrap; /* Esto es para que se vean saltos de línea */
         }
     </style>
 </head>
@@ -43,7 +44,7 @@
 
     <script>
         // Conectar al servidor WebSocket
-        const ws = new WebSocket('ws://<3.84.149.254>:80');
+        const ws = new WebSocket('ws://' + window.location.hostname + ':80');
 
         // Manejar los mensajes recibidos a través del WebSocket
         ws.onmessage = function(event) {
