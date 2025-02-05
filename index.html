@@ -4,35 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Servidor de Mensajes</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        h1 {
-            color: #333;
-        }
-        .message-container {
-            margin-bottom: 20px;
-        }
-        .message-container h3 {
-            margin: 10px 0;
-        }
-        .message-box {
-            border: 1px solid #ccc;
-            padding: 10px;
-            background-color: #f9f9f9;
-            min-height: 50px;
-            white-space: pre-wrap; /* Esto es para que se vean saltos de línea */
-        }
-    </style>
+    <link rel="stylesheet" href="index.css">
 </head>
 <body>
     <h1>Mensajes Recibidos</h1>
-    <div class="message-container">
-        <h3>Mensajes HTTP:</h3>
-        <div id="httpMessages" class="message-box">Esperando mensajes HTTP...</div>
-    </div>
+    
     <div class="message-container">
         <h3>Mensajes TCP:</h3>
         <div id="tcpMessages" class="message-box">Esperando mensajes TCP...</div>
@@ -43,15 +19,13 @@
     </div>
 
     <script>
-        // Conectar al servidor WebSocket
-        const ws = new WebSocket('ws://' + window.location.hostname + ':80');
+        // Conectar al servidor WebSocket en el puerto 80
+        const ws = new WebSocket('ws://3.84.149.254:80'); // Cambia a tu IP pública
 
         // Manejar los mensajes recibidos a través del WebSocket
         ws.onmessage = function(event) {
             const data = JSON.parse(event.data);
-            if (data.type === 'http') {
-                document.getElementById('httpMessages').innerText = data.message;
-            } else if (data.type === 'tcp') {
+            if (data.type === 'tcp') {
                 document.getElementById('tcpMessages').innerText = data.message;
             } else if (data.type === 'udp') {
                 document.getElementById('udpMessages').innerText = data.message;
