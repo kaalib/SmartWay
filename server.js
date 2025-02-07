@@ -68,8 +68,8 @@ const tcpServer = net.createServer((socket) => {
 });
 
 // TCP
-tcpServer.listen(7776, '0.0.0.0', () => {
-    console.log('Servidor TCP escuchando en el puerto 7776');
+tcpServer.listen(7777, '0.0.0.0', () => {
+    console.log('Servidor TCP escuchando en el puerto 7777');
 });
 
 // --- Servidor UDP ---
@@ -93,8 +93,8 @@ udpServer.on('message', (msg, rinfo) => {
 });
 
 // UDP
-udpServer.bind(7777, '0.0.0.0', () => {
-    console.log('Servidor UDP escuchando en el puerto 7777');
+udpServer.bind(7776, '0.0.0.0', () => {
+    console.log('Servidor UDP escuchando en el puerto 7776');
 });
 
 // --- Iniciar servidor HTTP y WebSocket ---
