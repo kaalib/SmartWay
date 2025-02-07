@@ -17,10 +17,7 @@ app.get('/api-key', (req, res) => {
     res.json({ apiKey: process.env.GOOGLE_MAPS_API_KEY });
 });
 
-// Sirve archivos estáticos desde la carpeta raíz
-app.use(express.static(path.join(__dirname)));
-// Sirve tus archivos estáticos
-//app.use(express.static('public'));
+
 
 // Carga los certificados
 const options = {
