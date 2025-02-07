@@ -32,7 +32,8 @@ const httpsServer = https.createServer(options, (req, res) => {
     if (req.url === '/' && req.method === 'GET') {
         // Sirve el archivo HTML
         res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(fs.readFileSync('index.html'));
+        res.end(fs.readFileSync(path.join(__dirname, 'public', 'index.html')));
+
     } else if (req.url.endsWith('.css') && req.method === 'GET') {
         // Sirve archivos CSS
         const filePath = path.join(__dirname, req.url.slice(1)); // Ruta segura
