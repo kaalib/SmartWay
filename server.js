@@ -1,12 +1,25 @@
-const fs = require('fs');
+// Define constansts and call libraries
+const dgram = require('dgram');
+const express = require('express');
 const http = require('http');
 const https = require('https');
 const WebSocket = require('ws');
+const mysql = require('mysql2');
+const path = require('path'); 
+const fs = require('fs'); 
+const app = express();
 const net = require('net');
-const dgram = require('dgram');
-const path = require('path');
+
 
 const messages = { tcp: [], udp: [] };
+
+// Serve static files
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Get and send API key
+app.get('/api/getApiKey', (req, res) => {
+    res.json({ apiKey: process.env.api_key1});
+});
 
 // Carga los certificados
 const options = {
