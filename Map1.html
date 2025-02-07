@@ -1,12 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-hola
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa de Google Maps</title>
+    <style>
+        #map {
+            height: 90vh;
+            width: 90%;
+        }
+    </style>
 </head>
 <body>
-    <!-- Botón para regresar al índice -->
-    <button class="btn" onclick="location.href='index.html'">Volver</button>
+    <h1 style="text-align: center;">Mapa de Google Maps</h1>
+    <div id="map"></div>
+    <button onclick="location.href='index.html'" class="btn">Regresar a Inicio</button>
+
+    <script>
+        async function initMap() {
+            try {
+                // Obtén la API Key desde el servidor
+                const response = await fetch('/api-key');
+                const data = await response.json();
+
+                // Carga el script de Google Maps con la clave
+                const script = document.createElement('script');
+                script.src = `https://maps.googleapis.com/maps/api/js?key=${data.apiKey}&callback=onMapLoad`;
+                script.async = true;
+                script.defer = true;
+                document.body.appendChild(script);
+            } catch (error) {
+                console.error('Error al cargar la API Key:', error);
+            }
+        }
+
+        // Función para inicializar el mapa
+        function onMapLoad() {
+            const map = new google.maps.Map(document.getElementById("map"), {
+                center: { lat: 0, lng: 0 },
+                zoom: 2,
+            });
+        }
+
+        // Llama a initMap para empezar
+        initMap();
+    </script>
 </body>
 </html>
-
-
