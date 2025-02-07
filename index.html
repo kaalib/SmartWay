@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Servidor de Mensajes</title>
+    <title>Mensajes TCP/UDP</title>
     <link rel="stylesheet" href="index.css">
 </head>
 <body>
-    <h1>Mensajes Recibidos</h1>
-    
+    <h1>Monitor de Mensajes TCP/UDP</h1>
+
     <div class="message-container">
         <h3>Mensajes TCP:</h3>
         <div id="tcpMessages" class="message-box">Esperando mensajes TCP...</div>
@@ -23,41 +23,66 @@
     <!-- Botón para ir al mapa de tomtom -->
     <button onclick="location.href='Map_tomtom.html'" class="btn">Ver Mapa</button>
 
-
     <script>
-        // URL del archivo JSON en el servidor (cambiar la IP por la tuya)
-        const jsonUrl = 'http://3.84.149.254/messages.json';
+        const jsonUrl = 'http://3.84.149.254/messages'; // Cambiar por la IP de tu servidor
+        const wsUrl = 'ws://3.84.149.254:80'; // WebSocket en tu instancia EC2
 
-        // Elementos del DOM
         const tcpMessages = document.getElementById('tcpMessages');
         const udpMessages = document.getElementById('udpMessages');
         const errorMessage = document.getElementById('errorMessage');
 
-        // Función para cargar mensajes desde el archivo JSON
+        // Cargar mensajes históricos desde /messages
         async function fetchMessages() {
             try {
                 const response = await fetch(jsonUrl);
-                if (!response.ok) {
-                    throw new Error('Error al cargar el archivo JSON');
-                }
+                if (!response.ok) throw new Error('Error al cargar el archivo JSON');
+
                 const data = await response.json();
-
-                // Mostrar mensajes TCP y UDP
-                tcpMessages.innerText = data.tcp || 'No hay mensajes TCP';
-                udpMessages.innerText = data.udp || 'No hay mensajes UDP';
-
-                errorMessage.innerText = ''; // Limpiar mensajes de error
+                tcpMessages.innerHTML = (data.tcp && data.tcp.length)
+                    ? data.tcp.map(msg => `<p>${msg}</p>`).join('')
+                    : 'No hay mensajes TCP.';
+                udpMessages.innerHTML = (data.udp && data.udp.length)
+                    ? data.udp.map(msg => `<p>${msg}</p>`).join('')
+                    : 'No hay mensajes UDP.';
+                errorMessage.innerText = '';
             } catch (error) {
                 console.error(error);
-                errorMessage.innerText = 'Error al cargar los mensajes: ' + error.message;
+                errorMessage.innerText = 'Error al cargar los mensajes históricos: ' + error.message;
             }
         }
 
+        // Conectar al WebSocket para mensajes en tiempo real
+        const ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+            console.log('Conectado al servidor WebSocket.');
+        };
+
+        ws.onmessage = (event) => {
+            try {
+                const { type, message } = JSON.parse(event.data);
+                const target = type === 'tcp' ? tcpMessages : udpMessages;
+                target.innerHTML += `<p>${message}</p>`;
+                target.scrollTop = target.scrollHeight; // Desplazar hacia abajo
+            } catch (error) {
+                console.error('Error procesando el mensaje del WebSocket:', error);
+            }
+        };
+
+        ws.onerror = (error) => {
+            console.error('Error en el WebSocket:', error);
+        };
+
+        ws.onclose = () => {
+            console.warn('Conexión WebSocket cerrada.');
+            errorMessage.innerText = 'Conexión WebSocket cerrada.';
+        };
         // Actualizar mensajes cada 2 segundos
         setInterval(fetchMessages, 2000);
 
         // Cargar mensajes al cargar la página
         fetchMessages();
+
     </script>
 </body>
 </html>
