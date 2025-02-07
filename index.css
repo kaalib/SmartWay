@@ -1,24 +1,82 @@
+/* Estilo general para el cuerpo */
 body {
     font-family: Arial, sans-serif;
     margin: 20px;
+    text-align: center;
 }
 
+/* Estilo para encabezados */
 h1 {
-    color: #333;
+    color: #4CAF50;
 }
 
+/* Contenedor de mensajes */
 .message-container {
-    margin-bottom: 20px;
-}
-
-.message-container h3 {
-    margin: 10px 0;
-}
-
-.message-box {
-    border: 1px solid #000000;
+    margin: 20px auto;
     padding: 10px;
-    background-color: #a80000;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    max-width: 600px;
+    text-align: left;
+}
+
+/* Caja de mensajes */
+.message-box {
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 10px;
     min-height: 50px;
-    white-space: pre-wrap; /* Esto es para que se vean saltos de línea */
+    overflow-y: auto;
+    max-height: 200px;
+}
+
+/* Mensajes de error */
+.error-message {
+    color: red;
+    font-weight: bold;
+}
+
+/* Estilo base para botones reutilizables */
+.btn {
+    display: inline-block;
+    padding: 10px 20px;
+    font-size: 16px;
+    color: white;
+    background-color: #4CAF50;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+/* Efecto hover para botones */
+.btn:hover {
+    background-color: #45a049;
+}
+
+/* Efecto al presionar botones */
+.btn:active {
+    transform: scale(0.95);
+}
+
+/* Estilos adicionales para botones personalizados */
+.btn.primary {
+    background-color: #007BFF; /* Azul */
+}
+
+.btn.secondary {
+    background-color: #6C757D; /* Gris */
+}
+
+.btn.danger {
+    background-color: #DC3545; /* Rojo */
+}
+
+/* Estilo del contenedor del mapa específico para Map_tomtom */
+#map_tom {
+    height: 100vh; /* El mapa ocupará toda la altura de la ventana */
+    width: 100%;
 }

@@ -18,24 +18,46 @@
         <div id="udpMessages" class="message-box">Esperando mensajes UDP...</div>
     </div>
 
+    <div id="errorMessage" class="error-message"></div>
+
+    <!-- Botón para ir al mapa de tomtom -->
+    <button onclick="location.href='Map_tomtom.html'" class="btn">Ver Mapa</button>
+
+
     <script>
-        // Conectar al servidor WebSocket en el puerto 80
-        const ws = new WebSocket('ws://3.84.149.254:80'); // Cambia a tu IP pública
+        // URL del archivo JSON en el servidor (cambiar la IP por la tuya)
+        const jsonUrl = 'http://3.84.149.254/messages.json';
 
-        // Manejar los mensajes recibidos a través del WebSocket
-        ws.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            if (data.type === 'tcp') {
-                document.getElementById('tcpMessages').innerText = data.message;
-            } else if (data.type === 'udp') {
-                document.getElementById('udpMessages').innerText = data.message;
+        // Elementos del DOM
+        const tcpMessages = document.getElementById('tcpMessages');
+        const udpMessages = document.getElementById('udpMessages');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // Función para cargar mensajes desde el archivo JSON
+        async function fetchMessages() {
+            try {
+                const response = await fetch(jsonUrl);
+                if (!response.ok) {
+                    throw new Error('Error al cargar el archivo JSON');
+                }
+                const data = await response.json();
+
+                // Mostrar mensajes TCP y UDP
+                tcpMessages.innerText = data.tcp || 'No hay mensajes TCP';
+                udpMessages.innerText = data.udp || 'No hay mensajes UDP';
+
+                errorMessage.innerText = ''; // Limpiar mensajes de error
+            } catch (error) {
+                console.error(error);
+                errorMessage.innerText = 'Error al cargar los mensajes: ' + error.message;
             }
-        };
+        }
 
-        // Manejar errores del WebSocket
-        ws.onerror = function(error) {
-            console.error('Error en WebSocket:', error);
-        };
+        // Actualizar mensajes cada 2 segundos
+        setInterval(fetchMessages, 2000);
+
+        // Cargar mensajes al cargar la página
+        fetchMessages();
     </script>
 </body>
 </html>
