@@ -5,19 +5,8 @@ const WebSocket = require('ws');
 const net = require('net');
 const dgram = require('dgram');
 const path = require('path');
-const express = require('express');
-const app = express();
 
 const messages = { tcp: [], udp: [] };
-
-require('dotenv').config(); // Cargar variables de entorno
-
-// Ruta para servir la clave de la API
-app.get('/api-key', (req, res) => {
-    res.json({ apiKey: process.env.GOOGLE_MAPS_API_KEY });
-});
-
-
 
 // Carga los certificados
 const options = {
