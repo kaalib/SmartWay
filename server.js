@@ -1,21 +1,35 @@
 const fs = require('fs');
 const http = require('http');
+const https = require('https');
 const WebSocket = require('ws');
 const net = require('net');
 const dgram = require('dgram');
+const path = require('path');
 
 const messages = { tcp: [], udp: [] };
 
-// --- Servidor HTTP ---
-const server = http.createServer((req, res) => {
+// Carga los certificados
+const options = {
+    key: fs.readFileSync('/etc/letsencrypt/live/smartway.ddns.net/privkey.pem'),
+    cert: fs.readFileSync('/etc/letsencrypt/live/smartway.ddns.net/fullchain.pem'),
+};
+
+// --- Servidor HTTPS ---
+const httpsServer = https.createServer(options, (req, res) => {
     if (req.url === '/' && req.method === 'GET') {
         // Sirve el archivo HTML
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.end(fs.readFileSync('index.html'));
     } else if (req.url.endsWith('.css') && req.method === 'GET') {
         // Sirve archivos CSS
-        res.writeHead(200, { 'Content-Type': 'text/css' });
-        res.end(fs.readFileSync(req.url.slice(1))); // Quita el "/" inicial
+        const filePath = path.join(__dirname, req.url.slice(1)); // Ruta segura
+        if (fs.existsSync(filePath)) {
+            res.writeHead(200, { 'Content-Type': 'text/css' });
+            res.end(fs.readFileSync(filePath));
+        } else {
+            res.writeHead(404);
+            res.end('Archivo no encontrado');
+        }
     } else if (req.url === '/messages' && req.method === 'GET') {
         // Sirve los mensajes en formato JSON
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -26,8 +40,13 @@ const server = http.createServer((req, res) => {
     }
 });
 
+// Escucha en el puerto 443
+httpsServer.listen(443, () => {
+    console.log('Servidor HTTPS escuchando en el puerto 443');
+});
+
 // --- Servidor WebSocket ---
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({ server: httpsServer });
 
 wss.on('connection', (ws) => {
     console.log('Cliente WebSocket conectado');
@@ -97,7 +116,12 @@ udpServer.bind(7776, '0.0.0.0', () => {
     console.log('Servidor UDP escuchando en el puerto 7776');
 });
 
-// --- Iniciar servidor HTTP y WebSocket ---
-server.listen(80, () => {
-    console.log('Servidor HTTP y WebSocket escuchando en el puerto 80');
+// --- Redirige tráfico HTTP a HTTPS ---
+const httpServer = http.createServer((req, res) => {
+    res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
+    res.end();
+});
+
+httpServer.listen(80, () => {
+    console.log('Servidor HTTP redirigiendo a HTTPS');
 });
