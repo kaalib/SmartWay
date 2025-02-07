@@ -6,9 +6,18 @@ const messages = { tcp: [], udp: [] };
 
 // Servidor HTTP
 const server = http.createServer((req, res) => {
-    if (req.url === '/messages' && req.method === 'GET') {
+    if (req.url === '/' && req.method === 'GET') {
+        // Sirve el archivo HTML
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(fs.readFileSync('index.html'));
+    } else if (req.url === '/messages' && req.method === 'GET') {
+        // Sirve el JSON con los mensajes
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(messages));
+    } else if (req.url.endsWith('.css') && req.method === 'GET') {
+        // Sirve archivos CSS
+        res.writeHead(200, { 'Content-Type': 'text/css' });
+        res.end(fs.readFileSync(req.url.slice(1))); // Quita el "/" inicial
     } else {
         res.writeHead(404);
         res.end('Not found');
@@ -37,6 +46,7 @@ wss.on('connection', (ws) => {
     });
 });
 
+// Iniciar servidor
 server.listen(80, () => {
     console.log('Servidor escuchando en el puerto 80');
 });
