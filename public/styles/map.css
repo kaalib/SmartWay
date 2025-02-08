@@ -26,18 +26,19 @@ body {
     border-radius: 8px;
 }
 
-/* Button styling */
 .btn {
-    background-color: #6200ea;
-    color: white;
+    display: inline-block;
     padding: 10px 20px;
+    color: white;
+    background-color: purple;
     border: none;
     border-radius: 5px;
+    text-decoration: none; /* Quita el subrayado */
+    text-align: center;
     cursor: pointer;
-    font-size: 16px;
-    transition: background-color 0.3s;
 }
 
 .btn:hover {
-    background-color: #3700b3;
+    background-color: darkviolet;
 }
+
