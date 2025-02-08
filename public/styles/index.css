@@ -32,25 +32,22 @@ h1 {
 }
 
 
-/* Estilo base para botones reutilizables */
 .btn {
     display: inline-block;
     padding: 10px 20px;
-    font-size: 16px;
     color: white;
-    background-color: #4CAF50;
+    background-color: purple;
     border: none;
     border-radius: 5px;
-    cursor: pointer;
+    text-decoration: none; /* Quita el subrayado */
     text-align: center;
-    text-decoration: none;
-    transition: background-color 0.3s ease, transform 0.2s ease;
+    cursor: pointer;
 }
 
-/* Efecto hover para botones */
 .btn:hover {
-    background-color: #45a049;
+    background-color: darkviolet;
 }
+
 
 /* Efecto al presionar botones */
 .btn:active {
