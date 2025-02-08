@@ -27,31 +27,12 @@ const options = {
     cert: fs.readFileSync('/etc/letsencrypt/live/smartway.ddns.net/fullchain.pem'),
 };
 
-// --- Servidor HTTPS ---
-const httpsServer = https.createServer(options, (req, res) => {
-    if (req.url === '/' && req.method === 'GET') {
-        // Sirve el archivo HTML
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(fs.readFileSync(path.join(__dirname, 'public', 'index.html')));
+// Configuración del servidor HTTPS con Express
+const httpsServer = https.createServer(options, app);
 
-    } else if (req.url.endsWith('.css') && req.method === 'GET') {
-        // Sirve archivos CSS
-        const filePath = path.join(__dirname, req.url.slice(1)); // Ruta segura
-        if (fs.existsSync(filePath)) {
-            res.writeHead(200, { 'Content-Type': 'text/css' });
-            res.end(fs.readFileSync(filePath));
-        } else {
-            res.writeHead(404);
-            res.end('Archivo no encontrado');
-        }
-    } else if (req.url === '/messages' && req.method === 'GET') {
-        // Sirve los mensajes en formato JSON
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(messages));
-    } else {
-        res.writeHead(404);
-        res.end('Not Found');
-    }
+// Endpoint para obtener mensajes JSON (esto es una API)
+app.get('/messages', (req, res) => {
+    res.json(messages);
 });
 
 // Escucha en el puerto 443
