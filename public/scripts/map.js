@@ -5,12 +5,19 @@ let map = null;
 // Función para obtener la API Key y cargar Google Maps
 function getApiKey() {
     fetch('/api/getApiKey')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+            return response.json();
+        })
         .then(data => {
-            loadGoogleMapsApi(data.apiKey);
+            if (data.apiKey) {
+                loadGoogleMapsApi(data.apiKey);
+            } else {
+                throw new Error('API Key no encontrada en la respuesta.');
+            }
         })
         .catch(error => {
-            console.error('Error getting API key:', error);
+            console.error('Error al obtener la API Key:', error);
         });
 }
 
@@ -19,12 +26,18 @@ function loadGoogleMapsApi(apiKey) {
     const script = document.createElement('script');
     script.async = true;
     script.defer = true;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initMap&libraries=maps&v=beta`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initMap`;
+    script.onerror = () => console.error('Error al cargar el script de Google Maps.');
     document.head.appendChild(script);
 }
 
 // Inicializa el mapa
 function initMap() {
+    if (!mapElement) {
+        console.error('Elemento del mapa no encontrado.');
+        return;
+    }
+
     map = new google.maps.Map(mapElement, {
         center: { lat: 10.98, lng: -74.81 },
         zoom: 13,
