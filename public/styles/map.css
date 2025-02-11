@@ -19,8 +19,8 @@ body {
     margin: 0 auto; /* Centra horizontalmente el contenedor */
     padding: 1rem; /* Espacio interno opcional, puede eliminarse si no se necesita */
     box-sizing: border-box; /* Incluye padding y bordes en el cálculo total del tamaño */
-    border: 1px solid #ccc; /* Opcional: ayuda a visualizar los límites del contenedor */
-
+    border: 2px solid purple; /* Mantén el borde si deseas visualizar el mapa claramente */
+    border-radius: 8px; /* Bordes redondeados, opcional */
 }
 
 
@@ -29,7 +29,7 @@ body {
     width: 100%; /* Ocupa todo el ancho del contenedor padre (.container) */
     height: 100%; /* Ocupa todo el alto del contenedor padre */
     margin: 0; /* Elimina márgenes innecesarios */
-    border: 2px solid #ccc; /* Mantén el borde si deseas visualizar el mapa claramente */
+    border: 2px solid purple; /* Mantén el borde si deseas visualizar el mapa claramente */
     border-radius: 8px; /* Bordes redondeados, opcional */
     box-sizing: border-box; /* Asegura que bordes y padding se incluyan en las dimensiones totales */
 }
@@ -45,8 +45,9 @@ body {
     text-decoration: none; /* Quita el subrayado */
     text-align: center;
     cursor: pointer;
-    margin-top: 5px; /* Separación de 2 píxeles con el objeto de arriba */
+    margin-top: 30px; /* Separación de 2 píxeles con el objeto de arriba */
 }
+
 
 .btn:hover {
     background-color: darkviolet;
