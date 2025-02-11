@@ -11,10 +11,10 @@ async function fetchMessages() {
         if (!response.ok) throw new Error('Error al cargar el archivo JSON');
 
         const data = await response.json();
-        tcpInput.value = (data.tcp && data.tcp.length)
+        tcpInput.innerText = (data.tcp && data.tcp.length)
             ? data.tcp[data.tcp.length - 1] // Último mensaje TCP
             : 'No hay mensajes TCP.';
-        udpInput.value = (data.udp && data.udp.length)
+        udpInput.innerText = (data.udp && data.udp.length)
             ? data.udp[data.udp.length - 1] // Último mensaje UDP
             : 'No hay mensajes UDP.';
         errorMessage.innerText = '';
@@ -35,9 +35,9 @@ ws.onmessage = (event) => {
     try {
         const { type, message } = JSON.parse(event.data);
         if (type === 'tcp') {
-            tcpInput.value = message; // Actualizar el último mensaje TCP
+            tcpInput.innerText = message; // Actualizar el último mensaje TCP
         } else if (type === 'udp') {
-            udpInput.value = message; // Actualizar el último mensaje UDP
+            udpInput.innerText = message; // Actualizar el último mensaje UDP
         }
     } catch (error) {
         console.error('Error procesando el mensaje del WebSocket:', error);
