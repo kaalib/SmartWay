@@ -54,7 +54,21 @@ ws.onclose = () => {
 };
 
 // Cargar mensajes al cargar la página
-fetchMessages();
+async function fetchMessages() {
+    try {
+        const response = await fetch(jsonUrl);
+        if (!response.ok) throw new Error('Error al cargar el archivo JSON');
+
+        const data = await response.json();
+        console.log('Datos cargados:', data);
+
+        tcpInput.innerText = data.tcp[data.tcp.length - 1] || 'No hay mensajes TCP.';
+        udpInput.innerText = data.udp[data.udp.length - 1] || 'No hay mensajes UDP.';
+    } catch (error) {
+        console.error('Error en fetchMessages:', error);
+    }
+}
+
 
 // Actualizar mensajes históricos cada 2 segundos
 setInterval(fetchMessages, 2000);
