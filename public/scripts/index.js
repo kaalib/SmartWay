@@ -53,7 +53,7 @@ ws.onclose = () => {
     errorMessage.innerText = 'Conexión WebSocket cerrada.';
 };
 
-// Cargar mensajes al cargar la página
+
 async function fetchMessages() {
     try {
         const response = await fetch(jsonUrl);
@@ -62,13 +62,21 @@ async function fetchMessages() {
         const data = await response.json();
         console.log('Datos cargados:', data);
 
-        tcpInput.innerText = data.tcp[data.tcp.length - 1] || 'No hay mensajes TCP.';
-        udpInput.innerText = data.udp[data.udp.length - 1] || 'No hay mensajes UDP.';
+        // Guardar mensajes en localStorage
+        localStorage.setItem('lastTcpMessage', data.tcp[data.tcp.length - 1] || 'No hay mensajes TCP.');
+        localStorage.setItem('lastUdpMessage', data.udp[data.udp.length - 1] || 'No hay mensajes UDP.');
+
+        // Mostrar mensajes en la página
+        tcpInput.innerText = localStorage.getItem('lastTcpMessage');
+        udpInput.innerText = localStorage.getItem('lastUdpMessage');
     } catch (error) {
         console.error('Error en fetchMessages:', error);
     }
 }
 
+// Al cargar la página, mostrar los mensajes guardados
+tcpInput.innerText = localStorage.getItem('lastTcpMessage') || 'No hay mensajes TCP.';
+udpInput.innerText = localStorage.getItem('lastUdpMessage') || 'No hay mensajes UDP.';
 
-// Actualizar mensajes históricos cada 2 segundos
+// Actualizar mensajes cada 2 segundos
 setInterval(fetchMessages, 2000);
