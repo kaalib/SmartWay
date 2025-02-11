@@ -3,7 +3,6 @@ const wsUrl = 'wss://3.84.149.254:443'; // WebSocket en tu instancia EC2
 
 const tcpInput = document.getElementById('tcpInput');
 const udpInput = document.getElementById('udpInput');
-const errorMessage = document.getElementById('errorMessage');
 
 // Cargar mensajes históricos desde /messages
 async function fetchMessages() {
