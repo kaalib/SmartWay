@@ -19,7 +19,7 @@ body {
     margin: 0 auto; /* Centra horizontalmente el contenedor */
     padding: 1rem; /* Espacio interno opcional, puede eliminarse si no se necesita */
     box-sizing: border-box; /* Incluye padding y bordes en el cálculo total del tamaño */
-    border: 2px solid purple; /* Mantén el borde si deseas visualizar el mapa claramente */
+    border: 2px solid; /* Mantén el borde si deseas visualizar el mapa claramente */
     border-radius: 8px; /* Bordes redondeados, opcional */
 }
 
@@ -29,7 +29,7 @@ body {
     width: 100%; /* Ocupa todo el ancho del contenedor padre (.container) */
     height: 100%; /* Ocupa todo el alto del contenedor padre */
     margin: 0; /* Elimina márgenes innecesarios */
-    border: 2px solid purple; /* Mantén el borde si deseas visualizar el mapa claramente */
+    border: 2px solid; /* Mantén el borde si deseas visualizar el mapa claramente */
     border-radius: 8px; /* Bordes redondeados, opcional */
     box-sizing: border-box; /* Asegura que bordes y padding se incluyan en las dimensiones totales */
 }
