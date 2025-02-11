@@ -78,5 +78,4 @@ async function fetchMessages() {
 tcpInput.innerText = localStorage.getItem('lastTcpMessage') || 'No hay mensajes TCP.';
 udpInput.innerText = localStorage.getItem('lastUdpMessage') || 'No hay mensajes UDP.';
 
-// Actualizar mensajes cada 2 segundos
-setInterval(fetchMessages, 2000);
+
