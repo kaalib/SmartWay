@@ -13,6 +13,23 @@ const net = require('net');
 
 const messages = { tcp: [], udp: [] };
 
+// Connect to MySQL database
+const db = mysql.createConnection({
+    host: process.env.db_host,
+    user: process.env.db_user,
+    password: process.env.db_password,
+    database: process.env.db_name
+});
+
+db.connect((err) => {
+    if (err) {
+        console.error('Error connecting to MySQL:', err);
+        return;
+    }
+    console.log('Connected to MySQL');
+});
+
+
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
