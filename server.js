@@ -10,8 +10,9 @@ const fs = require('fs');
 const app = express();
 const net = require('net');
 
-
 const messages = { tcp: [], udp: [] };
+
+require('dotenv').config(); // Cargar variables de entorno
 
 // Connect to MySQL database
 const db = mysql.createConnection({
@@ -23,10 +24,10 @@ const db = mysql.createConnection({
 
 db.connect((err) => {
     if (err) {
-        console.error('Error connecting to MySQL:', err);
+        console.error('❌ Error connecting to MySQL:', err);
         return;
     }
-    console.log('Connected to MySQL');
+    console.log('✅ Connected to MySQL');
 });
 
 
