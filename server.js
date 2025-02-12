@@ -78,20 +78,48 @@ const tcpServer = net.createServer((socket) => {
     console.log('Cliente TCP conectado');
 
     socket.on('data', (data) => {
-        console.log('Datos recibidos desde TCP:', data.toString());
-        messages.tcp.push(data.toString());
+        const idEmpleado = parseInt(data.toString().trim(), 10); // Convertir el dato recibido a número
 
-        // Guardar mensajes en archivo JSON
-        fs.writeFileSync('messages.json', JSON.stringify(messages, null, 2));
+        if (isNaN(idEmpleado)) {
+            socket.write('Error: ID inválido. Debe ser un número.\n');
+            return;
+        }
 
-        // Enviar datos a los clientes WebSocket
-        wss.clients.forEach((client) => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify({ type: 'tcp', message: data.toString() }));
+        console.log(`ID recibido: ${idEmpleado}`);
+
+        // Consulta SQL para obtener nombre y apellido del empleado con la ID recibida
+        const sql = 'SELECT nombre, apellido, direccion FROM empleados WHERE id = ?';
+
+        db.query(sql, [idEmpleado], (err, results) => {
+            if (err) {
+                console.error('Error en la consulta MySQL:', err);
+                socket.write('Error en la base de datos.\n');
+                return;
             }
-        });
 
-        socket.write('Mensaje TCP recibido correctamente.');
+            let respuesta = '';
+
+            if (results.length > 0) {
+                const empleado = results[0];
+                respuesta = `Empleado: ${empleado.nombre} ${empleado.apellido} ${empleado.direccion}\n`;
+            } else {
+                respuesta = 'Empleado no encontrado.\n';
+            }
+
+            // Guardar mensajes en archivo JSON
+            messages.tcp.push({ id: idEmpleado, respuesta });
+            fs.writeFileSync('messages.json', JSON.stringify(messages, null, 2));
+
+            // Enviar datos a los clientes WebSocket
+            wss.clients.forEach((client) => {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify({ type: 'tcp', message: respuesta }));
+                }
+            });
+
+            // Enviar respuesta al cliente TCP
+            socket.write(respuesta);
+        });
     });
 
     socket.on('end', () => {
@@ -108,7 +136,7 @@ tcpServer.listen(7777, '0.0.0.0', () => {
 const udpServer = dgram.createSocket('udp4');
 
 udpServer.on('message', (msg, rinfo) => {
-    console.log(`Datos recibidos desde UDP ${rinfo.address}:${rinfo.port}: ${msg}`);
+    console.log(`Datos recibidos desde UDP: ${msg}`);
     messages.udp.push(msg.toString());
 
     // Guardar mensajes en archivo JSON
