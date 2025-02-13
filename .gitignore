@@ -1,1 +1,13 @@
-.env
+# Ignorar archivos de configuración sensibles
+hardware/print_TPC_UDP/var_config.h
+*.ini
+*.env
+
+# Ignorar archivos compilados de Arduino
+*.elf
+*.bin
+*.hex
+
+# Ignorar archivos del sistema
+.DS_Store
+Thumbs.db
