@@ -82,7 +82,7 @@ function conectarWebSocket() {
     socket.onmessage = (event) => {
         try {
             const mensaje = JSON.parse(event.data);
-            if (mensaje.type === 'login-tcp' && mensaje.data.direccion) {
+            if (mensaje.type === 'logintcp' && mensaje.data.direccion) {
                 console.log('Dirección recibida:', mensaje.data.direccion);
                 geocodificarDireccion(mensaje.data.direccion);
             }
