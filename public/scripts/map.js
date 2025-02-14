@@ -37,7 +37,7 @@ function initMap() {
     }
 
     map = new google.maps.Map(mapElement, {
-        center: { lat: 10.9804, lng: -74.8038 },
+        center: { lat: 10.9804, lng: -74.81 },
         zoom: 13,
         disableDefaultUI: true
     });
@@ -82,7 +82,7 @@ function conectarWebSocket() {
     socket.onmessage = (event) => {
         try {
             const mensaje = JSON.parse(event.data);
-            if (mensaje.type === 'logintcp' && mensaje.data.direccion) {
+            if (mensaje.type === 'tcp' && mensaje.data.direccion) {
                 console.log('Dirección recibida:', mensaje.data.direccion);
                 geocodificarDireccion(mensaje.data.direccion);
             }

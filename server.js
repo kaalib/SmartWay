@@ -120,7 +120,7 @@ const tcpServer = net.createServer((socket) => {
             // Enviar datos a los clientes WebSocket
             wss.clients.forEach((client) => {
                 if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify({ type: 'logintcp', data: respuesta }));
+                    client.send(JSON.stringify({ type: 'tcp', data: respuesta }));
                 }
             });
 
