@@ -22,8 +22,8 @@ h1 {
 
 /* Caja de mensajes */
 .message-box {
-    background-color: #f9f9f9;
-    border: 1px solid #ccc;
+    background-color: #ddd;
+    border: 1px solid #ddd;
     border-radius: 5px;
     padding: 10px;
     min-height: 50px; /* Altura mínima */

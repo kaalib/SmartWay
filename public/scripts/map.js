@@ -1,11 +1,60 @@
+const jsonUrl = 'http://3.84.149.254/messages'; // IP de tu servidor
+const wsUrl = 'wss://3.84.149.254:443'; // WebSocket en la instancia EC2
+
+const tcpInput = document.getElementById('tcpInput');
+const udpInput = document.getElementById('udpInput');
+const errorMessage = document.getElementById('errorMessage'); // Asegúrate de tener este elemento en tu HTML
+
 const mapElement = document.getElementById('map');
 const searchInput = document.getElementById('search');
+
 let map = null;
 let autocomplete = null;
 let geocoder = null;
 let socket = null;
 
-// Obtener API Key y cargar Google Maps
+// 🔹 1. Cargar mensajes históricos desde el servidor
+async function fetchMessages() {
+    try {
+        const response = await fetch(jsonUrl);
+        if (!response.ok) throw new Error('Error al cargar el archivo JSON');
+
+        const data = await response.json();
+        tcpInput.innerText = data.tcp?.length ? data.tcp[data.tcp.length - 1] : 'No hay mensajes TCP.';
+        udpInput.innerText = data.udp?.length ? data.udp[data.udp.length - 1] : 'No hay mensajes UDP.';
+        errorMessage.innerText = '';
+    } catch (error) {
+        console.error(error);
+        errorMessage.innerText = 'Error al cargar los mensajes históricos: ' + error.message;
+    }
+}
+
+// 🔹 2. Conectar al WebSocket para recibir mensajes en tiempo real
+function conectarWebSocket() {
+    socket = new WebSocket(wsUrl);
+
+    socket.onopen = () => console.log('✅ Conectado al WebSocket.');
+    socket.onerror = (error) => console.error('❌ Error WebSocket:', error);
+    socket.onclose = () => console.warn('⚠️ Conexión WebSocket cerrada.');
+    
+    socket.onmessage = (event) => {
+        try {
+            const { type, message } = JSON.parse(event.data);
+            if (type === 'tcp') {
+                tcpInput.innerText = message;
+            } else if (type === 'udp') {
+                udpInput.innerText = message;
+            } else if (type === 'ubicacion' && message.direccion) {
+                console.log('📍 Dirección recibida:', message.direccion);
+                geocodificarDireccion(message.direccion);
+            }
+        } catch (error) {
+            console.error('⚠️ Error procesando el mensaje WebSocket:', error);
+        }
+    };
+}
+
+// 🔹 3. Obtener API Key para Google Maps
 function getApiKey() {
     fetch('/api/getApiKey')
         .then(response => response.json())
@@ -19,20 +68,20 @@ function getApiKey() {
         .catch(error => console.error('Error al obtener la API Key:', error));
 }
 
-// Cargar script de Google Maps con Places y Geocoder
+// 🔹 4. Cargar Google Maps API
 function loadGoogleMapsApi(apiKey) {
     const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initMap`;
     script.async = true;
     script.defer = true;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initMap`;
     script.onerror = () => console.error('Error al cargar Google Maps.');
     document.head.appendChild(script);
 }
 
-// Inicializar el mapa y Autocomplete
+// 🔹 5. Inicializar el mapa y Autocomplete
 function initMap() {
     if (!mapElement) {
-        console.error('Elemento del mapa no encontrado.');
+        console.error('❌ Elemento del mapa no encontrado.');
         return;
     }
 
@@ -42,7 +91,7 @@ function initMap() {
         disableDefaultUI: true
     });
 
-    geocoder = new google.maps.Geocoder(); // Inicializar Geocoder
+    geocoder = new google.maps.Geocoder();
 
     if (searchInput) {
         autocomplete = new google.maps.places.Autocomplete(searchInput, {
@@ -53,17 +102,14 @@ function initMap() {
         autocomplete.addListener('place_changed', () => {
             const place = autocomplete.getPlace();
             if (!place.geometry) return;
-
             agregarMarcador(place.geometry.location, place.formatted_address);
         });
     } else {
-        console.error('Campo de búsqueda no encontrado.');
+        console.error('❌ Campo de búsqueda no encontrado.');
     }
-
-    conectarWebSocket();
 }
 
-// Función para agregar marcador en el mapa
+// 🔹 6. Agregar marcador en el mapa
 function agregarMarcador(location, direccion) {
     new google.maps.Marker({
         position: location,
@@ -75,35 +121,18 @@ function agregarMarcador(location, direccion) {
     map.setZoom(15);
 }
 
-// Conectar con WebSocket para recibir ubicaciones
-function conectarWebSocket() {
-    socket = new WebSocket('wss://3.84.149.254:443'); 
-
-    socket.onmessage = (event) => {
-        try {
-            const mensaje = JSON.parse(event.data);
-            if (mensaje.type === 'tcp' && mensaje.data.direccion) {
-                console.log('Dirección recibida:', mensaje.data.direccion);
-                geocodificarDireccion(mensaje.data.direccion);
-            }
-        } catch (error) {
-            console.error('Error al procesar mensaje WebSocket:', error);
-        }
-    };
-
-    socket.onerror = (error) => console.error('Error WebSocket:', error);
-}
-
-// Convertir dirección en coordenadas y agregar marcador
+// 🔹 7. Convertir dirección en coordenadas y agregar marcador
 function geocodificarDireccion(direccion) {
     geocoder.geocode({ address: direccion }, (results, status) => {
         if (status === 'OK' && results[0]) {
             agregarMarcador(results[0].geometry.location, direccion);
         } else {
-            console.error('Error en geocodificación:', status);
+            console.error('❌ Error en geocodificación:', status);
         }
     });
 }
 
-// Cargar el mapa
+// 🔹 8. Ejecutar funciones necesarias al cargar la página
+fetchMessages();
 getApiKey();
+conectarWebSocket();
