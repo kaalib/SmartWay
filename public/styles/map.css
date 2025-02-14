@@ -11,27 +11,43 @@ body {
     height: 100vh;
 }
 
-/* Centraliza y ajusta el tamaño del contenedor para el mapa */
+/* Contenedor principal con flexbox */
 .container {
-    text-align: center; /* Centra contenido inline, aunque no afecta mucho en mapas */
-    width: 90%; /* Ocupa el 90% del ancho del body */
-    height: 80vh; /* Ocupa el 80% de la altura de la ventana */
-    margin: 0 auto; /* Centra horizontalmente el contenedor */
-    padding: 1rem; /* Espacio interno opcional, puede eliminarse si no se necesita */
-    box-sizing: border-box; /* Incluye padding y bordes en el cálculo total del tamaño */
-    border: 2px solid; /* Mantén el borde si deseas visualizar el mapa claramente */
-    border-radius: 8px; /* Bordes redondeados, opcional */
+    display: flex; /* Activa flexbox */
+    justify-content: space-between; /* Espaciado entre elementos */
+    align-items: stretch; /* Asegura que ambos elementos tengan la misma altura */
+    width: 97%;
+    height: 80vh;
+    margin: 0 auto;
+    padding: 1.2rem;
+    box-sizing: border-box;
+    border: 2px solid #ddd;
+    border-radius: 8px;
 }
 
-
-/* Map styling */
+/* Estiliza el mapa para ocupar el 60% a la izquierda */
 #map {
-    width: 100%; /* Ocupa todo el ancho del contenedor padre (.container) */
-    height: 100%; /* Ocupa todo el alto del contenedor padre */
-    margin: 0; /* Elimina márgenes innecesarios */
-    border: 2px solid; /* Mantén el borde si deseas visualizar el mapa claramente */
-    border-radius: 8px; /* Bordes redondeados, opcional */
-    box-sizing: border-box; /* Asegura que bordes y padding se incluyan en las dimensiones totales */
+    width: 68%;
+    height: 100%;
+    margin: 0;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    box-sizing: border-box;
+}
+
+/* Caja de mensajes alineada a la derecha ocupando el 40% */
+.message-box {
+    width: 30%;
+    height: 100%; /* Ocupa toda la altura del contenedor */
+    background-color: #f4f4f4;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    overflow-y: auto;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #333;
+    box-sizing: border-box;
 }
 
 
