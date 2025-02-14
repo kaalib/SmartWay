@@ -1,4 +1,4 @@
-const jsonUrl = 'http://3.84.149.254/messages'; // IP de tu servidor
+const jsonUrl = 'https://3.84.149.254/messages'; // IP de tu servidor
 const wsUrl = 'wss://3.84.149.254:443'; // WebSocket en la instancia EC2
 
 const tcpInput = document.getElementById('tcpInput');
@@ -13,21 +13,7 @@ let autocomplete = null;
 let geocoder = null;
 let socket = null;
 
-// 🔹 1. Cargar mensajes históricos desde el servidor
-async function fetchMessages() {
-    try {
-        const response = await fetch(jsonUrl);
-        if (!response.ok) throw new Error('Error al cargar el archivo JSON');
 
-        const data = await response.json();
-        tcpInput.innerText = data.tcp?.length ? data.tcp[data.tcp.length - 1] : 'No hay mensajes TCP.';
-        udpInput.innerText = data.udp?.length ? data.udp[data.udp.length - 1] : 'No hay mensajes UDP.';
-        errorMessage.innerText = '';
-    } catch (error) {
-        console.error(error);
-        errorMessage.innerText = 'Error al cargar los mensajes históricos: ' + error.message;
-    }
-}
 
 // 🔹 2. Conectar al WebSocket para recibir mensajes en tiempo real
 function conectarWebSocket() {
