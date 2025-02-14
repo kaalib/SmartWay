@@ -101,19 +101,26 @@ const tcpServer = net.createServer((socket) => {
 
             if (results.length > 0) {
                 const empleado = results[0];
-                respuesta = `Empleado: ${empleado.nombre} ${empleado.apellido} ${empleado.direccion}\n`;
+                respuesta = {
+                    id: idEmpleado,
+                    nombre: empleado.nombre,
+                    apellido: empleado.apellido,
+                    direccion: empleado.direccion
+                };
+                
+     
             } else {
-                respuesta = 'Empleado no encontrado.\n';
+                respuesta = 'Usuario no encontrado.\n';
             }
 
             // Guardar mensajes en archivo JSON
-            messages.tcp.push({ id: idEmpleado, respuesta });
+            messages.tcp.push( respuesta);
             fs.writeFileSync('messages.json', JSON.stringify(messages, null, 2));
 
             // Enviar datos a los clientes WebSocket
             wss.clients.forEach((client) => {
                 if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify({ type: 'tcp', message: respuesta }));
+                    client.send(JSON.stringify({ type: 'login-tcp', data: respuesta }));
                 }
             });
 
