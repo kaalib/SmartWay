@@ -3,6 +3,7 @@ const wsUrl = 'wss://3.84.149.254:443'; // WebSocket en tu instancia EC2
 
 const tcpInput = document.getElementById('tcpInput');
 const udpInput = document.getElementById('udpInput');
+const tcpDirections = document.getElementById('tcpdirections'); // Div donde irán las direcciones
 
 // Cargar mensajes históricos desde /messages
 async function fetchMessages() {
@@ -37,12 +38,14 @@ ws.onmessage = (event) => {
 
         if (data.type === 'tcp') {
             if (typeof data.data === 'object') {
-                // Mostrar la información en el texto
+                // Mostrar la información en el message-box
                 tcpInput.innerText = `Empleado: ${data.data.id} ${data.data.nombre} ${data.data.apellido} ${data.data.direccion}`;
 
-                // Llamar a la función para geocodificar la dirección y agregarla al mapa
+                // Agregar dirección a la lista y actualizar en el message-box
                 if (geocoder && data.data.direccion) {
                     geocodificarDireccion(data.data.direccion);
+                    direccionesTCP.push(data.data.direccion);
+                    actualizarListaDirecciones(); // Llamar a la función de actualización
                 }
             } else {
                 tcpInput.innerText = `Mensaje TCP: ${data.data}`;
@@ -54,6 +57,16 @@ ws.onmessage = (event) => {
         console.error('Error procesando el mensaje del WebSocket:', error);
     }
 };
+
+// Función para actualizar la lista de direcciones en tcpdirections
+function actualizarListaDirecciones() {
+    tcpDirections.innerHTML = ''; // Limpiar el div antes de agregar nuevas direcciones
+    direccionesTCP.forEach((direccion, index) => {
+        const item = document.createElement('p'); // Crear un párrafo en vez de <li>
+        item.textContent = `${index + 1}. ${direccion}`;
+        tcpDirections.appendChild(item);
+    });
+}
    
 
 ws.onerror = (error) => {
@@ -74,6 +87,8 @@ let map = null;
 let autocomplete = null;
 let geocoder = null;
 let socket = null;
+let marcadores = []; // Array de marcadores en el mapa
+let direccionesTCP = []; // Lista de direcciones recibidas
 
 // Obtener API Key y cargar Google Maps
 function getApiKey() {
@@ -116,38 +131,37 @@ function initMap() {
 
     if (searchInput) {
         autocomplete = new google.maps.places.Autocomplete(searchInput, {
-            componentRestrictions: { country: 'CO' },
-            fields: ['geometry', 'formatted_address']
+            componentRestrictions: { country: 'CO' }, // Restringe a Colombia
+            fields: ['geometry', 'formatted_address', 'address_components']
         });
-
+    
         autocomplete.addListener('place_changed', () => {
             const place = autocomplete.getPlace();
             if (!place.geometry) return;
-
-            agregarMarcador(place.geometry.location, place.formatted_address);
+    
+            // Filtrar por departamento (Ejemplo: Atlántico)
+            const departamentoPermitido = "Atlántico"; // Cambia esto por el departamento que deseas
+    
+            // Buscar el departamento en address_components
+            const departamento = place.address_components.find(component =>
+                component.types.includes('administrative_area_level_1')
+            );
+    
+            if (departamento && departamento.long_name === departamentoPermitido) {
+                agregarMarcador(place.geometry.location, place.formatted_address);
+            } else {
+                alert("⚠️ Solo puedes seleccionar ubicaciones en " + departamentoPermitido);
+            }
         });
     } else {
         console.error('Campo de búsqueda no encontrado.');
     }
+    
 
     conectarWebSocket();
 }
 
-// Función para agregar marcador en el mapa
-function agregarMarcador(location, direccion) {
-    new google.maps.Marker({
-        position: location,
-        map,
-        title: direccion
-    });
-
-    map.setCenter(location);
-    map.setZoom(15);
-}
-
-
-
-// Convertir dirección en coordenadas y agregar marcador
+// Función para geocodificar direcciones y agregar marcadores
 function geocodificarDireccion(direccion) {
     geocoder.geocode({ address: direccion }, (results, status) => {
         if (status === 'OK' && results[0]) {
@@ -157,6 +171,33 @@ function geocodificarDireccion(direccion) {
         }
     });
 }
+
+// Agregar marcador en el mapa
+function agregarMarcador(location, direccion) {
+    const marcador = new google.maps.Marker({
+        position: location,
+        map,
+        title: direccion
+    });
+
+    marcadores.push(marcador);
+    map.setCenter(location);
+}
+
+
+// Función para limpiar el mapa y la lista de direcciones
+function limpiarMapa() {
+    // Eliminar todos los marcadores del mapa
+    marcadores.forEach(marcador => marcador.setMap(null));
+    marcadores = [];
+
+    // Vaciar la lista de direcciones
+    direccionesTCP = [];
+    listaDirecciones.innerHTML = '';
+    tcpInput.innerText = 'No hay mensajes TCP.';
+}
+// Asignar la función limpiarMapa al botón ya existente
+document.getElementById('btnLimpiar').addEventListener('click', limpiarMapa);
 
 // Cargar el mapa
 getApiKey();
