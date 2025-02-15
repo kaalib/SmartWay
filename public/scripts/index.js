@@ -37,8 +37,13 @@ ws.onmessage = (event) => {
 
         if (data.type === 'tcp') {
             if (typeof data.data === 'object') {
-                // Formatear los datos correctamente en el HTML
+                // Mostrar la información en el texto
                 tcpInput.innerText = `Empleado: ${data.data.id} ${data.data.nombre} ${data.data.apellido} ${data.data.direccion}`;
+
+                // Llamar a la función para geocodificar la dirección y agregarla al mapa
+                if (geocoder && data.data.direccion) {
+                    geocodificarDireccion(data.data.direccion);
+                }
             } else {
                 tcpInput.innerText = `Mensaje TCP: ${data.data}`;
             }
@@ -48,7 +53,8 @@ ws.onmessage = (event) => {
     } catch (error) {
         console.error('Error procesando el mensaje del WebSocket:', error);
     }
-};    
+};
+   
 
 ws.onerror = (error) => {
     console.error('Error en el WebSocket:', error);
@@ -60,3 +66,97 @@ ws.onclose = () => {
 };
 
 fetchMessages() 
+
+
+const mapElement = document.getElementById('map');
+const searchInput = document.getElementById('search');
+let map = null;
+let autocomplete = null;
+let geocoder = null;
+let socket = null;
+
+// Obtener API Key y cargar Google Maps
+function getApiKey() {
+    fetch('/api/getApiKey')
+        .then(response => response.json())
+        .then(data => {
+            if (data.apiKey) {
+                loadGoogleMapsApi(data.apiKey);
+            } else {
+                throw new Error('API Key no encontrada.');
+            }
+        })
+        .catch(error => console.error('Error al obtener la API Key:', error));
+}
+
+// Cargar script de Google Maps con Places y Geocoder
+function loadGoogleMapsApi(apiKey) {
+    const script = document.createElement('script');
+    script.async = true;
+    script.defer = true;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initMap`;
+    script.onerror = () => console.error('Error al cargar Google Maps.');
+    document.head.appendChild(script);
+}
+
+// Inicializar el mapa y Autocomplete
+function initMap() {
+    if (!mapElement) {
+        console.error('Elemento del mapa no encontrado.');
+        return;
+    }
+
+    map = new google.maps.Map(mapElement, {
+        center: { lat: 10.9804, lng: -74.81 },
+        zoom: 13,
+        disableDefaultUI: true
+    });
+
+    geocoder = new google.maps.Geocoder(); // Inicializar Geocoder
+
+    if (searchInput) {
+        autocomplete = new google.maps.places.Autocomplete(searchInput, {
+            componentRestrictions: { country: 'CO' },
+            fields: ['geometry', 'formatted_address']
+        });
+
+        autocomplete.addListener('place_changed', () => {
+            const place = autocomplete.getPlace();
+            if (!place.geometry) return;
+
+            agregarMarcador(place.geometry.location, place.formatted_address);
+        });
+    } else {
+        console.error('Campo de búsqueda no encontrado.');
+    }
+
+    conectarWebSocket();
+}
+
+// Función para agregar marcador en el mapa
+function agregarMarcador(location, direccion) {
+    new google.maps.Marker({
+        position: location,
+        map,
+        title: direccion
+    });
+
+    map.setCenter(location);
+    map.setZoom(15);
+}
+
+
+
+// Convertir dirección en coordenadas y agregar marcador
+function geocodificarDireccion(direccion) {
+    geocoder.geocode({ address: direccion }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+            agregarMarcador(results[0].geometry.location, direccion);
+        } else {
+            console.error('Error en geocodificación:', status);
+        }
+    });
+}
+
+// Cargar el mapa
+getApiKey();
