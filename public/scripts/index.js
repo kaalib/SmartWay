@@ -3,7 +3,7 @@ const wsUrl = 'wss://3.84.149.254:443'; // WebSocket en tu instancia EC2
 
 const tcpInput = document.getElementById('tcpInput');
 const udpInput = document.getElementById('udpInput');
-const tcpDirections = document.getElementById('tcpdirections'); // Div donde irán las direcciones
+const tcpDirections = document.getElementById('tcpDirections'); // Div donde irán las direcciones
 
 // Cargar mensajes históricos desde /messages
 async function fetchMessages() {
@@ -193,8 +193,9 @@ function limpiarMapa() {
 
     // Vaciar la lista de direcciones
     direccionesTCP = [];
-    listaDirecciones.innerHTML = '';
-    tcpInput.innerText = 'No hay mensajes TCP.';
+    tcpInput.value = ``;
+    tcpDirections.innerHTML = ``;
+
 }
 // Asignar la función limpiarMapa al botón ya existente
 document.getElementById('btnLimpiar').addEventListener('click', limpiarMapa);
