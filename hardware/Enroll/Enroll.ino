@@ -29,7 +29,7 @@ void loop() {
     while (Serial.available() == 0);
     
     int id = Serial.parseInt();
-    while (Serial.available()) Serial.read();  // Limpiar el buffer
+    while (Serial.available()) Serial.read();  // Limpia buffer
     
     if (id < 0 || id > 127) {
         Serial.println("ID fuera de rango. Intenta de nuevo.");
@@ -50,7 +50,7 @@ void loop() {
 bool enrollFingerprint(int id) {
     int p;
 
-    Serial.println("Coloca tu dedo en el sensor...");
+    Serial.println("Colocar el dedo en el sensor");
     while ((p = finger.getImage()) != FINGERPRINT_OK);
 
     p = finger.image2Tz(1);

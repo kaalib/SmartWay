@@ -6,36 +6,36 @@
 #include "var_config.h"
 
 
-// 🛜 Crear instancias para UDP y TCP
+//instancias UDP y TCP
 WiFiUDP udp;
 WiFiClient tcpClient;
 
-// 🔄 Configuración del sensor de huellas
+//sensor de huellas
 HardwareSerial mySerial(2);  // UART2 en ESP32 (GPIO16 y GPIO17)
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
 void setup() {
-    Serial.begin(115200);
-    mySerial.begin(57600, SERIAL_8N1, 16, 17);  // TX y RX del ESP32
+  Serial.begin(115200);
+  mySerial.begin(57600, SERIAL_8N1, 16, 17);  // TX y RX del ESP32
 
-    Serial.println("\n🔄 Conectando a WiFi...");
-    WiFi.begin(SSID, PASSWORD);
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-    }
-    Serial.println("\n✅ WiFi conectado");
-    Serial.print("📡 IP Local: ");
-    Serial.println(WiFi.localIP());
+  Serial.println("\n Conectando a WiFi...");
+  WiFi.begin(SSID, PASSWORD);
+  while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+      Serial.print(".");
+  }
+  Serial.println("\n WiFi conectado");
+  Serial.print("IP Local: ");
+  Serial.println(WiFi.localIP());
 
-    Serial.println("🔍 Iniciando sensor de huellas...");
-    finger.begin(57600);
-    if (finger.verifyPassword()) {
-        Serial.println("✅ Sensor de huellas detectado.");
-    } else {
-        Serial.println("❌ No se encontró el sensor. Revisa las conexiones.");
-        while (1);
-    }
+  Serial.println("Iniciando sensor de huellas...");
+  finger.begin(57600);
+  if (finger.verifyPassword()) {
+      Serial.println("✅ Sensor de huellas detectado.");
+  } else {
+      Serial.println("❌ No se encontró el sensor.");
+      while (1);
+  }
 }
 
 void loop() {
