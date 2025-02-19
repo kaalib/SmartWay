@@ -1,5 +1,6 @@
 # Ignorar archivos de configuración sensibles
 hardware/print_TPC_UDP/var_config.h
+hardware/interfaz_gui/var_config.h
 *.ini
 *.env
 
