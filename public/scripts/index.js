@@ -1,4 +1,4 @@
-const jsonUrl = 'http://3.84.149.254/messages'; // Cambiar por la IP de tu servidor
+const jsonUrl = 'https://3.84.149.254/messages'; // Cambiar por la IP de tu servidor
 const wsUrl = 'wss://3.84.149.254:443'; // WebSocket en tu instancia EC2
 
 const tcpInput = document.getElementById('tcpInput');
