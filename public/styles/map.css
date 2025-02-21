@@ -1,76 +1,161 @@
-/* General styles */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+
+/* Estilo general */
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Montserrat', sans-serif;
     margin: 0;
-    padding: 0;
+    padding: 20px;
+    background: linear-gradient(to right, #e2e2e2, #c9d6ff);
     display: flex;
     justify-content: center;
     align-items: center;
-    flex-direction: column;
-    background-color: #f4f4f4;
-    height: 100vh;
+    min-height: 100vh;
 }
 
-/* Contenedor principal con flexbox */
+/* Contenedor principal */
 .container {
-    display: flex; /* Activa flexbox */
-    justify-content: space-between; /* Espaciado entre elementos */
-    align-items: stretch; /* Asegura que ambos elementos tengan la misma altura */
-    width: 97%;
-    height: 80vh;
-    margin: 0 auto;
-    padding: 1.2rem;
-    box-sizing: border-box;
-    border: 2px solid #ddd;
-    border-radius: 8px;
+    width: 100%;
+    max-width: 1400px;
+    margin: 20px auto;
+    padding: 20px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-/* Estiliza el mapa para ocupar el 60% a la izquierda */
-#map {
-    width: 68%;
-    height: 100%;
-    margin: 0;
-    border: 2px solid #ddd;
-    border-radius: 8px;
-    box-sizing: border-box;
+/* Estilo para encabezados */
+h1 {
+    color: #512da8;
+    font-size: 24px;
+    margin-bottom: 10px;
 }
 
-/* Caja de mensajes alineada a la derecha ocupando el 40% */
+/* Contenedor del mapa y mensajes */
+.map-and-messages {
+    display: flex;
+    width: 100%;
+    max-width: 1400px;
+    gap: 20px;
+    align-items: stretch;
+}
+
+/* Contenedor de los mensajes alineado a la izquierda */
+.message-container {
+    flex: 2;
+    max-width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 300px; /* Ajusta según lo que necesites */
+    overflow: hidden; /* Evita que crezca más de lo permitido */
+}
+
+/* Ajustes a los message-box */
 .message-box {
-    width: 30%;
-    height: 100%; /* Ocupa toda la altura del contenedor */
-    background-color: #f4f4f4;
-    border: 1px solid #ddd;
+    background: #f8f8f8;
+    border-right: 5px solid #512da8;
     border-radius: 8px;
     padding: 10px;
-    overflow-y: auto;
+    min-height: 100px;
+    max-height: 100%; /* No puede superar la altura del contenedor */
     font-size: 14px;
-    line-height: 1.5;
     color: #333;
-    box-sizing: border-box;
+    flex: 1; /* Distribuye el espacio dentro de .message-container */
+    text-align: left;
+    overflow-y: auto; /* Habilita el scroll vertical si el contenido es mayor */
+    scrollbar-width: thin; /* Para navegadores modernos */
+    scrollbar-color: #512da8 #f8f8f8; /* Color del scroll */
 }
 
+/* Ajustes al mapa para que ocupe el espacio restante */
+#map {
+    flex: 8;
+    height: 500px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+}
+
+
+
+/* Contenedor de botones */
+.button-container {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+}
 
 .btn {
-    display: inline-block;
-    padding: 10px 20px;
+    display: inline-flex; /* Asegura que funcione como un botón */
+    align-items: center;
+    justify-content: center;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 600;
     color: white;
-    background-color: purple;
+    background: #512da8;
     border: none;
-    border-radius: 5px;
-    text-decoration: none; /* Quita el subrayado */
-    text-align: center;
+    border-radius: 8px;
+    text-decoration: none;
     cursor: pointer;
-    margin-top: 30px; /* Separación de 2 píxeles con el objeto de arriba */
+    transition: 0.3s ease;
+    text-align: center; /* Asegura el centrado */
+    white-space: nowrap; /* Evita saltos de línea raros */
 }
-
 
 .btn:hover {
-    background-color: darkviolet;
+    background: #311b92;
 }
 
-@media (max-width: 768px) {
+
+/* Responsividad: en pantallas pequeñas se apilan */
+@media (max-width: 992px) {
     .container {
-        height: 60vh; /* Reduce la altura en dispositivos más pequeños */
+        padding: 10px;
+        height: 100vh; /* Ocupa toda la altura de la pantalla */
+        display: flex;
+        flex-direction: column;
+    }
+
+    .map-and-messages {
+
+        width: 100%;
+    }
+
+    .message-container {
+        display: none; /* Oculta los mensajes */
+    }
+
+    #map {
+        width: 100%;
+        min-height: 85vh; /* Hace que el mapa sea alto como la pantalla */
+    }
+
+    
+    .btn {
+        width: 100%;
+        padding: 10px;
+    }
+}
+
+/* Ajustes para móviles más pequeños */
+@media (max-width: 600px) {
+    .container {
+        padding: 10px;
+        height: 100vh; /* Asegura que el contenedor use toda la pantalla */
+    }
+    .map-and-messages {
+        height: 90%;
+    }
+    #map {
+        height: 85vh; /* Mapa ocupa casi toda la pantalla */
+    }
+
+    .btn {
+        width: 100%;
+        padding: 10px;
     }
 }

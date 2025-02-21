@@ -8,11 +8,26 @@
 </head>
 <body>
     <div class="container">
-        <div id="map"></div>
-        <div id="tcpInput" class="message-box"></div>
+        <h1>Mapa y Mensajes</h1>
+
+        <!-- Contenedor del mapa y los mensajes -->
+        <div class="map-and-messages">
+            <div id="map"></div>
+            <div class="message-container">
+
+                <div id="tcpInput" class="message-box"></div>
+                <div id="tcpDirections" class="message-box">Empleados y direcciones</div>
+            </div>
+
+        </div>
+
+        <!-- Botones -->
+        <div class="button-container">
+            <button id="btnLimpiar" class="btn">Limpiar Mapa</button>
+            <a href="index.html" class="btn">Regresar</a>
+        </div>
     </div>
-    </div>
-    <a href="index.html" class="btn">Regresar</a>
+
     <script src="scripts/map.js"></script>
 </body>
 </html>
