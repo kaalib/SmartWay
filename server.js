@@ -10,7 +10,7 @@ const fs = require('fs');
 const app = express();
 const net = require('net');
 
-const messages = { tcp: [], udp: [] };
+const messages = { tcp: [] }; // Mensajes TCP
 
 require('dotenv').config(); // Cargar variables de entorno
 
@@ -33,6 +33,9 @@ db.connect((err) => {
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.use(express.json()); // Middleware para leer JSON en requests
+
 
 // Get and send API key
 app.get('/api/getApiKey', (req, res) => {
@@ -139,30 +142,7 @@ tcpServer.listen(7777, '0.0.0.0', () => {
     console.log('Servidor TCP escuchando en el puerto 7777');
 });
 
-// --- Servidor UDP ---
-const udpServer = dgram.createSocket('udp4');
-
-udpServer.on('message', (msg, rinfo) => {
-    console.log(`Datos recibidos desde UDP: ${msg}`);
-    messages.udp.push(msg.toString());
-
-    // Guardar mensajes en archivo JSON
-    fs.writeFileSync('messages.json', JSON.stringify(messages, null, 2));
-
-    // Enviar datos a los clientes WebSocket
-    wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({ type: 'udp', message: msg.toString() }));
-        }
-    });
-
-    udpServer.send('Mensaje UDP recibido correctamente.', rinfo.port, rinfo.address);
-});
-
-// UDP
-udpServer.bind(7776, '0.0.0.0', () => {
-    console.log('Servidor UDP escuchando en el puerto 7776');
-});
+// --- Servidor UDP --- borrado
 
 // --- Redirige tráfico HTTP a HTTPS ---
 const httpServer = http.createServer((req, res) => {
@@ -172,4 +152,24 @@ const httpServer = http.createServer((req, res) => {
 
 httpServer.listen(80, () => {
     console.log('Servidor HTTP redirigiendo a HTTPS');
+});
+
+
+// Ruta de login
+app.post("/login", (req, res) => {
+    const { usuario, contraseña } = req.body;
+
+    const query = `SELECT acceso, bus FROM empleados WHERE usuario = ? AND contraseña = ? AND acceso = 1 LIMIT 1`;
+
+    db.query(query, [usuario, contraseña], (err, results) => {
+        if (err) {
+            return res.status(500).json({ success: false, message: "Error en el servidor" });
+        }
+
+        if (results.length > 0) {
+            res.json({ success: true, message: "Inicio de sesión exitoso" });
+        } else {
+            res.json({ success: false, message: "Usuario o contraseña incorrectos" });
+        }
+    });
 });

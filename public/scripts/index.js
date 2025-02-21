@@ -2,7 +2,6 @@ const jsonUrl = 'https://3.84.149.254/messages'; // Cambiar por la IP de tu serv
 const wsUrl = 'wss://3.84.149.254:443'; // WebSocket en tu instancia EC2
 
 const tcpInput = document.getElementById('tcpInput');
-const udpInput = document.getElementById('udpInput');
 const tcpDirections = document.getElementById('tcpDirections'); // Div donde irán las direcciones
 
 // Cargar mensajes históricos desde /messages
@@ -90,6 +89,44 @@ let socket = null;
 let marcadores = []; // Array de marcadores en el mapa
 let direccionesTCP = []; // Lista de direcciones recibidas
 
+
+
+// Obtener ubicación del usuario y agregarla a la lista
+function obtenerUbicacionUsuario() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                const userLocation = new google.maps.LatLng(latitude, longitude);
+
+                // Geocodificar ubicación
+                geocoder.geocode({ location: userLocation }, (results, status) => {
+                    if (status === "OK" && results[0]) {
+                        const direccionUsuario = results[0].formatted_address;
+
+                        // Agregar la dirección del usuario como primer elemento en la lista
+                        direccionesTCP.unshift(direccionUsuario);
+                        
+                        // Mostrar en el input de direcciones
+                        tcpInput.value = direccionesTCP.join("\n");
+
+                        // Agregar marcador en el mapa
+                        agregarMarcador(userLocation, "📍 Punto de partida" );
+                    } else {
+                        console.error("No se pudo obtener la dirección de la ubicación del usuario.");
+                    }
+                });
+            },
+            (error) => {
+                console.error("Error al obtener la ubicación del usuario:", error.message);
+            }
+        );
+    } else {
+        console.error("La geolocalización no está soportada en este navegador.");
+    }
+}
+
+
 // Obtener API Key y cargar Google Maps
 function getApiKey() {
     fetch('/api/getApiKey')
@@ -128,7 +165,9 @@ function initMap() {
     });
 
     geocoder = new google.maps.Geocoder(); // Inicializar Geocoder
-
+    
+    obtenerUbicacionUsuario(); // 🔹 Obtener ubicación del usuario al iniciar el mapa
+    
     if (searchInput) {
         autocomplete = new google.maps.places.Autocomplete(searchInput, {
             componentRestrictions: { country: 'CO' }, // Restringe a Colombia

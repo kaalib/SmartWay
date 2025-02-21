@@ -80,3 +80,34 @@ a {
         padding: 20px;
     }
 }
+
+a {
+    text-decoration: underline;
+    color: #666;
+}
+
+a:hover {
+    color: #311b92;
+}
+
+.eye-icon {
+    position: relative;
+
+
+    height: 100%; /* Ocupará el 70% del contenedor */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    color: #666;
+    transition: color 0.3s ease;
+    z-index: 10; /* Se superpone sobre otros elementos */
+    background: rgba(255, 255, 255, 0.8); /* Opcional: Fondo semi-transparente */
+    padding: 1px; /* Espacio interno para clic más cómodo */
+    border-radius: 51x;
+}
+
+.eye-icon:hover {
+    color: #311b92;
+}
