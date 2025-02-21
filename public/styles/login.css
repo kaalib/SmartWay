@@ -12,9 +12,11 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 100vh;
+    min-height: 100vh; /* Cambiado de height a min-height */
     padding: 20px;
+    overflow: hidden; /* Opcional: Evita el scroll si no es necesario */
 }
+
 
 .container {
     background-color: #fff;

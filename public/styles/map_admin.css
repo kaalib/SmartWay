@@ -68,6 +68,9 @@ nav a:hover {
     padding-top: 60px;
     border-top-right-radius: 12px;
     border-bottom-right-radius: 12px;
+    z-index: 1100; /* Asegúrate de que sea más alto que el mapa */
+    
+    
 }
 
 .sidebar a {
