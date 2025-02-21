@@ -90,9 +90,8 @@ let marcadores = []; // Array de marcadores en el mapa
 let direccionesTCP = []; // Lista de direcciones recibidas
 
 
-
 // Función para obtener la ubicación del usuario
-function obtenerUbicacionUsuario() {
+function obtenerUbicacionUsuario(intentos = 0) {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -119,12 +118,18 @@ function obtenerUbicacionUsuario() {
             },
             (error) => {
                 if (error.code === error.PERMISSION_DENIED) {
-                    alert("Para continuar, por favor permite el acceso a tu ubicación.");
-                    
-                    // Esperar 3 segundos antes de volver a pedir ubicación
-                    setTimeout(() => {
-                        obtenerUbicacionUsuario();
-                    }, 3000);
+                    alert("Por favor, permite el acceso a tu ubicación en la configuración del navegador.");
+
+                    if (intentos < 3) {
+                        // Reintentar después de 5 segundos
+                        setTimeout(() => {
+                            obtenerUbicacionUsuario(intentos + 1);
+                        }, 5000);
+                    } else {
+                        alert(
+                            "Has negado el acceso varias veces. Para activarlo, ve a Configuración > Permisos de Ubicación en tu navegador."
+                        );
+                    }
                 } else {
                     console.error("Error al obtener la ubicación del usuario:", error.message);
                 }
@@ -169,7 +174,7 @@ function initMap() {
 
     map = new google.maps.Map(mapElement, {
         center: { lat: 10.9804, lng: -74.81 },
-        zoom: 13,
+        zoom: 14,
         disableDefaultUI: true
     });
 

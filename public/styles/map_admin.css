@@ -116,8 +116,9 @@ h1 {
 
     /* Hace que el contenedor ocupe toda la pantalla */
     .container {
-        width: 100%;
+        width: 96.4%;
         height: 100%;
+        position: center;
         margin: 0;
         padding: 10px;
         border-radius: 10px; /* Quita esquinas redondeadas */
@@ -134,7 +135,7 @@ h1 {
     /* Ajusta el tamaño del mapa */
     #map {
         width: 98%;
-        min-height: 400px;
+        min-height: 60vh;
     }
 
     /* Los mensajes se ponen debajo del mapa */
