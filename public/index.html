@@ -8,17 +8,31 @@
     <link rel="stylesheet" href="styles/index.css">
 </head>
 <body>
-    
+
+    <!-- Barra de navegación -->
+    <div class="nav-container">
+        <nav>
+            <a href="index.html">Inicio</a>
+            <a href="map_admin.html">Mapa</a>
+            <a href="login.html">Login</a>
+            <a href="contact.html">Contacto</a>
+        </nav>
+    </div>
+
+    <div class="menu-icon" onclick="openNav()">☰</div>
+
+<div id="sidebar" class="sidebar">
+    <a href="javascript:void(0)" class="close-btn" onclick="closeNav()">×</a>
+    <a href="index.html">Inicio</a>
+    <a href="map_admin.html">Mapa</a>
+    <a href="login.html">Login</a>
+    <a href="contact.html">Contacto</a>
+</div>
+
+    <!-- Contenedor principal -->
     <div class="container">
         <h1>Proyecto Final - Ingeniería Electrónica</h1>
-
         <p>Esta página está siendo desarrollada por Orlando Arroyo y Karen Barros para el proyecto final de Ingeniería Electrónica de la Universidad del Norte.</p>
-
-        <!-- Botones -->
-        <div class="button-container">
-            <a href="map_admin.html" class="btn">Mapa</a>
-            <a href="login.html" class="btn">Login</a>
-        </div>
     </div>
 
     <script src="scripts/index.js"></script>

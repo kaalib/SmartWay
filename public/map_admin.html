@@ -8,14 +8,32 @@
     <link rel="stylesheet" href="styles/map_admin.css">
 </head>
 <body>
+            <!-- Barra de navegación -->
+            <div class="nav-container">
+                <nav>
+                    <a href="index.html">Inicio</a>
+                    <a href="map_admin.html">Mapa</a>
+                    <a href="login.html">Login</a>
+                    <a href="contact.html">Contacto</a>
+                </nav>
+            </div>
+    
+            <div class="menu-icon" onclick="openNav()">☰</div>
+    
+            <div id="sidebar" class="sidebar">
+            <a href="javascript:void(0)" class="close-btn" onclick="closeNav()">×</a>
+            <a href="index.html">Inicio</a>
+            <a href="map_admin.html">Mapa</a>
+            <a href="login.html">Login</a>
+            <a href="contact.html">Contacto</a>
+            </div>
+
     <div class="container">
         <h1>Mapa y Mensajes</h1>
-
         <!-- Contenedor del mapa y los mensajes -->
         <div class="map-and-messages">
             <div id="map"></div>
             <div class="message-container">
-
                 <div id="tcpInput" class="message-box">Mensajes TCP entrantes</div>
                 <div id="tcpDirections" class="message-box">Empleados y direcciones</div>
             </div>
@@ -25,7 +43,6 @@
         <!-- Botones -->
         <div class="button-container">
             <button id="btnLimpiar" class="btn">Limpiar Mapa</button>
-            <a href="index.html" class="btn">Regresar</a>
         </div>
     </div>
 

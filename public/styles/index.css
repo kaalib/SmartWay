@@ -4,18 +4,98 @@
 body {
     font-family: 'Montserrat', sans-serif;
     margin: 0;
-    padding: 20px;
+    padding: 0;
     background: linear-gradient(to right, #e2e2e2, #c9d6ff);
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
-    min-height: 100vh;
+}
+
+/* Barra de navegación */
+.nav-container {
+    width: 90%;
+    border-radius: 10px;
+    background: #512da8;
+    padding: 15px 0;
+    margin: 10px auto; /* Se alinea correctamente sin usar left */
+    position: relative;
+    top: 10px;
+    left: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
+}
+
+nav {
+    display: flex;
+    gap: 20px;
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    padding: 10px 15px;
+    transition: 0.3s;
+}
+
+nav a:hover {
+    background: #311b92;
+    border-radius: 5px;
+}
+
+/* Menú lateral en pantallas pequeñas */
+.menu-icon {
+    display: none;
+    font-size: 30px;
+    cursor: pointer;
+    color: white;
+    position: absolute;
+    top: 15px;
+    left: 15px;
+}
+
+.sidebar {
+    height: 100%;
+    width: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background-color: #512da8;
+    overflow-x: hidden;
+    transition: 0.5s;
+    padding-top: 60px;
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+.sidebar a {
+    padding: 10px 15px;
+    text-decoration: none;
+    font-size: 18px;
+    color: white;
+    display: block;
+    transition: 0.3s;
+}
+
+.sidebar a:hover {
+    background: #311b92;
+}
+
+.sidebar .close-btn {
+    position: absolute;
+    top: 10px;
+    right: 25px;
+    font-size: 36px;
+    cursor: pointer;
 }
 
 /* Contenedor principal */
 .container {
-    width: 100%;
-    margin: 20px auto;
+    width: 90%;
+    margin: 20px auto 20px;
     padding: 20px;
     background: #fff;
     border-radius: 10px;
@@ -23,6 +103,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    box-sizing: border-box;
 }
 
 /* Estilo para encabezados */
@@ -30,48 +111,8 @@ h1 {
     color: #512da8;
     font-size: 24px;
     margin-bottom: 10px;
+    text-align: center;
 }
-
-/* Contenedor del mapa y mensajes */
-.map-and-messages {
-    display: flex;
-    width: 100%;
-    gap: 20px;
-    align-items: stretch;
-}
-
-/* Contenedor de los mensajes alineado a la izquierda */
-.message-container {
-    flex: 2;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    overflow: hidden; /* Evita que crezca más de lo permitido */
-}
-
-/* Ajustes a los message-box */
-.message-box {
-    background: #f8f8f8;
-    border-bottom: 5px solid #512da8;
-    border-radius: 8px;
-    padding: 10px;
-    font-size: 14px;
-    color: #333;
-    flex: 1; /* Distribuye el espacio dentro de .message-container */
-    text-align: left;
-    overflow-y: auto; /* Habilita el scroll vertical si el contenido es mayor */
-    scrollbar-color: #512da8 #f8f8f8; /* Color del scroll */
-}
-
-/* Ajustes al mapa para que ocupe el espacio restante */
-#map {
-    flex: 8;
-    height: 500px;
-    border: 2px solid #ddd;
-    border-radius: 8px;
-}
-
-
 
 /* Contenedor de botones */
 .button-container {
@@ -82,7 +123,7 @@ h1 {
 }
 
 .btn {
-    display: inline-flex; /* Asegura que funcione como un botón */
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     padding: 12px 20px;
@@ -95,71 +136,28 @@ h1 {
     text-decoration: none;
     cursor: pointer;
     transition: 0.3s ease;
-    text-align: center; /* Asegura el centrado */
-    white-space: nowrap; /* Evita saltos de línea raros */
+    text-align: center;
+    white-space: nowrap;
 }
 
 .btn:hover {
     background: #311b92;
 }
 
+/* Ajustes para pantallas pequeñas */
 @media (max-width: 660px) {
-    /* Elimina margen y padding del body */
-    body {
-        padding: 5px;
-        margin: 5px;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-start;
-        align-items: stretch;
-    }
-
-    /* Hace que el contenedor ocupe toda la pantalla */
-    .container {
-        width: 96.4%;
-        height: 100%;
-        position: center;
-        margin: 0;
-        padding: 10px;
-        border-radius: 10px; /* Quita esquinas redondeadas */
-        box-shadow: none;
-    }
-
-    /* Acomoda el mapa y los mensajes en columna */
-    .map-and-messages {
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
-    }
-
-    /* Ajusta el tamaño del mapa */
-    #map {
-        width: 98%;
-        min-height: 400px;
-    }
-
-    /* Los mensajes se ponen debajo del mapa */
-    .message-container {
-        width: 100%;
-        height: 20%;
-    }
-
-    /* Ajuste a los message-box para que ocupen el ancho completo */
-    .message-box {
-        width: 98%;
-        text-align: center;
-        max-height: 400px;
+    .nav-container {
+        display: none;
     }
 
     
-/* Contenedor de botones */
-.button-container {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-top: 10px;
+    .menu-icon {
+        color: #311b92;
+        display: block;
+    }
+
+    .container {
+        margin-top: 70px; /* Ajusta este valor según sea necesario */
+    }
+
 }
-}
-
-
-
