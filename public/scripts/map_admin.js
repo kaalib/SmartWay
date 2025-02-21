@@ -4,6 +4,14 @@ const wsUrl = 'wss://3.84.149.254:443'; // WebSocket en tu instancia EC2
 const tcpInput = document.getElementById('tcpInput');
 const tcpDirections = document.getElementById('tcpDirections'); // Div donde irán las direcciones
 
+function openNav() {
+    document.getElementById("sidebar").style.width = "250px";
+}
+
+function closeNav() {
+    document.getElementById("sidebar").style.width = "0";
+}
+
 // Cargar mensajes históricos desde /messages
 async function fetchMessages() {
     try {
