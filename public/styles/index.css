@@ -116,8 +116,9 @@ h1 {
 
     /* Hace que el contenedor ocupe toda la pantalla */
     .container {
-        width: 100%;
+        width: 96.4%;
         height: 100%;
+        position: center;
         margin: 0;
         padding: 10px;
         border-radius: 10px; /* Quita esquinas redondeadas */
