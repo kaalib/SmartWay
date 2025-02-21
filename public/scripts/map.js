@@ -91,7 +91,7 @@ let direccionesTCP = []; // Lista de direcciones recibidas
 
 
 
-// Obtener ubicación del usuario y agregarla a la lista
+// Función para obtener la ubicación del usuario
 function obtenerUbicacionUsuario() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -106,19 +106,28 @@ function obtenerUbicacionUsuario() {
 
                         // Agregar la dirección del usuario como primer elemento en la lista
                         direccionesTCP.unshift(direccionUsuario);
-                        
+
                         // Mostrar en el input de direcciones
                         tcpInput.value = direccionesTCP.join("\n");
 
                         // Agregar marcador en el mapa
-                        agregarMarcador(userLocation, "📍 Punto de partida" );
+                        agregarMarcador(userLocation, "📍 Punto de partida");
                     } else {
                         console.error("No se pudo obtener la dirección de la ubicación del usuario.");
                     }
                 });
             },
             (error) => {
-                console.error("Error al obtener la ubicación del usuario:", error.message);
+                if (error.code === error.PERMISSION_DENIED) {
+                    alert("Para continuar, por favor permite el acceso a tu ubicación.");
+                    
+                    // Esperar 3 segundos antes de volver a pedir ubicación
+                    setTimeout(() => {
+                        obtenerUbicacionUsuario();
+                    }, 3000);
+                } else {
+                    console.error("Error al obtener la ubicación del usuario:", error.message);
+                }
             }
         );
     } else {
@@ -232,7 +241,7 @@ function limpiarMapa() {
 
     // Vaciar la lista de direcciones
     direccionesTCP = [];
-    tcpInput.value = ``;
+    tcpInput.innerHTML = ``;
     tcpDirections.innerHTML = ``;
 
 }

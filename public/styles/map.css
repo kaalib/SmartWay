@@ -15,7 +15,6 @@ body {
 /* Contenedor principal */
 .container {
     width: 100%;
-    max-width: 1400px;
     margin: 20px auto;
     padding: 20px;
     background: #fff;
@@ -37,7 +36,6 @@ h1 {
 .map-and-messages {
     display: flex;
     width: 100%;
-    max-width: 1400px;
     gap: 20px;
     align-items: stretch;
 }
@@ -45,28 +43,23 @@ h1 {
 /* Contenedor de los mensajes alineado a la izquierda */
 .message-container {
     flex: 2;
-    max-width: 300px;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    max-height: 300px; /* Ajusta según lo que necesites */
     overflow: hidden; /* Evita que crezca más de lo permitido */
 }
 
 /* Ajustes a los message-box */
 .message-box {
     background: #f8f8f8;
-    border-right: 5px solid #512da8;
+    border-bottom: 5px solid #512da8;
     border-radius: 8px;
     padding: 10px;
-    min-height: 100px;
-    max-height: 100%; /* No puede superar la altura del contenedor */
     font-size: 14px;
     color: #333;
     flex: 1; /* Distribuye el espacio dentro de .message-container */
     text-align: left;
     overflow-y: auto; /* Habilita el scroll vertical si el contenido es mayor */
-    scrollbar-width: thin; /* Para navegadores modernos */
     scrollbar-color: #512da8 #f8f8f8; /* Color del scroll */
 }
 
@@ -110,52 +103,62 @@ h1 {
     background: #311b92;
 }
 
-
-/* Responsividad: en pantallas pequeñas se apilan */
-@media (max-width: 992px) {
-    .container {
-        padding: 10px;
-        height: 100vh; /* Ocupa toda la altura de la pantalla */
+@media (max-width: 660px) {
+    /* Elimina margen y padding del body */
+    body {
+        padding: 5px;
+        margin: 5px;
         display: flex;
         flex-direction: column;
+        justify-content: flex-start;
+        align-items: stretch;
     }
 
+    /* Hace que el contenedor ocupe toda la pantalla */
+    .container {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 10px;
+        border-radius: 10px; /* Quita esquinas redondeadas */
+        box-shadow: none;
+    }
+
+    /* Acomoda el mapa y los mensajes en columna */
     .map-and-messages {
-
-        width: 100%;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
     }
 
-    .message-container {
-        display: none; /* Oculta los mensajes */
-    }
-
+    /* Ajusta el tamaño del mapa */
     #map {
+        width: 98%;
+        min-height: 400px;
+    }
+
+    /* Los mensajes se ponen debajo del mapa */
+    .message-container {
         width: 100%;
-        min-height: 85vh; /* Hace que el mapa sea alto como la pantalla */
+        height: 20%;
+    }
+
+    /* Ajuste a los message-box para que ocupen el ancho completo */
+    .message-box {
+        width: 98%;
+        text-align: center;
+        max-height: 400px;
     }
 
     
-    .btn {
-        width: 100%;
-        padding: 10px;
-    }
+/* Contenedor de botones */
+.button-container {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+}
 }
 
-/* Ajustes para móviles más pequeños */
-@media (max-width: 600px) {
-    .container {
-        padding: 10px;
-        height: 100vh; /* Asegura que el contenedor use toda la pantalla */
-    }
-    .map-and-messages {
-        height: 90%;
-    }
-    #map {
-        height: 85vh; /* Mapa ocupa casi toda la pantalla */
-    }
 
-    .btn {
-        width: 100%;
-        padding: 10px;
-    }
-}
+
