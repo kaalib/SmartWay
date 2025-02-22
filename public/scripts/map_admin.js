@@ -165,7 +165,8 @@ function getApiKey() {
 function loadGoogleMapsApi(apiKey) {
     const script = document.createElement('script');
     script.async = true;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initMap&loading=async&libraries=maps,marker&v=beta`;
+    script.defer = true;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initMap`;
     script.onerror = () => console.error('Error al cargar Google Maps.');
     document.head.appendChild(script);
 }
