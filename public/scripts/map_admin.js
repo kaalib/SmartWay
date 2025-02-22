@@ -164,6 +164,8 @@ function getApiKey() {
 // Cargar script de Google Maps con Places y Geocoder
 function loadGoogleMapsApi(apiKey) {
     const script = document.createElement('script');
+    script.async = true;
+    script.defer = true;
     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initMap&loading=async`;
     script.onerror = () => console.error('Error al cargar Google Maps.');
     document.head.appendChild(script);
