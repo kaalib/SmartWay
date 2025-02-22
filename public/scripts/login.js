@@ -1,5 +1,3 @@
-import Swal from 'sweetalert2';
-
 document.addEventListener("DOMContentLoaded", function () {
     const loginButton = document.querySelector("button"); // Botón de login
     const userInput = document.querySelector("input[type='text']"); // Usuario

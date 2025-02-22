@@ -1,7 +1,5 @@
-import Swal from 'sweetalert2';
-
 const jsonUrl = 'https://smartway.ddns.net/messages'; // Cambiar por la IP de tu servidor
-const wsUrl = 'wss://3.84.149.254'; // WebSocket en tu instancia EC2
+const wsUrl = 'wss://smartway.ddns.net'; // WebSocket en tu instancia EC2
 
 const tcpInput = document.getElementById('tcpInput');
 const tcpDirections = document.getElementById('tcpDirections'); // Div donde irán las direcciones
