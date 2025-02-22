@@ -233,7 +233,7 @@ function geocodificarDireccion(direccion) {
 
 // Agregar marcador en el mapa
 function agregarMarcador(location, direccion) {
-    const marcador = new google.maps.marker.AdvancedMarkerElement({
+    const marcador = new google.maps.Marker({
         position: location,
         map,
         title: direccion
