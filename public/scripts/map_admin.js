@@ -1,5 +1,7 @@
+import Swal from 'sweetalert2';
+
 const jsonUrl = 'https://smartway.ddns.net/messages'; // Cambiar por la IP de tu servidor
-const wsUrl = 'wss://smartway.ddns.net'; // WebSocket en tu instancia EC2
+const wsUrl = 'wss://3.84.149.254'; // WebSocket en tu instancia EC2
 
 const tcpInput = document.getElementById('tcpInput');
 const tcpDirections = document.getElementById('tcpDirections'); // Div donde irán las direcciones
@@ -97,54 +99,74 @@ let direccionesTCP = []; // Lista de direcciones recibidas
 
 
 // Función para obtener la ubicación del usuario
-function obtenerUbicacionUsuario(intentos = 0) {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const { latitude, longitude } = position.coords;
-                const userLocation = new google.maps.LatLng(latitude, longitude);
-
-                // Geocodificar ubicación
-                geocoder.geocode({ location: userLocation }, (results, status) => {
-                    if (status === "OK" && results[0]) {
-                        const direccionUsuario = results[0].formatted_address;
-
-                        // Agregar la dirección del usuario como primer elemento en la lista
-                        direccionesTCP.unshift(direccionUsuario);
-
-                        // Mostrar en el input de direcciones
-                        tcpInput.value = direccionesTCP.join("\n");
-
-                        // Agregar marcador en el mapa
-                        agregarMarcador(userLocation, "📍 Punto de partida");
-                    } else {
-                        console.error("No se pudo obtener la dirección de la ubicación del usuario.");
-                    }
-                });
-            },
-            (error) => {
-                if (error.code === error.PERMISSION_DENIED) {
-                    alert("Por favor, permite el acceso a tu ubicación en la configuración del navegador.");
-
-                    if (intentos < 3) {
-                        // Reintentar después de 5 segundos
-                        setTimeout(() => {
-                            obtenerUbicacionUsuario(intentos + 1);
-                        }, 5000);
-                    } else {
-                        alert(
-                            "Has negado el acceso varias veces. Para activarlo, ve a Configuración > Permisos de Ubicación en tu navegador."
-                        );
-                    }
-                } else {
-                    console.error("Error al obtener la ubicación del usuario:", error.message);
-                }
-            }
-        );
-    } else {
-        console.error("La geolocalización no está soportada en este navegador.");
+function obtenerUbicacionUsuario() {
+    if (!navigator.geolocation) {
+        Swal.fire({
+            icon: "error",
+            title: "Geolocalización no disponible",
+            text: "Tu navegador no soporta la geolocalización.",
+        });
+        return;
     }
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const { latitude, longitude } = position.coords;
+            const userLocation = new google.maps.LatLng(latitude, longitude);
+
+            // Geocodificar ubicación
+            geocoder.geocode({ location: userLocation }, (results, status) => {
+                if (status === "OK" && results[0]) {
+                    const direccionUsuario = results[0].formatted_address;
+
+                    // Agregar la dirección del usuario como primer elemento en la lista
+                    direccionesTCP.unshift(direccionUsuario);
+
+                    // Mostrar en el input de direcciones
+                    tcpInput.value = direccionesTCP.join("\n");
+
+                    // Agregar marcador en el mapa
+                    agregarMarcador(userLocation, "📍 Punto de partida");
+
+                    Swal.fire({
+                        icon: "success",
+                        title: "Ubicación obtenida",
+                        text: `Tu ubicación: ${direccionUsuario}`,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    Swal.fire({
+                        icon: "warning",
+                        title: "No se pudo obtener la dirección",
+                        text: "La ubicación se obtuvo, pero no se pudo determinar la dirección exacta.",
+                    });
+                }
+            });
+        },
+        (error) => {
+            if (error.code === error.PERMISSION_DENIED) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Acceso denegado",
+                    text: "Has denegado el acceso a tu ubicación. Para activarlo, recarga la página y permite el acceso.",
+                    confirmButtonText: "Recargar",
+                }).then(() => {
+                    location.reload(); // Recargar la página para volver a pedir permisos
+                });
+            } else {
+                Swal.fire({
+                    icon: "error",
+                    title: "Error al obtener ubicación",
+                    text: `Ocurrió un error: ${error.message}`,
+                });
+            }
+        }
+    );
 }
+
+// Llamar a la función cuando se cargue la página
+document.addEventListener("DOMContentLoaded", obtenerUbicacionUsuario);
 
 
 // Obtener API Key y cargar Google Maps

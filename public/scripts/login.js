@@ -1,3 +1,5 @@
+import Swal from 'sweetalert2';
+
 document.addEventListener("DOMContentLoaded", function () {
     const loginButton = document.querySelector("button"); // Botón de login
     const userInput = document.querySelector("input[type='text']"); // Usuario
@@ -23,7 +25,11 @@ document.addEventListener("DOMContentLoaded", function () {
         const contraseña = passwordInput.value.trim();
 
         if (!usuario || !contraseña) {
-            alert("⚠️ Debes completar ambos campos.");
+            Swal.fire({
+                icon: "warning",
+                title: "Oops...",
+                text: "Debes completar ambos campos.",
+            });
             return;
         }
 
@@ -37,14 +43,29 @@ document.addEventListener("DOMContentLoaded", function () {
             const data = await response.json();
 
             if (data.success) {
-                alert("✅ Inicio de sesión exitoso.");
-                window.location.href = "map.html"; // Redirige al mapa
+                Swal.fire({
+                    icon: "success",
+                    title: "¡Bienvenido!",
+                    text: "Inicio de sesión exitoso.",
+                    showConfirmButton: false,
+                    timer: 1500
+                }).then(() => {
+                    window.location.href = "map_admin.html"; // Redirige después de la alerta
+                });
             } else {
-                alert("❌ Usuario o contraseña incorrectos.");
+                Swal.fire({
+                    icon: "error",
+                    title: "Acceso denegado",
+                    text: "Usuario o contraseña incorrectos.",
+                });
             }
         } catch (error) {
             console.error("Error en la solicitud:", error);
-            alert("❌ Error en el servidor.");
+            Swal.fire({
+                icon: "error",
+                title: "Error en el servidor",
+                text: "Ocurrió un problema al intentar iniciar sesión.",
+            });
         }
     });
 });
