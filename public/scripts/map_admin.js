@@ -1,5 +1,5 @@
-const jsonUrl = 'https://3.84.149.254/messages'; // Cambiar por la IP de tu servidor
-const wsUrl = 'wss://3.84.149.254:443'; // WebSocket en tu instancia EC2
+const jsonUrl = 'https://smartway.ddns.net/messages'; // Cambiar por la IP de tu servidor
+const wsUrl = 'wss://smartway.ddns.net'; // WebSocket en tu instancia EC2
 
 const tcpInput = document.getElementById('tcpInput');
 const tcpDirections = document.getElementById('tcpDirections'); // Div donde irán las direcciones
@@ -30,25 +30,6 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 
-// Cargar mensajes históricos desde /messages
-async function fetchMessages() {
-    try {
-        const response = await fetch(jsonUrl);
-        if (!response.ok) throw new Error('Error al cargar el archivo JSON');
-
-        const data = await response.json();
-        tcpInput.innerText = (data.tcp && data.tcp.length)
-            ? data.tcp[data.tcp.length - 1] // Último mensaje TCP
-            : 'No hay mensajes TCP.';
-        udpInput.innerText = (data.udp && data.udp.length)
-            ? data.udp[data.udp.length - 1] // Último mensaje UDP
-            : 'No hay mensajes UDP.';
-        errorMessage.innerText = '';
-    } catch (error) {
-        console.error(error);
-        errorMessage.innerText = 'Error al cargar los mensajes históricos: ' + error.message;
-    }
-}
 
 // Conectar al WebSocket para mensajes en tiempo real
 const ws = new WebSocket(wsUrl);
@@ -100,7 +81,6 @@ ws.onerror = (error) => {
 
 ws.onclose = () => {
     console.warn('Conexión WebSocket cerrada.');
-    errorMessage.innerText = 'Conexión WebSocket cerrada.';
 };
 
 fetchMessages() 
@@ -184,9 +164,7 @@ function getApiKey() {
 // Cargar script de Google Maps con Places y Geocoder
 function loadGoogleMapsApi(apiKey) {
     const script = document.createElement('script');
-    script.async = true;
-    script.defer = true;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initMap`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initMap&loading=async`;
     script.onerror = () => console.error('Error al cargar Google Maps.');
     document.head.appendChild(script);
 }
@@ -253,7 +231,7 @@ function geocodificarDireccion(direccion) {
 
 // Agregar marcador en el mapa
 function agregarMarcador(location, direccion) {
-    const marcador = new google.maps.Marker({
+    const marcador = new google.maps.marker.AdvancedMarkerElement({
         position: location,
         map,
         title: direccion

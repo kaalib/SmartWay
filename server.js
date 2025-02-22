@@ -64,43 +64,43 @@ httpsServer.listen(443, () => {
 // --- Servidor WebSocket ---
 const wss = new WebSocket.Server({ server: httpsServer });
 
-wss.on('connection', (ws) => {
-    console.log('Cliente WebSocket conectado');
-    
-    ws.on('message', (data) => {
-        console.log('Mensaje recibido desde WebSocket:', data);
+wss.on("connection", (ws) => {
+    console.log("Cliente WebSocket conectado");
+
+    ws.on("message", (data) => {
+        console.log("Mensaje recibido desde WebSocket:", data);
     });
 
-    ws.on('close', () => {
-        console.log('Cliente WebSocket desconectado');
+    ws.on("close", () => {
+        console.log("Cliente WebSocket desconectado");
     });
 });
 
 // --- Servidor TCP ---
 const tcpServer = net.createServer((socket) => {
-    console.log('Cliente TCP conectado');
+    console.log("Cliente TCP conectado");
 
-    socket.on('data', (data) => {
-        const idEmpleado = parseInt(data.toString().trim(), 10); // Convertir el dato recibido a número
+    socket.on("data", (data) => {
+        const idEmpleado = parseInt(data.toString().trim(), 10); // Convertir a número
 
         if (isNaN(idEmpleado)) {
-            socket.write('Error: ID inválido. Debe ser un número.\n');
+            socket.write("Error: ID inválido. Debe ser un número.\n");
             return;
         }
 
         console.log(`ID recibido: ${idEmpleado}`);
 
-        // Consulta SQL para obtener nombre y apellido del empleado con la ID recibida
-        const sql = 'SELECT nombre, apellido, direccion FROM empleados WHERE id = ?';
+        // Consulta SQL
+        const sql = "SELECT nombre, apellido, direccion FROM empleados WHERE id = ?";
 
         db.query(sql, [idEmpleado], (err, results) => {
             if (err) {
-                console.error('Error en la consulta MySQL:', err);
-                socket.write('Error en la base de datos.\n');
+                console.error("Error en la consulta MySQL:", err);
+                socket.write("Error en la base de datos.\n");
                 return;
             }
 
-            let respuesta = '';
+            let respuesta;
 
             if (results.length > 0) {
                 const empleado = results[0];
@@ -110,30 +110,30 @@ const tcpServer = net.createServer((socket) => {
                     apellido: empleado.apellido,
                     direccion: empleado.direccion
                 };
-                
-     
             } else {
-                respuesta = 'Usuario no encontrado.\n';
+                respuesta = { error: "Usuario no encontrado" };
             }
 
-            // Guardar mensajes en archivo JSON
-            messages.tcp.push( respuesta);
-            fs.writeFileSync('messages.json', JSON.stringify(messages, null, 2));
+            // Guardar mensajes en JSON
+            messages.tcp.push(respuesta);
+            fs.writeFileSync("messages.json", JSON.stringify(messages, null, 2));
 
-            // Enviar datos a los clientes WebSocket
+            // Enviar datos a clientes WebSocket
+            const jsonData = JSON.stringify({ type: "tcp", data: respuesta });
+
             wss.clients.forEach((client) => {
                 if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify({ type: 'tcp', data: respuesta }));
+                    client.send(jsonData);
                 }
             });
 
-            // Enviar respuesta al cliente TCP
-            socket.write(respuesta);
+            // Enviar respuesta al cliente TCP como JSON string
+            socket.write(JSON.stringify(respuesta) + "\n");
         });
     });
 
-    socket.on('end', () => {
-        console.log('Cliente TCP desconectado');
+    socket.on("end", () => {
+        console.log("Cliente TCP desconectado");
     });
 });
 
