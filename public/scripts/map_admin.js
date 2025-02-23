@@ -29,6 +29,21 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 
+// Cargar mensajes históricos desde /messages
+async function fetchMessages() {
+    try {
+        const response = await fetch(jsonUrl);
+        if (!response.ok) throw new Error('Error al cargar el archivo JSON');
+
+        const data = await response.json();
+        tcpInput.innerText = (data.tcp.length)
+            ? data.tcp[data.tcp.length - 1] // Último mensaje TCP
+            : 'No hay mensajes TCP.';
+    } catch (error) {
+        console.error(error);
+        errorMessage.innerText = 'Error al cargar los mensajes históricos: ' + error.message;
+    }
+}
 
 
 // Conectar al WebSocket para mensajes en tiempo real
@@ -185,7 +200,7 @@ function loadGoogleMapsApi(apiKey) {
     const script = document.createElement('script');
     script.async = true;
     script.defer = true;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initMap`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,marker&callback=initMap`;
     script.onerror = () => console.error('Error al cargar Google Maps.');
     document.head.appendChild(script);
 }
@@ -254,10 +269,19 @@ function geocodificarDireccion(direccion) {
 
 // Agregar marcador en el mapa
 function agregarMarcador(location, direccion) {
-    const marcador = new google.maps.Marker({
+    const pin = new google.maps.marker.PinElement({
+        glyph: `${marcadores.length + 1}`, // Número del marcador (1, 2, 3...)
+        glyphColor: '#FFFFFF',
+        background: '#311b92', // Color de fondo
+        borderColor: '#FFFFFF',
+        scale: 1.2
+    });
+
+    const marcador = new google.maps.marker.AdvancedMarkerElement({
         position: location,
-        map,
-        title: direccion
+        map: map,
+        title: direccion,
+        content: pin.element
     });
 
     marcadores.push(marcador);
