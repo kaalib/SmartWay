@@ -56,9 +56,7 @@ ws.onmessage = (event) => {
             } else {
                 tcpInput.innerText = `Mensaje TCP: ${data.data}`;
             }
-        } else if (data.type === 'udp') {
-            udpInput.innerText = `Mensaje UDP: ${data.message}`;
-        }
+        } 
     } catch (error) {
         console.error('Error procesando el mensaje del WebSocket:', error);
     }
@@ -165,6 +163,7 @@ function obtenerUbicacionUsuario() {
 
 // Llamar a la función cuando se cargue la página
 document.addEventListener("DOMContentLoaded", obtenerUbicacionUsuario);
+document.addEventListener("DOMContentLoaded", getApiKey);
 
 
 // Obtener API Key y cargar Google Maps
@@ -175,7 +174,7 @@ function getApiKey() {
             if (data.apiKey) {
                 loadGoogleMapsApi(data.apiKey);
             } else {
-                throw new Error('API Key no encontrada.');
+                console.error('API Key no encontrada.');
             }
         })
         .catch(error => console.error('Error al obtener la API Key:', error));
@@ -193,11 +192,13 @@ function loadGoogleMapsApi(apiKey) {
 
 // Inicializar el mapa y Autocomplete
 function initMap() {
+    const mapElement = document.getElementById('map');
     if (!mapElement) {
         console.error('Elemento del mapa no encontrado.');
         return;
     }
 
+    console.log('Inicializando el mapa...');
     map = new google.maps.Map(mapElement, {
         center: { lat: 10.9804, lng: -74.81 },
         zoom: 14,
