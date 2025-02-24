@@ -49,6 +49,9 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 
+
+
+
 // Cargar mensajes históricos desde /messages
 async function fetchMessages() {
     try {
@@ -83,13 +86,12 @@ ws.onmessage = (event) => {
                 tcpInput.innerText = `Empleado: ${data.data.id} ${data.data.nombre} ${data.data.apellido} ${data.data.direccion}`;
 
                 // Agregar dirección a la lista y actualizar en el message-box
-                if (geocoder && data.data.direccion) {
-                    geocodificarDireccion(data.data.direccion);
+                if (data.data.direccion) {
                     direccionesTCP.push(data.data.direccion);
                     actualizarListaDirecciones(); // Llamar a la función de actualización
                 }
             } else {
-                tcpInput.innerText = `Mensaje TCP: ${data.data}`;
+                tcpInput.innerText = `Mensaje TCP: Empleado no registrado/Huella no reconocida`;
             }
         } 
     } catch (error) {
@@ -193,10 +195,9 @@ function mostrarAlertaPermisoDenegado() {
     Swal.fire({
         icon: "error",
         title: "Acceso denegado",
-        text: "Has denegado el acceso a tu ubicación. Si deseas permitirlo, haz clic en 'Intentar de nuevo' o ajusta los permisos en la configuración de tu navegador.",
+        text: "Has denegado el acceso a tu ubicación. Si deseas permitirlo ajusta los permisos en la configuración de tu navegador.",
         showCancelButton: true,
-        confirmButtonText: "Intentar de nuevo",
-        cancelButtonText: "Cancelar"
+        cancelButtonText: "Salir"
     }).then((result) => {
         if (result.isConfirmed) {
             permisoDenegado = false; // Resetear el estado para intentar de nuevo
@@ -232,7 +233,7 @@ function loadGoogleMapsApi(apiKey) {
     document.head.appendChild(script);
 }
 
-// Inicializar el mapa y Autocomplete
+// Inicializar el mapa
 function initMap() {
     const mapElement = document.getElementById('map');
     if (!mapElement) {
@@ -255,23 +256,59 @@ function initMap() {
 }
 
 // Función para geocodificar direcciones y agregar marcadores
-function geocodificarDireccion(direccion) {
+function geocodificarDireccion(direccion, callback) {
     geocoder.geocode({ address: direccion }, (results, status) => {
         if (status === 'OK' && results[0]) {
-            const location = results[0].geometry.location; // Esto ya es un LatLng
-            agregarMarcador(location, direccion);
+            const location = results[0].geometry.location;
+            callback(location, direccion); // Llamamos al callback con la ubicación y dirección
         } else {
             console.error('Error en geocodificación:', status);
         }
     });
 }
 
-// Agregar marcador en el mapa
-function agregarMarcador(location, direccion) {
+
+
+
+// Nueva función para dibujar todos los marcadores
+function dibujarMarcadores() {
+    map.fitBounds(bounds, { padding: 30 }); // 30 píxeles de margen en todos los lados
+    // Limpiar marcadores previos (opcional, si no quieres acumularlos)
+    marcadores.forEach(marcador => marcador.setMap(null));
+    marcadores = [];
+
+    // Crear un objeto LatLngBounds para abarcar todos los marcadores
+    const bounds = new google.maps.LatLngBounds();
+
+    // Contador para procesar todas las geocodificaciones
+    let geocodedCount = 0;
+    const totalDirections = direccionesTCP.length;
+
+    // Geocodificar y dibujar todas las direcciones
+    direccionesTCP.forEach((direccion) => {
+        geocodificarDireccion(direccion, (location, dir) => {
+            agregarMarcador(location, dir, bounds); // Pasamos bounds para extenderlo
+            geocodedCount++;
+
+            // Cuando todas las direcciones estén geocodificadas, ajustar el mapa
+            if (geocodedCount === totalDirections) {
+                map.fitBounds(bounds);
+            }
+        });
+    });
+
+    // Si no hay direcciones, no hacemos nada con el mapa
+    if (totalDirections === 0) {
+        console.log('No hay direcciones para dibujar.');
+    }
+}
+
+// Agregar marcador en el mapa (modificado para aceptar bounds)
+function agregarMarcador(location, direccion, bounds) {
     const pin = new google.maps.marker.PinElement({
         glyph: `${marcadores.length + 1}`, // Número del marcador (1, 2, 3...)
         glyphColor: '#FFFFFF',
-        background: '#311b92', // Color de fondo
+        background: '#311b92',
         borderColor: '#FFFFFF',
         scale: 1.2
     });
@@ -284,7 +321,7 @@ function agregarMarcador(location, direccion) {
     });
 
     marcadores.push(marcador);
-    map.setCenter(location);
+    bounds.extend(location); // Extender los límites con la ubicación del marcador
 }
 
 
@@ -302,6 +339,7 @@ function limpiarMapa() {
 }
 // Asignar la función limpiarMapa al botón ya existente
 document.getElementById('btnLimpiar').addEventListener('click', limpiarMapa);
+document.getElementById('btnMarkers').addEventListener('click', dibujarMarcadores);
 
 // Cargar el mapa
 getApiKey();
