@@ -29,13 +29,13 @@
             </div>
 
     <div class="container">
-        <h1>Mapa y Mensajes</h1>
+        <h1></h1>
         <!-- Contenedor del mapa y los mensajes -->
         <div class="map-and-messages">
             <div id="map"></div>
             <div class="message-container">
-                <div id="tcpInput" class="message-box">Mensajes TCP entrantes</div>
-                <div id="tcpDirections" class="message-box">Empleados y direcciones</div>
+                <div id="tcpInput" class="message-box1">Mensajes TCP entrantes</div>
+                <div id="tcpDirections" class="message-box2">Empleados y direcciones</div>
             </div>
 
         </div>
@@ -44,6 +44,13 @@
         <div class="button-container">
             <button id="btnLimpiar" class="btn">Limpiar Mapa</button>
         </div>
+    </div>
+    <!-- Barra lateral derecha para mensajes en móviles -->
+    <span class="message-toggle">✉️</span>
+    <div class="message-sidebar">
+        <span class="close-btn">&times;</span>
+        <div class="message-box1" id="tcpInputMobile"></div>
+        <div class="message-box2" id="tcpDirectionsMobile"></div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="scripts/map_admin.js"></script>
