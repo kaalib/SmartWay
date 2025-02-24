@@ -45,7 +45,7 @@ nav a:hover {
     border-radius: 5px;
 }
 
-/* Menú lateral en pantallas pequeñas */
+/* Menú lateral izquierdo (hamburguesa) */
 .menu-icon {
     display: none;
     font-size: 30px;
@@ -68,9 +68,7 @@ nav a:hover {
     padding-top: 60px;
     border-top-right-radius: 12px;
     border-bottom-right-radius: 12px;
-    z-index: 1100; /* Asegúrate de que sea más alto que el mapa */
-    
-    
+    z-index: 1100;
 }
 
 .sidebar a {
@@ -94,7 +92,6 @@ nav a:hover {
     cursor: pointer;
 }
 
-
 /* Contenedor principal */
 .container {
     width: 90%;
@@ -108,14 +105,6 @@ nav a:hover {
     align-items: center;
     box-sizing: border-box;
 }
-
-/* Estilo para encabezados */
-h1 {
-    color: #512da8;
-    font-size: 24px;
-    margin-bottom: 10px;
-}
-
 
 /* Contenedor del mapa y mensajes */
 .map-and-messages {
@@ -133,14 +122,30 @@ h1 {
     overflow: hidden;
 }
 
-.message-box {
+/* Message-box */
+.message-box1 {
+    height: 30%;
+    max-height: 30%;
     background: #f8f8f8;
     border-bottom: 5px solid #512da8;
     border-radius: 8px;
     padding: 10px;
     font-size: 14px;
     color: #333;
-    flex: 1;
+    text-align: left;
+    overflow-y: auto;
+    scrollbar-color: #512da8 #f8f8f8;
+}
+
+.message-box2 {
+    height: 70%;
+    max-height: 70%;
+    background: #f8f8f8;
+    border-bottom: 5px solid #512da8;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 14px;
+    color: #333;
     text-align: left;
     overflow-y: auto;
     scrollbar-color: #512da8 #f8f8f8;
@@ -151,6 +156,46 @@ h1 {
     height: 500px;
     border: 2px solid #ddd;
     border-radius: 8px;
+}
+
+/* Barra lateral derecha para mensajes en móviles */
+.message-sidebar {
+    height: 100%;
+    width: 0;
+    position: fixed;
+    top: 0;
+    right: 0;
+    background-color: #f8f8f8;
+    overflow-x: hidden;
+    transition: 0.5s;
+    padding-top: 60px;
+    z-index: 1200; /* Más alto que el mapa y la barra de navegación */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+}
+
+.message-sidebar .close-btn {
+    position: absolute;
+    top: 12px;
+    left: 25px;
+    font-size: 36px;
+    cursor: pointer;
+    color: #512da8;
+}
+
+.message-toggle {
+    display: none; /* Oculto por defecto, visible en móviles */
+    font-size: 30px;
+    cursor: pointer;
+    position: fixed;
+    top: 15px; /* Igual que el menú hamburguesa, para alinearlo */
+    right: 15px;
+    z-index: 1100;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Sombra para destacarlo */
 }
 
 /* Contenedor de botones */
@@ -175,50 +220,73 @@ h1 {
     text-decoration: none;
     cursor: pointer;
     transition: 0.3s ease;
-    text-align: center;
-    white-space: nowrap;
 }
 
 .btn:hover {
     background: #311b92;
 }
 
+/* Media Query para móviles */
 @media (max-width: 660px) {
     .nav-container {
         display: none;
     }
 
-    
     .menu-icon {
-        color: #311b92;
         display: block;
+        color: #311b92;
     }
 
     .container {
-        margin-top: 70px; /* Ajusta este valor según sea necesario */
+        width: 100%;
+        height: 100vh; /* Ocupa toda la pantalla */
+        margin: 0;
+        padding: 10px;
+        border-radius: 0; /* Sin bordes en móviles para usar toda la pantalla */
+        box-shadow: none; /* Opcional: quitar sombra para un look más limpio */
     }
-
 
     .map-and-messages {
         flex-direction: column;
         align-items: center;
-        gap: 10px;
+        gap: 0;
+        height: calc(100% - 60px); /* Restamos espacio para los botones */
     }
 
     #map {
-        width: 98%;
-        min-height: 56vh;
+        width: 100%;
+        height: calc(100% - 60px); /* Ajusta según el tamaño de los botones */
+        min-height: unset; /* Eliminamos min-height para que se adapte */
+        border-radius: 0; /* Sin bordes para maximizar espacio */
+        border: none;
     }
 
     .message-container {
-        width: 98%;
+        display: none; /* Ocultamos el contenedor original en móviles */
     }
 
-    .message-box {
-        width: 98%;
-        text-align: left;
-        min-height: 5vh;
-        max-height: 20vh;
+    .message-toggle {
+        display: block; /* Mostramos el ícono para togglear la barra lateral */
+    }
+
+    .message-sidebar {
+        /* Los message-box se mueven aquí en móviles */
+    }
+
+    .message-sidebar .message-box1 {
+        height: 20%;
+        max-height: 30%;
+        width: 100%;
+        box-sizing: border-box;
+        border:5px;
+    }
+
+    .message-sidebar .message-box2 {
+        height: 75%;
+        max-height: 70%;
+        width: 100%;
+        box-sizing: border-box;
+        border:5px;
     }
 
     .button-container {
@@ -226,8 +294,6 @@ h1 {
         justify-content: center;
         gap: 10px;
         margin-top: 10px;
+        height: 60px; /* Espacio fijo para los botones */
     }
 }
-
-
-
