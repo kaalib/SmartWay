@@ -142,7 +142,6 @@ function obtenerUbicacionUsuario() {
                     Swal.fire({
                         icon: "success",
                         title: "Ubicación obtenida",
-                        text: `Tu ubicación: ${direccionUsuario}`,
                         timer: 2000,
                         showConfirmButton: false
                     });
@@ -178,7 +177,7 @@ function obtenerUbicacionUsuario() {
 
 // Llamar a la función cuando se cargue la página
 document.addEventListener("DOMContentLoaded", obtenerUbicacionUsuario);
-document.addEventListener("DOMContentLoaded", getApiKey);
+
 
 
 // Obtener API Key y cargar Google Maps
@@ -217,50 +216,22 @@ function initMap() {
     map = new google.maps.Map(mapElement, {
         center: { lat: 10.9804, lng: -74.81 },
         zoom: 14,
-        disableDefaultUI: true
+        disableDefaultUI: true,
+        mapId: 'a8e469502b0f35f7',
     });
 
     geocoder = new google.maps.Geocoder(); // Inicializar Geocoder
     
     obtenerUbicacionUsuario(); // 🔹 Obtener ubicación del usuario al iniciar el mapa
     
-    if (searchInput) {
-        autocomplete = new google.maps.places.Autocomplete(searchInput, {
-            componentRestrictions: { country: 'CO' }, // Restringe a Colombia
-            fields: ['geometry', 'formatted_address', 'address_components']
-        });
-    
-        autocomplete.addListener('place_changed', () => {
-            const place = autocomplete.getPlace();
-            if (!place.geometry) return;
-    
-            // Filtrar por departamento (Ejemplo: Atlántico)
-            const departamentoPermitido = "Atlántico"; // Cambia esto por el departamento que deseas
-    
-            // Buscar el departamento en address_components
-            const departamento = place.address_components.find(component =>
-                component.types.includes('administrative_area_level_1')
-            );
-    
-            if (departamento && departamento.long_name === departamentoPermitido) {
-                agregarMarcador(place.geometry.location, place.formatted_address);
-            } else {
-                alert("⚠️ Solo puedes seleccionar ubicaciones en " + departamentoPermitido);
-            }
-        });
-    } else {
-        console.error('Campo de búsqueda no encontrado.');
-    }
-    
-
-    conectarWebSocket();
 }
 
 // Función para geocodificar direcciones y agregar marcadores
 function geocodificarDireccion(direccion) {
     geocoder.geocode({ address: direccion }, (results, status) => {
         if (status === 'OK' && results[0]) {
-            agregarMarcador(results[0].geometry.location, direccion);
+            const location = results[0].geometry.location; // Esto ya es un LatLng
+            agregarMarcador(location, direccion);
         } else {
             console.error('Error en geocodificación:', status);
         }
@@ -278,7 +249,7 @@ function agregarMarcador(location, direccion) {
     });
 
     const marcador = new google.maps.marker.AdvancedMarkerElement({
-        position: location,
+        position: location instanceof google.maps.LatLng ? location : { lat: location.lat(), lng: location.lng() },
         map: map,
         title: direccion,
         content: pin.element
