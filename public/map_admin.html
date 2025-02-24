@@ -42,6 +42,7 @@
 
         <!-- Botones -->
         <div class="button-container">
+            <button id="btnMarkers" class="btn">Dibujar Marcadores</button>
             <button id="btnLimpiar" class="btn">Limpiar Mapa</button>
         </div>
     </div>
@@ -49,8 +50,8 @@
     <span class="message-toggle">✉️</span>
     <div class="message-sidebar">
         <span class="close-btn">&times;</span>
-        <div class="message-box1" id="tcpInputMobile"></div>
-        <div class="message-box2" id="tcpDirectionsMobile"></div>
+        <div id="tcpInput" class="message-box1">Mensajes TCP entrantes</div>
+        <div id="tcpDirections" class="message-box2">Empleados y direcciones</div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="scripts/map_admin.js"></script>
