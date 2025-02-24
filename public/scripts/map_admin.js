@@ -255,58 +255,44 @@ function initMap() {
     
 }
 
-// Función para geocodificar direcciones y agregar marcadores
-function geocodificarDireccion(direccion, callback) {
-    geocoder.geocode({ address: direccion }, (results, status) => {
-        if (status === 'OK' && results[0]) {
-            const location = results[0].geometry.location;
-            callback(location, direccion); // Llamamos al callback con la ubicación y dirección
-        } else {
-            console.error('Error en geocodificación:', status);
-        }
-    });
-}
-
-
-
 
 // Nueva función para dibujar todos los marcadores
 function dibujarMarcadores() {
-    map.fitBounds(bounds, { padding: 30 }); // 30 píxeles de margen en todos los lados
-    // Limpiar marcadores previos (opcional, si no quieres acumularlos)
+    // Limpiar marcadores previos
     marcadores.forEach(marcador => marcador.setMap(null));
     marcadores = [];
 
     // Crear un objeto LatLngBounds para abarcar todos los marcadores
     const bounds = new google.maps.LatLngBounds();
 
-    // Contador para procesar todas las geocodificaciones
+    // Si no hay direcciones, no hacemos nada
+    if (direccionesTCP.length === 0) {
+        console.log('No hay direcciones para dibujar.');
+        return;
+    }
+
+    // Contador para rastrear geocodificaciones completadas
     let geocodedCount = 0;
     const totalDirections = direccionesTCP.length;
 
     // Geocodificar y dibujar todas las direcciones
     direccionesTCP.forEach((direccion) => {
         geocodificarDireccion(direccion, (location, dir) => {
-            agregarMarcador(location, dir, bounds); // Pasamos bounds para extenderlo
+            agregarMarcador(location, dir, bounds); // Pasamos bounds explícitamente
             geocodedCount++;
 
-            // Cuando todas las direcciones estén geocodificadas, ajustar el mapa
+            // Ajustar el mapa cuando todas las geocodificaciones estén listas
             if (geocodedCount === totalDirections) {
                 map.fitBounds(bounds);
             }
         });
     });
-
-    // Si no hay direcciones, no hacemos nada con el mapa
-    if (totalDirections === 0) {
-        console.log('No hay direcciones para dibujar.');
-    }
 }
 
-// Agregar marcador en el mapa (modificado para aceptar bounds)
+// Agregar marcador en el mapa (recibe bounds como parámetro)
 function agregarMarcador(location, direccion, bounds) {
     const pin = new google.maps.marker.PinElement({
-        glyph: `${marcadores.length + 1}`, // Número del marcador (1, 2, 3...)
+        glyph: `${marcadores.length + 1}`,
         glyphColor: '#FFFFFF',
         background: '#311b92',
         borderColor: '#FFFFFF',
@@ -321,7 +307,19 @@ function agregarMarcador(location, direccion, bounds) {
     });
 
     marcadores.push(marcador);
-    bounds.extend(location); // Extender los límites con la ubicación del marcador
+    bounds.extend(location); // Extendemos los límites con la ubicación
+}
+
+// Función para geocodificar direcciones (sin cambios)
+function geocodificarDireccion(direccion, callback) {
+    geocoder.geocode({ address: direccion }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+            const location = results[0].geometry.location;
+            callback(location, direccion);
+        } else {
+            console.error('Error en geocodificación:', status);
+        }
+    });
 }
 
 
