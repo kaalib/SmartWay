@@ -51,8 +51,9 @@ nav a:hover {
     font-size: 30px;
     cursor: pointer;
     color: white;
-    position: absolute;
+    position: fixed;
     top: 15px;
+    z-index: 1100;
     left: 15px;
 }
 
