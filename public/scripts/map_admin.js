@@ -1,8 +1,9 @@
 const jsonUrl = 'https://smartway.ddns.net/messages'; // Cambiar por la IP de tu servidor
 const wsUrl = 'wss://smartway.ddns.net'; // WebSocket en tu instancia EC2
+const tcpInputs = document.querySelectorAll('.tcpInput');
+const tcpDirectionsList = document.querySelectorAll('.tcpDirections');
 
-const tcpInput = document.getElementById('tcpInput');
-const tcpDirections = document.getElementById('tcpDirections'); // Div donde irán las direcciones
+
 
 // Configurar barras laterales al cargar el DOM
 document.addEventListener("DOMContentLoaded", function () {
@@ -12,7 +13,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const sidebarCloseBtn = document.querySelector('.sidebar .close-btn');
 
     function openSidebar() {
-        sidebar.style.width = '250px';
+        sidebar.style.width = '230px';
     }
 
     function closeSidebar() {
@@ -28,7 +29,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const messageCloseBtn = document.querySelector('.message-sidebar .close-btn');
 
     function openMessageSidebar() {
-        messageSidebar.style.width = '250px';
+        messageSidebar.style.width = '230px';
     }
 
     function closeMessageSidebar() {
@@ -81,31 +82,34 @@ ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
 
         if (data.type === 'tcp') {
-            if (typeof data.data === 'object') {
-                // Mostrar la información en el message-box
-                tcpInput.innerText = `Empleado: ${data.data.id} ${data.data.nombre} ${data.data.apellido} ${data.data.direccion}`;
+            let messageText = 'Mensaje TCP: Empleado no registrado/Huella no reconocida';
 
-                // Agregar dirección a la lista y actualizar en el message-box
+            if (typeof data.data === 'object') {
+                messageText = `Empleado: ${data.data.id} ${data.data.nombre} ${data.data.apellido} ${data.data.direccion}`;
+                
                 if (data.data.direccion) {
                     direccionesTCP.push(data.data.direccion);
-                    actualizarListaDirecciones(); // Llamar a la función de actualización
+                    actualizarListaDirecciones(); 
                 }
-            } else {
-                tcpInput.innerText = `Mensaje TCP: Empleado no registrado/Huella no reconocida`;
             }
+
+            // Actualizar ambos elementos tcpInput
+            tcpInputs.forEach(el => el.innerText = messageText);
         } 
     } catch (error) {
         console.error('Error procesando el mensaje del WebSocket:', error);
     }
 };
 
-// Función para actualizar la lista de direcciones en tcpdirections
+// Actualizar ambas listas de direcciones
 function actualizarListaDirecciones() {
-    tcpDirections.innerHTML = ''; // Limpiar el div antes de agregar nuevas direcciones
-    direccionesTCP.forEach((direccion, index) => {
-        const item = document.createElement('p'); // Crear un párrafo en vez de <li>
-        item.textContent = `${index + 1}. ${direccion}`;
-        tcpDirections.appendChild(item);
+    tcpDirectionsList.forEach(container => {
+        container.innerHTML = '';
+        direccionesTCP.forEach((direccion, index) => {
+            const item = document.createElement('p');
+            item.textContent = `${index + 1}. ${direccion}`;
+            container.appendChild(item);
+        });
     });
 }
    

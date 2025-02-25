@@ -260,7 +260,7 @@ nav a:hover {
         height: 100%; /* Ajusta según el tamaño de los botones */
         border-radius: 0; /* Sin bordes para maximizar espacio */
         border: none;
-        background-color: aqua;
+        background-color: rgb(235, 243, 243);
     }
 
     .message-container {

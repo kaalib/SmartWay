@@ -17,11 +17,10 @@
                     <a href="contact.html">Contacto</a>
                 </nav>
             </div>
-    
-            <div class="menu-icon" onclick="openNav()">☰</div>
-    
+
+            <span class="menu-icon">☰</span>
             <div id="sidebar" class="sidebar">
-            <a href="javascript:void(0)" class="close-btn" onclick="closeNav()">×</a>
+            <span class="close-btn">&times;</span>
             <a href="index.html">Inicio</a>
             <a href="map_admin.html">Mapa</a>
             <a href="login.html">Login</a>
@@ -29,13 +28,12 @@
             </div>
 
     <div class="container">
-        <h1></h1>
         <!-- Contenedor del mapa y los mensajes -->
         <div class="map-and-messages">
             <div id="map"></div>
             <div class="message-container">
-                <div id="tcpInput" class="message-box1">Mensajes TCP entrantes</div>
-                <div id="tcpDirections" class="message-box2">Empleados y direcciones</div>
+                <div class="tcpInput message-box1">Mensajes TCP entrantes</div>
+                <div class="tcpDirections message-box2">Empleados y direcciones</div>
             </div>
 
         </div>
@@ -50,8 +48,8 @@
     <span class="message-toggle">✉️</span>
     <div class="message-sidebar">
         <span class="close-btn">&times;</span>
-        <div id="tcpInput" class="message-box1">Mensajes TCP entrantes</div>
-        <div id="tcpDirections" class="message-box2">Empleados y direcciones</div>
+        <div class="tcpInput message-box1">Mensajes TCP entrantes</div>
+        <div class="tcpDirections message-box2">Empleados y direcciones</div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="scripts/map_admin.js"></script>
