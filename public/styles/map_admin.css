@@ -294,11 +294,13 @@ nav a:hover {
         display: flex;
         justify-content: center;
         gap: 10px;
-        position: absolute; /* Superpone los botones sobre el mapa */
-        bottom: 10px; /* Ajusta la distancia desde la parte inferior */
+        position: fixed; /* Fijo en la pantalla */
+        bottom: env(safe-area-inset-bottom, 10px); /* Usa la zona segura */
         left: 0;
         right: 0;
-        background: transparent; /* Fondo transparente */
-        z-index: 1000; /* Encima del mapa, pero debajo de .message-toggle */
+        background: transparent;
+        z-index: 1000;
+        padding-bottom: 10px; /* Espacio adicional por si el navegador no soporta `safe-area-inset-bottom` */
     }
+    
 }
