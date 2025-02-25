@@ -335,8 +335,10 @@ function limpiarMapa() {
 
     // Vaciar la lista de direcciones
     direccionesTCP = [];
-    tcpInput.innerHTML = ``;
-    tcpDirections.innerHTML = ``;
+    
+    // Seleccionar ambos elementos en desktop y mobile y dejarlos en blanco
+    document.querySelectorAll("#tcpInput").forEach(el => el.innerHTML = "");
+    document.querySelectorAll("#tcpDirections").forEach(el => el.innerHTML = "");
 
 }
 // Asignar la función limpiarMapa al botón ya existente
