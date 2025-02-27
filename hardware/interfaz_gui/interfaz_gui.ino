@@ -21,6 +21,14 @@ static lv_color_t buf[SCREEN_WIDTH * 10];
 
 TFT_eSPI tft = TFT_eSPI(SCREEN_WIDTH, SCREEN_HEIGHT);
 
+// Inicialización del sensor de huellas
+#define FINGERPRINT_RX 16
+#define FINGERPRINT_TX 17
+HardwareSerial mySerial(2);
+Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
+
+lv_obj_t *label_status; // Label para mostrar estado de la huella
+
 void touchscreen_read(lv_indev_drv_t * indev, lv_indev_data_t * data) {
   if (touchscreen.tirqTouched() && touchscreen.touched()) {
     TS_Point p = touchscreen.getPoint();
@@ -45,25 +53,33 @@ void my_disp_flush(lv_disp_drv_t * disp, const lv_area_t * area, lv_color_t * co
 }
 
 void readFingerprint() {
-    Serial.println("Coloca tu dedo en el sensor (simulación)");
-    int intentos = 0;
-    bool huellaEncontrada = false;
+    Serial.println("Coloca tu dedo en el sensor");
+    lv_label_set_text(label_status, "Coloca tu dedo");
+    lv_obj_set_style_text_color(label_status, lv_palette_main(LV_PALETTE_BLUE), 0);
     
-    while (intentos < 3) {
-        Serial.print("Intento ");
-        Serial.println(intentos + 1);
-        delay(1000);
-        if (random(0, 2) == 1) { // Simulación de detección de huella
-            Serial.println("Huella reconocida, ID: 123");
-            huellaEncontrada = true;
-            break;
-        }
-        intentos++;
-    }
-    
-    if (!huellaEncontrada) {
+    int id = getFingerprintID();
+    if (id >= 0) {
+        Serial.print("Huella reconocida, ID: ");
+        Serial.println(id);
+        lv_label_set_text(label_status, "Huella reconocida");
+        lv_obj_set_style_text_color(label_status, lv_palette_main(LV_PALETTE_GREEN), 0);
+    } else {
         Serial.println("Huella no registrada");
+        lv_label_set_text(label_status, "Huella no registrada");
+        lv_obj_set_style_text_color(label_status, lv_palette_main(LV_PALETTE_RED), 0);
     }
+}
+
+int getFingerprintID() {
+    uint8_t p = finger.getImage();
+    if (p != FINGERPRINT_OK) return -1;
+    p = finger.image2Tz();
+    if (p != FINGERPRINT_OK) return -1;
+    p = finger.fingerSearch();
+    if (p == FINGERPRINT_OK) {
+        return finger.fingerID;
+    }
+    return -1;
 }
 
 static void btn_fingerprint_event_handler(lv_event_t * e) {
@@ -97,6 +113,11 @@ void lv_create_main_gui(void) {
   lv_obj_t * label_fingerprint = lv_label_create(btn_fingerprint);
   lv_label_set_text(label_fingerprint, "Fingerprint");
   lv_obj_center(label_fingerprint);
+
+  // Crear el label para mostrar estado de la huella
+  label_status = lv_label_create(lv_scr_act());
+  lv_label_set_text(label_status, "");
+  lv_obj_align(label_status, LV_ALIGN_CENTER, 0, 100);
 }
 
 void setup() {
@@ -121,7 +142,13 @@ void setup() {
   indev_drv.read_cb = touchscreen_read;
   lv_indev_drv_register(&indev_drv);
   
-  Serial.println("Simulación de sensor de huellas iniciado");
+  mySerial.begin(57600, SERIAL_8N1, FINGERPRINT_RX, FINGERPRINT_TX);
+  finger.begin(57600);
+  if (finger.verifyPassword()) {
+    Serial.println("Sensor de huellas encontrado");
+  } else {
+    Serial.println("Error: No se pudo encontrar el sensor de huellas");
+  }
   
   lv_create_main_gui();
 }
