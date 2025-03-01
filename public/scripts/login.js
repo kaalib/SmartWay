@@ -15,55 +15,57 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    // Evento click del botón de login
-    loginButton.addEventListener("click", async function (event) {
-        event.preventDefault(); // Evita el envío automático del formulario
-
-        const usuario = userInput.value.trim();
-        const contraseña = passwordInput.value.trim();
-
-        if (!usuario || !contraseña) {
-            Swal.fire({
-                icon: "warning",
-                title: "Oops...",
-                text: "Debes completar ambos campos.",
-            });
-            return;
-        }
-
-        try {
-            const response = await fetch("/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ usuario, contraseña }),
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
+        // Evento click del botón de login
+        loginButton.addEventListener("click", async function (event) {
+            event.preventDefault(); // Evita el envío automático del formulario
+    
+            const usuario = userInput.value.trim();
+            const contraseña = passwordInput.value.trim();
+    
+            if (!usuario || !contraseña) {
                 Swal.fire({
-                    icon: "success",
-                    title: "¡Bienvenido!",
-                    text: "Inicio de sesión exitoso.",
-                    showConfirmButton: false,
-                    timer: 1500
-                }).then(() => {
-                    window.location.href = "map_admin.html"; // Redirige después de la alerta
+                    icon: "warning",
+                    title: "Oops...",
+                    text: "Debes completar ambos campos.",
                 });
-            } else {
+                return;
+            }
+    
+            try {
+                const response = await fetch("/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ usuario, contraseña }),
+                });
+    
+                const data = await response.json();
+    
+                if (data.success) {
+                    Swal.fire({
+                        icon: "success",
+                        title: "¡Bienvenido!",
+                        text: data.message,
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        window.location.href = data.redirectUrl; // Redirige dinámicamente
+                    });
+                } else {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Acceso denegado",
+                        text: data.message,
+                    });
+                }
+            } catch (error) {
+                console.error("Error en la solicitud:", error);
                 Swal.fire({
                     icon: "error",
-                    title: "Acceso denegado",
-                    text: "Usuario o contraseña incorrectos.",
+                    title: "Error en el servidor",
+                    text: "Ocurrió un problema al intentar iniciar sesión.",
                 });
             }
-        } catch (error) {
-            console.error("Error en la solicitud:", error);
-            Swal.fire({
-                icon: "error",
-                title: "Error en el servidor",
-                text: "Ocurrió un problema al intentar iniciar sesión.",
-            });
-        }
-    });
+        });
+    
 });
+

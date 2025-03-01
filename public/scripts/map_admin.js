@@ -260,38 +260,55 @@ function initMap() {
 }
 
 
-// Nueva función para dibujar todos los marcadores
-function dibujarMarcadores() {
-    // Limpiar marcadores previos
-    marcadores.forEach(marcador => marcador.setMap(null));
-    marcadores = [];
+// Nueva función para dibujar todos los marcadores desde el JSON del servidor
+async function dibujarMarcadores() {
+    try {
+        // Hacer una solicitud al servidor para obtener los mensajes TCP
+        const response = await fetch(jsonUrl);
+        if (!response.ok) throw new Error('Error al obtener las direcciones TCP');
 
-    // Crear un objeto LatLngBounds para abarcar todos los marcadores
-    const bounds = new google.maps.LatLngBounds();
+        const data = await response.json();
 
-    // Si no hay direcciones, no hacemos nada
-    if (direccionesTCP.length === 0) {
-        console.log('No hay direcciones para dibujar.');
-        return;
-    }
+        // Extraer todas las direcciones de los mensajes TCP
+        const direcciones = data.tcp
+            .filter(msg => msg.direccion) // Filtrar solo los que tienen dirección
+            .map(msg => msg.direccion);
 
-    // Contador para rastrear geocodificaciones completadas
-    let geocodedCount = 0;
-    const totalDirections = direccionesTCP.length;
+        // Si no hay direcciones, no hacemos nada
+        if (direcciones.length === 0) {
+            console.log('No hay direcciones para dibujar.');
+            return;
+        }
 
-    // Geocodificar y dibujar todas las direcciones
-    direccionesTCP.forEach((direccion) => {
-        geocodificarDireccion(direccion, (location, dir) => {
-            agregarMarcador(location, dir, bounds); // Pasamos bounds explícitamente
-            geocodedCount++;
+        // Limpiar marcadores previos
+        marcadores.forEach(marcador => marcador.setMap(null));
+        marcadores = [];
 
-            // Ajustar el mapa cuando todas las geocodificaciones estén listas
-            if (geocodedCount === totalDirections) {
-                map.fitBounds(bounds);
-            }
+        // Crear un objeto LatLngBounds para abarcar todos los marcadores
+        const bounds = new google.maps.LatLngBounds();
+
+        // Contador para rastrear geocodificaciones completadas
+        let geocodedCount = 0;
+        const totalDirections = direcciones.length;
+
+        // Geocodificar y dibujar todas las direcciones
+        direcciones.forEach((direccion) => {
+            geocodificarDireccion(direccion, (location, dir) => {
+                agregarMarcador(location, dir, bounds); // Pasamos bounds explícitamente
+                geocodedCount++;
+
+                // Ajustar el mapa cuando todas las geocodificaciones estén listas
+                if (geocodedCount === totalDirections) {
+                    map.fitBounds(bounds);
+                }
+            });
         });
-    });
+
+    } catch (error) {
+        console.error('Error al dibujar los marcadores:', error);
+    }
 }
+
 
 // Agregar marcador en el mapa (recibe bounds como parámetro)
 function agregarMarcador(location, direccion, bounds) {
@@ -327,7 +344,6 @@ function geocodificarDireccion(direccion, callback) {
 }
 
 
-// Función para limpiar el mapa y la lista de direcciones
 function limpiarMapa() {
     // Eliminar todos los marcadores del mapa
     marcadores.forEach(marcador => marcador.setMap(null));
@@ -335,12 +351,24 @@ function limpiarMapa() {
 
     // Vaciar la lista de direcciones
     direccionesTCP = [];
-    
+
     // Seleccionar ambos elementos en desktop y mobile y dejarlos en blanco
     document.querySelectorAll("#tcpInput").forEach(el => el.innerHTML = "");
     document.querySelectorAll("#tcpDirections").forEach(el => el.innerHTML = "");
 
+    // Enviar solicitud DELETE para limpiar mensajes en el servidor
+    fetch('/messages', { method: 'DELETE' })
+        .then(response => response.json())
+        .then(data => console.log(data.message)) // Mensaje de confirmación en consola
+        .catch(error => console.error('Error al limpiar mensajes:', error));
+
+    // Enviar solicitud PUT para actualizar la columna bus en la BD
+    fetch('/updateBus', { method: 'PUT' })
+        .then(response => response.json())
+        .then(data => console.log(data.message)) // Mensaje de confirmación en consola
+        .catch(error => console.error('Error al actualizar bus:', error));
 }
+
 // Asignar la función limpiarMapa al botón ya existente
 document.getElementById('btnLimpiar').addEventListener('click', limpiarMapa);
 document.getElementById('btnMarkers').addEventListener('click', dibujarMarcadores);

@@ -10,7 +10,7 @@ const fs = require('fs');
 const app = express();
 const net = require('net');
 
-const messages = { tcp: [] }; // Mensajes TCP
+const messages = { tcp: [], rutasIA: [] }; // Mensajes TCP, la API optimizadora de rutas
 
 require('dotenv').config(); // Cargar variables de entorno
 
@@ -56,6 +56,27 @@ app.get('/messages', (req, res) => {
     res.json(messages);
 });
 
+// Endpoint para eliminar mensajes TCP
+app.delete('/messages', (req, res) => {
+    messages.tcp = []; // Vaciar el array de mensajes TCP
+    fs.writeFileSync("messages.json", JSON.stringify(messages, null, 2)); // Guardar cambios en el archivo
+    res.json({ success: true, message: "Mensajes TCP eliminados" });
+});
+
+app.put("/updateBus", (req, res) => {
+    const sql = "UPDATE empleados SET bus = 0 WHERE bus = 1";
+
+    db.query(sql, (err, result) => {
+        if (err) {
+            console.error("❌ Error al actualizar bus en la base de datos:", err);
+            return res.status(500).json({ message: "Error al actualizar bus en la base de datos" });
+        }
+
+        console.log("✅ Todos los registros con bus = 1 han sido reseteados a 0.");
+        res.json({ message: "Todos los empleados han bajado del bus" });
+    });
+});
+
 // Escucha en el puerto 443
 httpsServer.listen(443, () => {
     console.log('Servidor HTTPS escuchando en el puerto 443');
@@ -90,56 +111,97 @@ const tcpServer = net.createServer((socket) => {
 
         console.log(`ID recibido: ${idEmpleado}`);
 
-        // Consulta SQL
-        const sql = "SELECT nombre, apellido, direccion FROM empleados WHERE id = ?";
-
-        db.query(sql, [idEmpleado], (err, results) => {
-            if (err) {
-                console.error("Error en la consulta MySQL:", err);
-                socket.write("Error en la base de datos.\n");
+        // Actualizar el estado de 'bus' a 1 para este ID
+        const updateSql = "UPDATE empleados SET bus = 1 WHERE id = ?";
+        db.query(updateSql, [idEmpleado], (updateErr) => {
+            if (updateErr) {
+                console.error("❌ Error al actualizar la columna bus:", updateErr);
+                socket.write("Error al actualizar bus en la base de datos.\n");
                 return;
             }
 
-            let respuesta;
+            console.log(`✅ Bus actualizado a 1 para ID ${idEmpleado}`);
 
-            if (results.length > 0) {
-                const empleado = results[0];
-                respuesta = {
-                    id: idEmpleado,
-                    nombre: empleado.nombre,
-                    apellido: empleado.apellido,
-                    direccion: empleado.direccion
-                };
-            } else {
-                respuesta = { error: "Usuario no encontrado" };
-            }
+            // Obtener los datos del empleado incluyendo 'bus'
+            const selectSql = "SELECT nombre, apellido, direccion, bus FROM empleados WHERE id = ?";
+            db.query(selectSql, [idEmpleado], (err, results) => {
+                if (err) {
+                    console.error("❌ Error en la consulta MySQL:", err);
+                    socket.write("Error en la base de datos.\n");
+                    return;
+                }
 
-            // Guardar mensajes en JSON
-            messages.tcp.push(respuesta);
-            fs.writeFileSync("messages.json", JSON.stringify(messages, null, 2));
+                let respuesta;
+                if (results.length > 0) {
+                    const empleado = results[0];
+                    respuesta = {
+                        id: idEmpleado,
+                        nombre: empleado.nombre,
+                        apellido: empleado.apellido,
+                        direccion: empleado.direccion,
+                        bus: empleado.bus // Incluir el estado del bus en la respuesta
+                    };
+                } else {
+                    respuesta = { error: "Usuario no encontrado" };
+                }
 
-            // Enviar datos a clientes WebSocket
-            const jsonData = JSON.stringify({ type: "tcp", data: respuesta });
+                // Guardar mensajes en JSON sin bloquear la ejecución
+                messages.tcp.push(respuesta);
+                fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
+                    if (err) console.error("Error guardando mensajes en archivo:", err);
+                });
 
-            wss.clients.forEach((client) => {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send(jsonData);
+                // Enviar datos a clientes WebSocket
+                const jsonData = JSON.stringify({ type: "tcp", data: respuesta });
+
+                wss.clients.forEach((client) => {
+                    if (client.readyState === WebSocket.OPEN) {
+                        client.send(jsonData);
+                    }
+                });
+
+                // Enviar respuesta al cliente TCP con manejo de errores en socket.write
+                try {
+                    socket.write(JSON.stringify(respuesta) + "\n");
+                } catch (writeErr) {
+                    console.error("❌ Error escribiendo en el socket:", writeErr);
                 }
             });
-
-            // Enviar respuesta al cliente TCP como JSON string
-            socket.write(JSON.stringify(respuesta) + "\n");
         });
     });
 
     socket.on("end", () => {
         console.log("Cliente TCP desconectado");
     });
+    
+    // Mover el manejo de errores del socket aquí
+    socket.on("error", (err) => {
+        if (err.code === 'EPIPE') {
+            console.warn('⚠️ Intento de escribir en un socket cerrado.');
+        } else {
+            console.error("❌ Error en el socket:", err);
+        }
+    });
+    
 });
+
 
 // TCP
 tcpServer.listen(7777, '0.0.0.0', () => {
-    console.log('Servidor TCP escuchando en el puerto 7777');
+    console.log('🚀 Servidor TCP escuchando en el puerto 7777');
+});
+
+// --- Manejo de errores globales ---
+tcpServer.on('error', (err) => {
+    console.error('❌ Error en el servidor TCP:', err);
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('🔥 Se detectó un error no manejado:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('🚨 Se detectó una promesa rechazada sin manejar:', reason);
 });
 
 // --- Servidor UDP --- borrado
@@ -159,7 +221,7 @@ httpServer.listen(80, () => {
 app.post("/login", (req, res) => {
     const { usuario, contraseña } = req.body;
 
-    const query = `SELECT acceso, bus FROM empleados WHERE usuario = ? AND contraseña = ? AND acceso = 1 LIMIT 1`;
+    const query = `SELECT acceso, bus, cargo FROM empleados WHERE usuario = ? AND contraseña = ? AND (acceso = 1 OR bus = 1) LIMIT 1`;
 
     db.query(query, [usuario, contraseña], (err, results) => {
         if (err) {
@@ -167,9 +229,27 @@ app.post("/login", (req, res) => {
         }
 
         if (results.length > 0) {
-            res.json({ success: true, message: "Inicio de sesión exitoso" });
+            const { acceso, bus, cargo } = results[0];
+
+            let role = "desconocido";
+            let redirectUrl = "";
+
+            if (acceso === 1) {
+                role = "Administrador";
+                redirectUrl = "map_admin.html";
+            } else if (bus === 1) {
+                if (cargo.toLowerCase().includes("empleado")) {
+                    role = "Empleado";
+                    redirectUrl = "map_empleado.html";
+                } else if (cargo.toLowerCase().includes("conductor")) {
+                    role = "Conductor";
+                    redirectUrl = "map_conductor.html";
+                }
+            }
+
+            return res.json({ success: true, message: `Ingresando a la vista de ${role}`, redirectUrl });
         } else {
-            res.json({ success: false, message: "Usuario o contraseña incorrectos" });
+            return res.json({ success: false, message: "Usuario o contraseña incorrectos" });
         }
     });
 });
