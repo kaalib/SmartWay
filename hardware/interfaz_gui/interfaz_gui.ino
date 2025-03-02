@@ -2,6 +2,9 @@
 #include <TFT_eSPI.h>
 #include <XPT2046_Touchscreen.h>
 #include <Adafruit_Fingerprint.h>
+#include <WiFi.h>
+#include <WiFiUdp.h>
+#include "var_config.h"
 
 #define XPT2046_IRQ 36
 #define XPT2046_MOSI 32
@@ -28,6 +31,9 @@ Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 lv_obj_t *label_status;
 bool readingFingerprint = false;
 
+WiFiClient tcpClient;
+WiFiUDP udpClient;
+
 void touchscreen_read(lv_indev_drv_t * indev, lv_indev_data_t * data) {
     if (touchscreen.tirqTouched() && touchscreen.touched()) {
         TS_Point p = touchscreen.getPoint();
@@ -51,12 +57,46 @@ void my_disp_flush(lv_disp_drv_t * disp, const lv_area_t * area, lv_color_t * co
     lv_disp_flush_ready(disp);
 }
 
+
+void enviarDatoTCP(int id) {
+    Serial.print("📤 Enviando ID ");
+    Serial.print(id);
+    Serial.println(" por TCP...");
+
+    if (!tcpClient.connected()) {
+        if (!tcpClient.connect(EC2_IP, TCP_PORT)) {
+            Serial.println("❌ Error al conectar al servidor TCP.");
+            return;
+        }
+        Serial.println("✅ Conectado al servidor TCP");
+    }
+
+    tcpClient.print(String(id));
+    tcpClient.flush();
+    Serial.println("✅ ID enviado por TCP.");
+    tcpClient.stop();
+}
+
+void enviarDatoUDP(int id) {
+    Serial.print("📤 Enviando ID ");
+    Serial.print(id);
+    Serial.println(" por UDP...");
+
+    if (udpClient.beginPacket(EC2_IP, UDP_PORT)) {
+        udpClient.print(String(id));
+        udpClient.endPacket();
+        Serial.println("✅ ID enviado por UDP.");
+    } else {
+        Serial.println("❌ Error al enviar el paquete UDP.");
+    }
+}
+
+
 void readFingerprint() {
     Serial.println("Coloca tu dedo en el sensor");
     lv_label_set_text(label_status, "Inserte su huella");
-    lv_task_handler();  // Refrescar pantalla
+    lv_task_handler();
 
-    // 🔸 Esperar hasta que el sensor detecte un dedo
     while (finger.getImage() != FINGERPRINT_OK) {
         delay(100);
     }
@@ -64,41 +104,32 @@ void readFingerprint() {
     Serial.println("Dedo detectado, iniciando lectura...");
 
     int intentos = 0;
-
     while (intentos < 4) {
         int id = getFingerprintID();
         if (id >= 0) {
             Serial.print("Huella reconocida, ID: ");
             Serial.println(id);
-
-            // Mostrar el ID en la pantalla
             char msg[40];
             snprintf(msg, sizeof(msg), "Huella reconocida, ID: %d", id);
             lv_label_set_text(label_status, msg);
-            lv_task_handler();  // Refrescar pantalla
-            delay(2000);  // Esperar para que el usuario lo vea
-
-            // Luego de mostrar el ID, pedir la siguiente huella
+            lv_task_handler();
+            delay(2000);
+            enviarDatoTCP(id);
+            enviarDatoUDP(id);
             lv_label_set_text(label_status, "Inserte su huella");
-            lv_task_handler();  // Refrescar pantalla
-
+            lv_task_handler();
             return;
         }
         intentos++;
         delay(800);
     }
 
-    // Si no reconoce la huella después de 3 intentos
     lv_label_set_text(label_status, "Huella no registrada");
-    lv_task_handler();  // Refrescar pantalla
-    delay(1000);  // Esperar antes de cambiar el mensaje
-
-    // Reiniciar el mensaje para la siguiente persona
+    lv_task_handler();
+    delay(1000);
     lv_label_set_text(label_status, "Inserte su huella");
-    lv_task_handler();  // Refrescar pantalla
+    lv_task_handler();
 }
-
-
 
 int getFingerprintID() {
     uint8_t p = finger.getImage();
@@ -114,15 +145,10 @@ int getFingerprintID() {
 
 static void btn_fingerprint_event_handler(lv_event_t * e) {
     Serial.println("Fingerprint button pressed");
-
-    // 🔹 Cambiar el estado a "esperando huella"
     lv_label_set_text(label_status, "Coloque su dedo en el sensor...");
-    lv_task_handler();  // Refrescar pantalla
-
-    readingFingerprint = true;  // 🔹 Activar la lectura continua en loop()
+    lv_task_handler();
+    readingFingerprint = true;
 }
-
-
 
 void lv_create_main_gui(void) {
     lv_obj_t * text_label = lv_label_create(lv_scr_act());
@@ -146,6 +172,14 @@ void lv_create_main_gui(void) {
 
 void setup() {
     Serial.begin(115200);
+    WiFi.begin(SSID, PASSWORD);
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+    }
+    Serial.println("\n✅ Conectado a WiFi");
+    udpClient.begin(UDP_PORT);
+    
     lv_init();
     tft.begin();
     tft.setRotation(2);
@@ -157,6 +191,7 @@ void setup() {
     disp_drv.flush_cb = my_disp_flush;
     disp_drv.draw_buf = &draw_buf;
     lv_disp_drv_register(&disp_drv);
+    
     touchscreenSPI.begin(XPT2046_CLK, XPT2046_MISO, XPT2046_MOSI, XPT2046_CS);
     touchscreen.begin(touchscreenSPI);
     touchscreen.setRotation(2);
@@ -168,11 +203,6 @@ void setup() {
     
     mySerial.begin(57600, SERIAL_8N1, FINGERPRINT_RX, FINGERPRINT_TX);
     finger.begin(57600);
-    if (finger.verifyPassword()) {
-        Serial.println("Sensor de huellas encontrado");
-    } else {
-        Serial.println("Error: No se pudo encontrar el sensor de huellas");
-    }
     
     lv_create_main_gui();
 }
@@ -180,7 +210,6 @@ void setup() {
 void loop() {
     lv_timer_handler();
     delay(5);
-    
     if (readingFingerprint) {
         readFingerprint();
     }
