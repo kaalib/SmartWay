@@ -9,6 +9,7 @@ const path = require('path');
 const fs = require('fs'); 
 const app = express();
 const net = require('net');
+const axios = require('axios');
 
 const messages = { tcp: [], rutasIA: [] }; // Mensajes TCP, la API optimizadora de rutas
 
@@ -252,4 +253,20 @@ app.post("/login", (req, res) => {
             return res.json({ success: false, message: "Usuario o contraseña incorrectos" });
         }
     });
+});
+
+// Ruta para enviar datos a Flask
+app.post('/enviar-datos', async (req, res) => {
+    try {
+        const { mensaje, origen } = req.body;
+
+        // Enviar datos a Flask
+        const respuesta = await axios.post('https://smartway.ddns.net:5000/api/process', { mensaje, origen });
+
+        console.log("✅ Respuesta de Flask:", respuesta.data);
+        res.json({ success: true, data: respuesta.data });
+    } catch (error) {
+        console.error("❌ Error enviando a Flask:", error.message);
+        res.status(500).json({ success: false, message: "Error comunicándose con Flask" });
+    }
 });
