@@ -369,7 +369,26 @@ function limpiarMapa() {
         .catch(error => console.error('Error al actualizar bus:', error));
 }
 
+async function EnviarMensajeAPI() {
+    try {
+        const respuesta = await fetch('/enviar-datos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                mensaje: "Hola desde el cliente",
+                origen: "Interfaz HTML"
+            })
+        });
+
+        const data = await respuesta.json();
+        console.log("✅ Respuesta desde el servidor:", data);
+    } catch (error) {
+        console.error("❌ Error enviando datos:", error.message);
+    }
+}
+
 // Asignar la función limpiarMapa al botón ya existente
+document.getElementById('btnAPI').addEventListener('click', EnviarMensajeAPI);
 document.getElementById('btnLimpiar').addEventListener('click', limpiarMapa);
 document.getElementById('btnMarkers').addEventListener('click', dibujarMarcadores);
 
