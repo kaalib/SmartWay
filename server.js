@@ -174,6 +174,15 @@ const tcpServer = net.createServer((socket) => {
     socket.on("end", () => {
         console.log("Cliente TCP desconectado");
     });
+
+    socket.on("error", (err) => {
+        if (err.code === "ECONNRESET") {
+            console.warn("⚠️ Cliente desconectado abruptamente.");
+        } else {
+            console.error("❌ Error en el socket:", err);
+        }
+        socket.destroy(); // Destruir el socket para evitar fugas de memoria
+    });
     
     // Mover el manejo de errores del socket aquí
     socket.on("error", (err) => {
@@ -261,7 +270,7 @@ app.post('/enviar-datos', async (req, res) => {
         const { mensaje, origen } = req.body;
 
         // Enviar datos a Flask
-        const respuesta = await axios.post('https://smartway.ddns.net:5000/api/process', { mensaje, origen });
+        const respuesta = await axios.post('http://smartway.ddns.net:5000/api/process', { mensaje, origen });
 
         console.log("✅ Respuesta de Flask:", respuesta.data);
         res.json({ success: true, data: respuesta.data });
