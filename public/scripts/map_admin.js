@@ -133,55 +133,56 @@ let geocoder = null;
 let socket = null;
 let marcadores = []; // Array de marcadores en el mapa
 let direccionesTCP = []; // Lista de direcciones recibidas
-let permisoDenegado = false; // Variable para rastrear si el permiso fue denegado
+let permisoDenegado = false; // Rastrea si el permiso fue denegado
 
-// Función para obtener la ubicación del usuario
-function obtenerUbicacionUsuario() {
+// 🗺️ Obtener ubicación en texto y agregarla al JSON TCP
+function obtenerUbicacionYAgregarATCP() {
     if (!navigator.geolocation) {
-        Swal.fire({
+        return Swal.fire({
             icon: "error",
             title: "Geolocalización no disponible",
             text: "Tu navegador no soporta la geolocalización."
         });
-        return;
-    }
-
-    // Si ya se denegó el permiso, no volver a pedirlo automáticamente
-    if (permisoDenegado) {
-        mostrarAlertaPermisoDenegado();
-        return;
     }
 
     navigator.geolocation.getCurrentPosition(
-        (position) => {
+        async (position) => {
             const { latitude, longitude } = position.coords;
-            const userLocation = new google.maps.LatLng(latitude, longitude);
+            const location = new google.maps.LatLng(latitude, longitude);
 
-            geocoder.geocode({ location: userLocation }, (results, status) => {
-                if (status === "OK" && results[0]) {
-                    const direccionUsuario = results[0].formatted_address;
-                    direccionesTCP.unshift(direccionUsuario);
-                    tcpInput.value = direccionesTCP.join("\n");
-                    agregarMarcador(userLocation, "📍 Punto de partida");
+            try {
+                const direccionUsuario = await geocodificarUbicacion(location);
+                const ubicacionbus = { direccion: direccionUsuario };
 
-                    Swal.fire({
-                        icon: "success",
-                        title: "Ubicación obtenida",
-                        timer: 1000,
-                        showConfirmButton: false
-                    });
-                } else {
-                    Swal.fire({
-                        icon: "warning",
-                        title: "No se pudo obtener la dirección",
-                        text: "La ubicación se obtuvo, pero no se pudo determinar la dirección exacta."
-                    });
-                }
-            });
+                // Agregar al JSON `tcp`
+                messages.tcp.unshift(ubicacionbus);
+
+                // Guardar en archivo
+                fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
+                    if (err) console.error("❌ Error guardando en JSON:", err);
+                });
+
+                console.log("📍 Ubicación agregada al JSON TCP:", ubicacionbus);
+
+                Swal.fire({
+                    icon: "success",
+                    title: "Ubicación obtenida",
+                    text: `📌 ${direccionUsuario}`,
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+
+            } catch (error) {
+                Swal.fire({
+                    icon: "warning",
+                    title: "No se pudo obtener la dirección",
+                    text: "Se obtuvo la ubicación, pero no la dirección exacta."
+                });
+            }
         },
         (error) => {
             if (error.code === error.PERMISSION_DENIED) {
-                permisoDenegado = true; // Marcar que el permiso fue denegado
+                permisoDenegado = true;
                 mostrarAlertaPermisoDenegado();
             } else {
                 Swal.fire({
@@ -194,22 +195,35 @@ function obtenerUbicacionUsuario() {
     );
 }
 
-// Función para mostrar la alerta de permiso denegado solo una vez
+// 📍 Geocodificar ubicación a texto
+function geocodificarUbicacion(location) {
+    return new Promise((resolve, reject) => {
+        geocoder.geocode({ location }, (results, status) => {
+            if (status === "OK" && results[0]) {
+                resolve(results[0].formatted_address);
+            } else {
+                reject("No se pudo determinar la dirección exacta.");
+            }
+        });
+    });
+}
+
+// 🚨 Alerta cuando el usuario deniega la geolocalización
 function mostrarAlertaPermisoDenegado() {
     Swal.fire({
         icon: "error",
         title: "Acceso denegado",
-        text: "Has denegado el acceso a tu ubicación. Si deseas permitirlo ajusta los permisos en la configuración de tu navegador.",
+        text: "Has denegado el acceso a tu ubicación. Para activarlo, ajusta los permisos en tu navegador.",
         showCancelButton: true,
+        confirmButtonText: "Intentar de nuevo",
         cancelButtonText: "Salir"
     }).then((result) => {
         if (result.isConfirmed) {
-            permisoDenegado = false; // Resetear el estado para intentar de nuevo
-            obtenerUbicacionUsuario(); // Volver a pedir la ubicación
+            permisoDenegado = false;
+            obtenerUbicacionYAgregarATCP();
         }
     });
 }
-
 
 
 
@@ -270,7 +284,7 @@ async function dibujarMarcadores() {
         const data = await response.json();
 
         // Extraer todas las direcciones de los mensajes TCP
-        const direcciones = data.tcp
+        const direcciones = data.rutasIA
             .filter(msg => msg.direccion) // Filtrar solo los que tienen dirección
             .map(msg => msg.direccion);
 
@@ -369,26 +383,29 @@ function limpiarMapa() {
         .catch(error => console.error('Error al actualizar bus:', error));
 }
 
-async function EnviarMensajeAPI() {
+
+
+async function enviarDireccionesAFlask() {
     try {
-        const respuesta = await fetch('/enviar-datos', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                mensaje: "Hola desde el cliente",
-                origen: "Interfaz HTML"
-            })
+        const response = await fetch('/enviar-direcciones', {
+            method: "POST",
+            headers: { "Content-Type": "application/json" }
         });
 
-        const data = await respuesta.json();
-        console.log("✅ Respuesta desde el servidor:", data);
+        if (!response.ok) throw new Error("Error al enviar direcciones");
+
+        const data = await response.json();
+        console.log("📩 Rutas recibidas de Flask:", data.rutasIA);
+
+        // Llamar a dibujarMarcadores para actualizar el mapa con las rutas procesadas
+        dibujarMarcadores();
     } catch (error) {
-        console.error("❌ Error enviando datos:", error.message);
+        console.error("❌ Error al enviar direcciones a Flask:", error);
     }
 }
 
 // Asignar la función limpiarMapa al botón ya existente
-document.getElementById('btnAPI').addEventListener('click', EnviarMensajeAPI);
+document.getElementById('btnAPI').addEventListener('click', enviarDireccionesAFlask);
 document.getElementById('btnLimpiar').addEventListener('click', limpiarMapa);
 document.getElementById('btnMarkers').addEventListener('click', dibujarMarcadores);
 

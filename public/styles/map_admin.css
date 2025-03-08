@@ -48,14 +48,13 @@ nav a:hover {
 /* Menú lateral izquierdo (hamburguesa) */
 .menu-icon {
     display: none;
-    font-size: 30px;
     cursor: pointer;
-    color: white;
     position: fixed;
-    top: 15px;
+    top: 20px;
     z-index: 1100;
     left: 15px;
 }
+
 
 .sidebar {
     height: 100%;
@@ -189,14 +188,11 @@ nav a:hover {
 
 .message-toggle {
     display: none; /* Oculto por defecto, visible en móviles */
-    font-size: 30px;
     cursor: pointer;
     position: fixed;
-    top: 15px; /* Igual que el menú hamburguesa, para alinearlo */
-    right: 15px;
+    top: 0px; /* Igual que el menú hamburguesa, para alinearlo */
+    right: 5px;
     z-index: 1100;
-    border-radius: 5px;
-    color: white;
 
 }
 
@@ -236,7 +232,6 @@ nav a:hover {
 
     .menu-icon {
         display: block;
-        color: #311b92;
     }
 
     .container {

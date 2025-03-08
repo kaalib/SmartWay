@@ -7,19 +7,21 @@ def process_message():
     try:
         # Recibir JSON desde Node.js
         data = request.get_json()
+        
+        # Extraer direcciones (asumiendo que llegan como una lista)
+        direcciones = data.get("direcciones", [])
 
-        # Extraer información del JSON
-        mensaje = data.get("mensaje", "Mensaje no especificado")
-        origen = data.get("origen", "Desconocido")
+        print(f"📩 Direcciones recibidas: {direcciones}")
 
-        print(f"📩 Mensaje recibido: {mensaje} (Origen: {origen})")
+        # Invertir el orden de las direcciones
+        direcciones_invertidas = list(reversed(direcciones))
 
-        # Respuesta a Node.js
+        print(f"🔄 Direcciones invertidas: {direcciones_invertidas}")
+
+        # Respuesta con la nueva ruta procesada
         respuesta = {
             "status": "success",
-            "mensaje_recibido": mensaje,
-            "origen": origen,
-            "respuesta": f"Procesado correctamente desde Flask en {origen}"
+            "rutasIA": direcciones_invertidas
         }
 
         return jsonify(respuesta), 200
@@ -29,4 +31,4 @@ def process_message():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)  # Escucha en el puerto 5000
+    app.run(host='0.0.0.0', port=5000)
