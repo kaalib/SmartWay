@@ -285,8 +285,6 @@ async function dibujarMarcadores() {
 
         // Extraer todas las direcciones de los mensajes TCP
         const direcciones = data.rutasIA
-            .filter(msg => msg.direccion) // Filtrar solo los que tienen dirección
-            .map(msg => msg.direccion);
 
         // Si no hay direcciones, no hacemos nada
         if (direcciones.length === 0) {
