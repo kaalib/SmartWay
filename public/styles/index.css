@@ -46,16 +46,14 @@ nav a:hover {
     border-radius: 5px;
 }
 
-/* Menú lateral en pantallas pequeñas */
 .menu-icon {
     display: none;
-    font-size: 30px;
     cursor: pointer;
-    color: white;
     position: absolute;
-    top: 15px;
+    top: 20px;
     left: 15px;
 }
+
 
 .sidebar {
     height: 100%;
@@ -152,7 +150,6 @@ h1 {
 
     
     .menu-icon {
-        color: #311b92;
         display: block;
     }
 

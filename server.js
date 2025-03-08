@@ -64,6 +64,14 @@ app.delete('/messages', (req, res) => {
     res.json({ success: true, message: "Mensajes TCP eliminados" });
 });
 
+// Endpoint para eliminar mensajes rutasIA
+app.delete('/messages', (req, res) => {
+    messages.rutasIA = []; // Vaciar el array de mensajes rutasIA
+    fs.writeFileSync("messages.json", JSON.stringify(messages, null, 2)); // Guardar cambios en el archivo
+    res.json({ success: true, message: "Mensajes TCP eliminados" });
+});
+
+
 app.put("/updateBus", (req, res) => {
     const sql = "UPDATE empleados SET bus = 0 WHERE bus = 1";
 
@@ -193,6 +201,7 @@ const tcpServer = net.createServer((socket) => {
         }
     });
     
+    
 });
 
 
@@ -264,18 +273,35 @@ app.post("/login", (req, res) => {
     });
 });
 
-// Ruta para enviar datos a Flask
-app.post('/enviar-datos', async (req, res) => {
+
+// --- Endpoint para enviar direcciones a Flask ---
+app.post("/enviar-direcciones", async (req, res) => {
     try {
-        const { mensaje, origen } = req.body;
+        // Obtener direcciones de messages.tcp
+        const direcciones = messages.tcp.map(msg => msg.direccion);
+
+        if (direcciones.length === 0) {
+            return res.status(400).json({ error: "No hay direcciones para procesar" });
+        }
+
+        console.log("📤 Enviando direcciones a Flask:", direcciones);
 
         // Enviar datos a Flask
-        const respuesta = await axios.post('http://smartway.ddns.net:5000/api/process', { mensaje, origen });
+        const respuestaFlask = await axios.post("http://smartway.ddns.net:5000/api/process", { direcciones });
 
-        console.log("✅ Respuesta de Flask:", respuesta.data);
-        res.json({ success: true, data: respuesta.data });
+        // Guardar la respuesta de Flask en rutasIA
+        messages.rutasIA = respuestaFlask.data.rutasIA;
+        fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
+            if (err) console.error("Error guardando rutasIA en archivo:", err);
+        });
+
+        console.log("✅ Respuesta de Flask guardada en rutasIA:", messages.rutasIA);
+
+        res.json({ success: true, rutasIA: messages.rutasIA });
     } catch (error) {
         console.error("❌ Error enviando a Flask:", error.message);
         res.status(500).json({ success: false, message: "Error comunicándose con Flask" });
     }
 });
+
+
