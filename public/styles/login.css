@@ -1,10 +1,18 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+@font-face {
+    font-family: 'BadgerScript';
+    src: url('styles/fonts/BadgerScript') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
 
 * {
+    font-family: 'BadgerScript', cursive;
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Montserrat', sans-serif;
+
 }
 
 body {
@@ -12,52 +20,55 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 100vh; /* Cambiado de height a min-height */
+    min-height: 100vh;
     padding: 20px;
-    overflow: hidden; /* Opcional: Evita el scroll si no es necesario */
+    overflow: hidden;
+    width: 100%;
 }
 
-
+/* Contenedor principal */
 .container {
     background-color: #fff;
     border-radius: 20px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-    width: 90%;
-    max-width: 400px;
-    padding: 30px;
+    width: 100%;
+    max-width: 500px;
+    padding: 40px;
     text-align: center;
 }
 
 h1 {
-    font-size: 24px;
-    margin-bottom: 10px;
+    font-size: 26px;
+    margin-bottom: 15px;
 }
 
 span {
-    font-size: 14px;
-    color: #666;
+    font-size: 15px;
+    color: #444;
     display: block;
     margin-bottom: 20px;
 }
 
 input {
+    font-family: 'BadgerScript', cursive;
     width: 100%;
-    padding: 12px;
-    margin: 10px 0;
+    padding: 14px;
+    margin: 12px 0;
     border: none;
     background: #eee;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: 16px;
 }
 
+/* Botón */
 button {
-    background-color: #512da8;
+    font-family: 'BadgerScript', cursive;
+    background-color: #0059FF;
     color: #fff;
-    font-size: 14px;
-    padding: 12px;
+    font-size: 16px;
+    padding: 14px;
     border: none;
     border-radius: 8px;
-    font-weight: 600;
     text-transform: uppercase;
     cursor: pointer;
     width: 100%;
@@ -66,50 +77,66 @@ button {
 }
 
 button:hover {
-    background-color: #311b92;
+    background-color: #070054;
 }
 
+/* Enlaces */
 a {
-    color: #333;
-    font-size: 13px;
+    color: #444;
+    font-size: 14px;
     text-decoration: none;
     display: block;
     margin-top: 15px;
-}
-
-@media (max-width: 480px) {
-    .container {
-        padding: 20px;
-    }
-}
-
-a {
     text-decoration: underline;
-    color: #666;
 }
 
 a:hover {
-    color: #311b92;
+    color: #070054;
+}
+
+.password-container {
+    position: relative;
+    width: 100%;
+}
+
+.password-container input {
+    width: 100%;
+    padding-right: 40px; /* Deja espacio para el icono */
 }
 
 .eye-icon {
-    position: relative;
-
-
-    height: 100%; /* Ocupará el 70% del contenedor */
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
     cursor: pointer;
     font-size: 18px;
     color: #666;
     transition: color 0.3s ease;
-    z-index: 10; /* Se superpone sobre otros elementos */
-    background: rgba(255, 255, 255, 0.8); /* Opcional: Fondo semi-transparente */
-    padding: 1px; /* Espacio interno para clic más cómodo */
-    border-radius: 51x;
+    background: transparent;
 }
 
-.eye-icon:hover {
-    color: #311b92;
+.eye-icon img {
+    width: 34px;
+    height: 34px;
+}
+
+.swal2-confirm {
+    background-color: #0059FF !important;
+    color: white !important;
+    border: none !important;
+    padding: 10px 20px !important;
+    border-radius: 5px !important;
+}
+
+.swal2-confirm:hover {
+    background-color: #070054 !important;
+}
+
+
+/* Responsive */
+@media (max-width: 480px) {
+    .container {
+        padding: 25px;
+    }
 }
