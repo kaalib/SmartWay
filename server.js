@@ -57,19 +57,14 @@ app.get('/messages', (req, res) => {
     res.json(messages);
 });
 
-// Endpoint para eliminar mensajes TCP
+// Endpoint para eliminar mensajes TCP y  rutasIA
 app.delete('/messages', (req, res) => {
     messages.tcp = []; // Vaciar el array de mensajes TCP
-    fs.writeFileSync("messages.json", JSON.stringify(messages, null, 2)); // Guardar cambios en el archivo
-    res.json({ success: true, message: "Mensajes TCP eliminados" });
-});
-
-// Endpoint para eliminar mensajes rutasIA
-app.delete('/messages', (req, res) => {
     messages.rutasIA = []; // Vaciar el array de mensajes rutasIA
     fs.writeFileSync("messages.json", JSON.stringify(messages, null, 2)); // Guardar cambios en el archivo
     res.json({ success: true, message: "Mensajes TCP eliminados" });
 });
+
 
 
 app.put("/updateBus", (req, res) => {

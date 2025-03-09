@@ -153,17 +153,17 @@ function obtenerUbicacionYAgregarATCP() {
             try {
                 const direccionUsuario = await geocodificarUbicacion(location);
                 const ubicacionbus = { direccion: direccionUsuario };
+            // 🔽 Enviar al servidor con el formato correcto    
 
-                // Agregar al JSON `tcp`
-                messages.tcp.unshift(ubicacionbus);
-
-                // Guardar en archivo
-                fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
-                    if (err) console.error("❌ Error guardando en JSON:", err);
+            const response = await fetch('/messages/tcp', {
+                    method: 'POST',
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(ubicacionbus)
                 });
-
-                console.log("📍 Ubicación agregada al JSON TCP:", ubicacionbus);
-
+                
+                if (!response.ok) throw new Error("Error en la solicitud al servidor");
+                console.log("📍 Ubicación enviada al servidor:", ubicacionbus);
+            
                 Swal.fire({
                     icon: "success",
                     title: "Ubicación obtenida",
@@ -171,7 +171,7 @@ function obtenerUbicacionYAgregarATCP() {
                     timer: 1500,
                     showConfirmButton: false
                 });
-
+            
             } catch (error) {
                 Swal.fire({
                     icon: "warning",
@@ -194,6 +194,7 @@ function obtenerUbicacionYAgregarATCP() {
         }
     );
 }
+
 
 // 📍 Geocodificar ubicación a texto
 function geocodificarUbicacion(location) {
@@ -405,7 +406,7 @@ async function enviarDireccionesAFlask() {
 // Asignar la función limpiarMapa al botón ya existente
 document.getElementById('btnAPI').addEventListener('click', enviarDireccionesAFlask);
 document.getElementById('btnLimpiar').addEventListener('click', limpiarMapa);
-document.getElementById('btnMarkers').addEventListener('click', dibujarMarcadores);
+document.getElementById('btnDbus').addEventListener('click', obtenerUbicacionYAgregarATCP);
 
 // Cargar el mapa
 getApiKey();
