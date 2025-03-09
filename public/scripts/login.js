@@ -3,15 +3,16 @@ document.addEventListener("DOMContentLoaded", function () {
     const userInput = document.querySelector("input[type='text']"); // Usuario
     const passwordInput = document.querySelector("input[type='password']"); // Contraseña
     const togglePassword = document.getElementById("togglePassword");
-
+    const eyeIcon = togglePassword.querySelector("img");
+    
     // Mostrar/Ocultar contraseña
     togglePassword.addEventListener("click", function () {
         if (passwordInput.type === "password") {
             passwordInput.type = "text";
-            togglePassword.textContent = "🙈"; // Cambia el icono
+            eyeIcon.src = "media/eye-open.svg"; // Ícono de ojo cerrado
         } else {
             passwordInput.type = "password";
-            togglePassword.textContent = "👁️";
+            eyeIcon.src = "media/eye-closed.svg"; // Ícono de ojo abierto
         }
     });
 

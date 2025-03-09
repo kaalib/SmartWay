@@ -19,8 +19,12 @@
                 <h1>Iniciar sesión</h1>
                 <span>Usa tu usuario y contraseña dados por la empresa</span>
                 <input type="text" placeholder="Usuario">
-                <input type="password" placeholder="Contraseña">
-                <span id="togglePassword" class="eye-icon">👁️</span>
+                <div class="password-container">
+                    <input type="password" id="password" placeholder="Contraseña">
+                    <span id="togglePassword" class="eye-icon">
+                        <img src="media/eye-closed.svg" alt="Mostrar contraseña">
+                    </span>
+                </div>
                 <a href="recuperar.html">Olvidaste tu contraseña?</a>
                 <button>Ingresar</button>
             </form>

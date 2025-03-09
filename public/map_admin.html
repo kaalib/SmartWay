@@ -11,7 +11,9 @@
             <!-- Barra de navegación -->
             <div class="nav-container">
                 <nav>
-                    <a href="index.html">Inicio</a>
+                    <a href="index.html">
+                        <img src="media/inicio.svg" alt="Inicio" width="120" height="32">
+                    </a>
                     <a href="map_admin.html">Mapa</a>
                     <a href="login.html">Login</a>
                     <a href="contact.html">Contacto</a>
@@ -22,11 +24,14 @@
                 <img src="media/menu-icon.svg" alt="Menú">
             </div>
             <div id="sidebar" class="sidebar">
-            <span class="close-btn">&times;</span>
-            <a href="index.html">Inicio</a>
+            <a href="javascript:void(0)" class="close-btn" onclick="closeNav()">×</a>
+            <a href="index.html">
+                <img src="media/inicio.svg" alt="Inicio" width="120" height="32">
+            </a>
             <a href="map_admin.html">Mapa</a>
             <a href="login.html">Login</a>
             <a href="contact.html">Contacto</a>
+
             </div>
 
     <div class="container">
@@ -52,7 +57,7 @@
                 <img src="media/message-icon.svg" alt="Mensajes">
             </div>
     <div class="message-sidebar">
-        <span class="close-btn">&times;</span>
+        <a href="javascript:void(0)" class="close-btn" onclick="closeNav()">×</a>
         <div class="tcpInput message-box1">Mensajes TCP entrantes</div>
         <div class="tcpDirections message-box2">Empleados y direcciones</div>
     </div>

@@ -1,47 +1,63 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
 
+@font-face {
+    font-family: 'BadgerScript';
+    src: url('styles/fonts/BadgerScript') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
 /* Estilo general */
 body {
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'BadgerScript', cursive;
     margin: 0;
     padding: 0;
     background: linear-gradient(to right, #e2e2e2, #c9d6ff);
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-height: 100vh;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
 }
-
-/* Barra de navegación */
 .nav-container {
-    width: 90%;
-    border-radius: 10px;
-    background: #512da8;
-    padding: 15px 0;
-    margin: 10px auto;
-    position: relative;
+    height: 80px; /* Ajusta según el tamaño del logo */
+    width: 100%;
+    background: #0059FF;
+    padding: 10px 0;
+    position: fixed;
+    top: 0;
+    left: 0;
     z-index: 1000;
     display: flex;
     justify-content: center;
+    align-items: center;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     box-sizing: border-box;
 }
 
+/* Contenedor de los enlaces */
 nav {
+    width: 90%;
     display: flex;
-    gap: 20px;
+    align-items: center;
+}
+
+/* Enlace "Inicio" alineado a la izquierda */
+nav a:first-child {
+    margin-right: auto;
 }
 
 nav a {
+    font-family: 'BadgerScript', cursive;
     color: white;
     text-decoration: none;
-    font-weight: 600;
     padding: 10px 15px;
     transition: 0.3s;
 }
 
 nav a:hover {
-    background: #311b92;
+    background: #070054;
     border-radius: 5px;
 }
 
@@ -51,10 +67,9 @@ nav a:hover {
     cursor: pointer;
     position: fixed;
     top: 20px;
-    z-index: 1100;
     left: 15px;
+    z-index: 1100;
 }
-
 
 .sidebar {
     height: 100%;
@@ -62,7 +77,7 @@ nav a:hover {
     position: fixed;
     top: 0;
     left: 0;
-    background-color: #512da8;
+    background-color: #0059FF;
     overflow-x: hidden;
     transition: 0.5s;
     padding-top: 60px;
@@ -72,6 +87,7 @@ nav a:hover {
 }
 
 .sidebar a {
+    font-family: 'BadgerScript', cursive;
     padding: 10px 15px;
     text-decoration: none;
     font-size: 18px;
@@ -81,8 +97,9 @@ nav a:hover {
 }
 
 .sidebar a:hover {
-    background: #311b92;
+    background: #070054;
 }
+
 
 .sidebar .close-btn {
     position: absolute;
@@ -92,18 +109,20 @@ nav a:hover {
     cursor: pointer;
 }
 
+
+
+
 /* Contenedor principal */
 .container {
-    width: 90%;
-    margin: 20px auto;
+    width: 100%;
+    height: calc(100vh - 80px); /* Resta la altura de la barra */
+    margin-top: 80px; /* Debe ser igual a la altura de la barra */
     padding: 20px;
     background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     align-items: center;
-    box-sizing: border-box;
 }
 
 /* Contenedor del mapa y mensajes */
@@ -112,6 +131,7 @@ nav a:hover {
     width: 100%;
     gap: 20px;
     align-items: stretch;
+    flex: 1;
 }
 
 .message-container {
@@ -123,43 +143,30 @@ nav a:hover {
 }
 
 /* Message-box */
-.message-box1 {
-    height: 30%;
-    max-height: 30%;
-    background: #f8f8f8;
-    border-bottom: 5px solid #512da8;
-    border-radius: 8px;
-    padding: 10px;
-    font-size: 14px;
-    color: #333;
-    text-align: left;
-    overflow-y: auto;
-    scrollbar-color: #512da8 #f8f8f8;
-}
-
+.message-box1,
 .message-box2 {
-    height: 70%;
-    max-height: 70%;
+    flex: 1;
     background: #f8f8f8;
-    border-bottom: 5px solid #512da8;
+    border-bottom: 5px solid #0059FF;
     border-radius: 8px;
     padding: 10px;
     font-size: 14px;
     color: #333;
     text-align: left;
     overflow-y: auto;
-    scrollbar-color: #512da8 #f8f8f8;
+    scrollbar-color: #0059FF #f8f8f8;
 }
 
 #map {
     flex: 8;
-    height: 500px;
+    height: 100%;
     border: 2px solid #ddd;
     border-radius: 8px;
 }
 
 /* Barra lateral derecha para mensajes en móviles */
 .message-sidebar {
+    font-family: 'BadgerScript', cursive;
     height: 100%;
     width: 0;
     position: fixed;
@@ -169,7 +176,7 @@ nav a:hover {
     overflow-x: hidden;
     transition: 0.5s;
     padding-top: 60px;
-    z-index: 1200; /* Más alto que el mapa y la barra de navegación */
+    z-index: 1200;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -183,17 +190,16 @@ nav a:hover {
     left: 25px;
     font-size: 36px;
     cursor: pointer;
-    color: #512da8;
+    color: #0059FF;
 }
 
 .message-toggle {
-    display: none; /* Oculto por defecto, visible en móviles */
+    display: none;
     cursor: pointer;
     position: fixed;
-    top: 0px; /* Igual que el menú hamburguesa, para alinearlo */
+    top: 0px;
     right: 5px;
     z-index: 1100;
-
 }
 
 /* Contenedor de botones */
@@ -205,14 +211,14 @@ nav a:hover {
 }
 
 .btn {
+    font-family: 'BadgerScript', cursive;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     padding: 12px 20px;
     font-size: 14px;
-    font-weight: 600;
     color: white;
-    background: #512da8;
+    background: #0059FF;
     border: none;
     border-radius: 8px;
     text-decoration: none;
@@ -221,8 +227,21 @@ nav a:hover {
 }
 
 .btn:hover {
-    background: #311b92;
+    background: #070054;
 }
+
+.swal2-confirm {
+    background-color: #0059FF !important;
+    color: white !important;
+    border: none !important;
+    padding: 10px 20px !important;
+    border-radius: 5px !important;
+}
+
+.swal2-confirm:hover {
+    background-color: #070054 !important;
+}
+
 
 /* Media Query para móviles */
 @media (max-width: 660px) {
