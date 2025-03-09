@@ -149,34 +149,43 @@ function obtenerUbicacionYAgregarATCP() {
         async (position) => {
             const { latitude, longitude } = position.coords;
             const location = new google.maps.LatLng(latitude, longitude);
+            let direccionUsuario = "";
 
             try {
-                const direccionUsuario = await geocodificarUbicacion(location);
-                const ubicacionbus = { direccion: direccionUsuario };
-            // 🔽 Enviar al servidor con el formato correcto    
+                direccionUsuario = await geocodificarUbicacion(location);
+            } catch (error) {
+                console.warn("⚠️ No se pudo obtener la dirección exacta, pero sí la ubicación.");
+                direccionUsuario = "Ubicación desconocida"; // Texto por defecto si no hay dirección
+            }
 
-            const response = await fetch('/messages/tcp', {
+            const ubicacionbus = { direccion: direccionUsuario };
+
+            try {
+                // 🔽 Enviar la ubicación al servidor
+                const response = await fetch('/messages/tcp', {
                     method: 'POST',
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(ubicacionbus)
                 });
-                
+
                 if (!response.ok) throw new Error("Error en la solicitud al servidor");
+
                 console.log("📍 Ubicación enviada al servidor:", ubicacionbus);
-            
+
                 Swal.fire({
                     icon: "success",
-                    title: "Ubicación obtenida",
+                    title: "Ubicación enviada",
                     text: `📌 ${direccionUsuario}`,
                     timer: 1500,
                     showConfirmButton: false
                 });
-            
+
             } catch (error) {
+                console.error("❌ Error al enviar la ubicación:", error);
                 Swal.fire({
-                    icon: "warning",
-                    title: "No se pudo obtener la dirección",
-                    text: "Se obtuvo la ubicación, pero no la dirección exacta."
+                    icon: "error",
+                    title: "Error al enviar la ubicación",
+                    text: "No se pudo enviar al servidor."
                 });
             }
         },
@@ -194,7 +203,6 @@ function obtenerUbicacionYAgregarATCP() {
         }
     );
 }
-
 
 // 📍 Geocodificar ubicación a texto
 function geocodificarUbicacion(location) {
@@ -270,7 +278,6 @@ function initMap() {
 
     geocoder = new google.maps.Geocoder(); // Inicializar Geocoder
     
-    obtenerUbicacionUsuario(); // 🔹 Obtener ubicación del usuario al iniciar el mapa
     
 }
 
@@ -285,7 +292,7 @@ async function dibujarMarcadores() {
         const data = await response.json();
 
         // Extraer todas las direcciones de los mensajes TCP
-        const direcciones = data.rutasIA
+        const direcciones = data.rutasIA;
 
         // Si no hay direcciones, no hacemos nada
         if (direcciones.length === 0) {
@@ -300,61 +307,83 @@ async function dibujarMarcadores() {
         // Crear un objeto LatLngBounds para abarcar todos los marcadores
         const bounds = new google.maps.LatLngBounds();
 
-        // Contador para rastrear geocodificaciones completadas
-        let geocodedCount = 0;
-        const totalDirections = direcciones.length;
+        // Geocodificar todas las direcciones en el orden correcto
+        const locations = await Promise.all(direcciones.map(geocodificarDireccion));
 
-        // Geocodificar y dibujar todas las direcciones
-        direcciones.forEach((direccion) => {
-            geocodificarDireccion(direccion, (location, dir) => {
-                agregarMarcador(location, dir, bounds); // Pasamos bounds explícitamente
-                geocodedCount++;
-
-                // Ajustar el mapa cuando todas las geocodificaciones estén listas
-                if (geocodedCount === totalDirections) {
-                    map.fitBounds(bounds);
-                }
-            });
+        // Dibujar los marcadores en el orden correcto
+        locations.forEach((location, index) => {
+            if (location) { // Evita errores si alguna dirección no pudo geocodificarse
+                agregarMarcador(location, direcciones[index], bounds, index + 1);
+            }
         });
+
+        // Ajustar el mapa para incluir todos los marcadores
+        map.fitBounds(bounds);
 
     } catch (error) {
         console.error('Error al dibujar los marcadores:', error);
     }
 }
 
-
-// Agregar marcador en el mapa (recibe bounds como parámetro)
-function agregarMarcador(location, direccion, bounds) {
-    const pin = new google.maps.marker.PinElement({
-        glyph: `${marcadores.length + 1}`,
-        glyphColor: '#FFFFFF',
-        background: '#311b92',
-        borderColor: '#FFFFFF',
-        scale: 1.2
+// 📍 Geocodificar dirección y devolver una Promesa
+function geocodificarDireccion(direccion) {
+    return new Promise((resolve) => {
+        geocoder.geocode({ address: direccion }, (results, status) => {
+            if (status === "OK" && results[0]) {
+                resolve(results[0].geometry.location);
+            } else {
+                console.warn(`No se pudo geocodificar: ${direccion}`);
+                resolve(null); // Devuelve null si no se puede geocodificar
+            }
+        });
     });
+}
 
-    const marcador = new google.maps.marker.AdvancedMarkerElement({
-        position: location instanceof google.maps.LatLng ? location : { lat: location.lat(), lng: location.lng() },
-        map: map,
-        title: direccion,
-        content: pin.element
-    });
+function agregarMarcador(location, direccion, bounds, numero) {
+    let marcador;
 
+    if (numero === 1) {
+        // 🔹 Primer marcador: usa el icono personalizado sin número
+        const marcadorContainer = document.createElement("div");
+        marcadorContainer.style.width = "40px";
+        marcadorContainer.style.height = "40px";
+
+        const iconoImg = document.createElement("img");
+        iconoImg.src = "media/iconobus.svg"; // Ruta del icono personalizado
+        iconoImg.style.width = "100%";
+        iconoImg.style.height = "100%";
+
+        marcadorContainer.appendChild(iconoImg);
+
+        marcador = new google.maps.marker.AdvancedMarkerElement({
+            position: location,
+            map: map,
+            title: direccion, // ✅ Mantiene el título con la dirección
+            content: marcadorContainer,
+        });
+    } else {
+        // 🔹 Marcadores siguientes: usan el marcador por defecto con número
+        const pin = new google.maps.marker.PinElement({
+            glyph: `${numero - 1}`, // Se empieza en 1 para el segundo marcador
+            glyphColor: '#FFFFFF',
+            background: '#070054',
+            borderColor: '#FFFFFF',
+            scale: 1.2
+        });
+
+        marcador = new google.maps.marker.AdvancedMarkerElement({
+            position: location,
+            map: map,
+            title: direccion,
+            content: pin.element
+        });
+    }
+
+    // Guardar marcador y actualizar límites
     marcadores.push(marcador);
-    bounds.extend(location); // Extendemos los límites con la ubicación
+    bounds.extend(location);
 }
 
-// Función para geocodificar direcciones (sin cambios)
-function geocodificarDireccion(direccion, callback) {
-    geocoder.geocode({ address: direccion }, (results, status) => {
-        if (status === 'OK' && results[0]) {
-            const location = results[0].geometry.location;
-            callback(location, direccion);
-        } else {
-            console.error('Error en geocodificación:', status);
-        }
-    });
-}
 
 
 function limpiarMapa() {
@@ -365,9 +394,22 @@ function limpiarMapa() {
     // Vaciar la lista de direcciones
     direccionesTCP = [];
 
-    // Seleccionar ambos elementos en desktop y mobile y dejarlos en blanco
-    document.querySelectorAll("#tcpInput").forEach(el => el.innerHTML = "");
-    document.querySelectorAll("#tcpDirections").forEach(el => el.innerHTML = "");
+    // Limpiar contenido de los elementos HTML (soporte para `input` y `div`)
+    document.querySelectorAll(".tcpInput").forEach(el => {
+        if (el.tagName === "INPUT") {
+            el.value = ""; // Si es un input, limpiar valor
+        } else {
+            el.innerHTML = ""; // Si es otro elemento, limpiar HTML
+        }
+    });
+
+    document.querySelectorAll(".tcpDirections").forEach(el => {
+        if (el.tagName === "INPUT") {
+            el.value = "";
+        } else {
+            el.innerHTML = "";
+        }
+    });
 
     // Enviar solicitud DELETE para limpiar mensajes en el servidor
     fetch('/messages', { method: 'DELETE' })
@@ -381,7 +423,6 @@ function limpiarMapa() {
         .then(data => console.log(data.message)) // Mensaje de confirmación en consola
         .catch(error => console.error('Error al actualizar bus:', error));
 }
-
 
 
 async function enviarDireccionesAFlask() {
