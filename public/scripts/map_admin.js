@@ -158,7 +158,7 @@ function obtenerUbicacionYAgregarATCP() {
 
             try {
                 // 🔽 Enviar la ubicación al servidor
-                const response = await fetch('/messages/tcp', {
+                const response = await fetch('https://smartway.ddns.net/messages/tcp', {
                     method: 'POST',
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(ubicacionbus)
@@ -207,7 +207,6 @@ function mostrarAlertaPermisoDenegado() {
         title: "Acceso denegado",
         text: "Has denegado el acceso a tu ubicación. Para activarlo, ajusta los permisos en tu navegador.",
         showCancelButton: true,
-        confirmButtonText: "Intentar de nuevo",
         cancelButtonText: "Salir"
     }).then((result) => {
         if (result.isConfirmed) {
