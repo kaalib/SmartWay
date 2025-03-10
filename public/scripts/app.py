@@ -8,20 +8,25 @@ def process_message():
         # Recibir JSON desde Node.js
         data = request.get_json()
         
-        # Extraer direcciones (asumiendo que llegan como una lista)
+        # Extraer direcciones (asegurar que sea una lista)
         direcciones = data.get("direcciones", [])
+        
+        if not direcciones:
+            return jsonify({"status": "error", "message": "Lista de direcciones vacía"}), 400
 
         print(f"📩 Direcciones recibidas: {direcciones}")
 
-        # Invertir el orden de las direcciones
-        direcciones_invertidas = list(reversed(direcciones))
+        # Mantener el primer elemento fijo y solo invertir del segundo al último
+        primer_elemento = direcciones[0]
+        direcciones_restantes = direcciones[1:]
+        direcciones_procesadas = [primer_elemento] + list(reversed(direcciones_restantes))
 
-        print(f"🔄 Direcciones invertidas: {direcciones_invertidas}")
+        print(f"🔄 Direcciones procesadas: {direcciones_procesadas}")
 
         # Respuesta con la nueva ruta procesada
         respuesta = {
             "status": "success",
-            "rutasIA": direcciones_invertidas
+            "rutasIA": direcciones_procesadas
         }
 
         return jsonify(respuesta), 200

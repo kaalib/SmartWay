@@ -231,6 +231,28 @@ httpServer.listen(80, () => {
 });
 
 
+app.post('/messages/tcp', (req, res) => {
+    const { direccion } = req.body;
+
+    if (!direccion) {
+        return res.status(400).json({ error: "Falta la dirección en la solicitud" });
+    }
+
+    const nuevaUbicacion = { direccion };
+    messages.tcp.push(nuevaUbicacion); // 📌 Agregar ubicación a messages.tcp
+
+    // Guardar en archivo JSON
+    fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
+        if (err) {
+            console.error("❌ Error guardando en archivo:", err);
+            return res.status(500).json({ error: "Error al guardar la ubicación" });
+        }
+        console.log("✅ Ubicación guardada:", nuevaUbicacion);
+        res.status(200).json({ message: "Ubicación recibida correctamente" });
+    });
+});
+
+
 // Ruta de login
 app.post("/login", (req, res) => {
     const { usuario, contraseña } = req.body;
