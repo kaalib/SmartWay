@@ -135,7 +135,7 @@ let marcadores = []; // Array de marcadores en el mapa
 let direccionesTCP = []; // Lista de direcciones recibidas
 let permisoDenegado = false; // Rastrea si el permiso fue denegado
 
-// 🗺️ Obtener ubicación en texto y agregarla al JSON TCP
+// 🗺️ Obtener ubicación sin geocodificar y agregarla al JSON TCP
 function obtenerUbicacionYAgregarATCP() {
     if (!navigator.geolocation) {
         return Swal.fire({
@@ -148,17 +148,13 @@ function obtenerUbicacionYAgregarATCP() {
     navigator.geolocation.getCurrentPosition(
         async (position) => {
             const { latitude, longitude } = position.coords;
-            const location = new google.maps.LatLng(latitude, longitude);
-            let direccionUsuario = "";
+            console.log("📌 Coordenadas obtenidas:", { latitude, longitude });
 
-            try {
-                direccionUsuario = await geocodificarUbicacion(location);
-            } catch (error) {
-                console.warn("⚠️ No se pudo obtener la dirección exacta, pero sí la ubicación.");
-                direccionUsuario = "Ubicación desconocida"; // Texto por defecto si no hay dirección
-            }
+            // 📍 Guardar directamente lo que se obtiene
+            const ubicacionObtenida = `Lat: ${latitude}, Lng: ${longitude}`;
 
-            const ubicacionbus = { direccion: direccionUsuario };
+            // Enviar ubicación sin geocodificar
+            const ubicacionbus = { direccion: ubicacionObtenida };
 
             try {
                 // 🔽 Enviar la ubicación al servidor
@@ -170,12 +166,12 @@ function obtenerUbicacionYAgregarATCP() {
 
                 if (!response.ok) throw new Error("Error en la solicitud al servidor");
 
-                console.log("📍 Ubicación enviada al servidor:", ubicacionbus);
+                console.log("✅ Ubicación enviada al servidor:", ubicacionbus);
 
                 Swal.fire({
                     icon: "success",
                     title: "Ubicación enviada",
-                    text: `📌 ${direccionUsuario}`,
+                    text: `📌 ${ubicacionObtenida}`,
                     timer: 1500,
                     showConfirmButton: false
                 });
@@ -202,19 +198,6 @@ function obtenerUbicacionYAgregarATCP() {
             }
         }
     );
-}
-
-// 📍 Geocodificar ubicación a texto
-function geocodificarUbicacion(location) {
-    return new Promise((resolve, reject) => {
-        geocoder.geocode({ location }, (results, status) => {
-            if (status === "OK" && results[0]) {
-                resolve(results[0].formatted_address);
-            } else {
-                reject("No se pudo determinar la dirección exacta.");
-            }
-        });
-    });
 }
 
 // 🚨 Alerta cuando el usuario deniega la geolocalización
@@ -325,15 +308,28 @@ async function dibujarMarcadores() {
     }
 }
 
-// 📍 Geocodificar dirección y devolver una Promesa
+// 📍 Detectar si la dirección es lat/lng o texto y devolver la ubicación
 function geocodificarDireccion(direccion) {
     return new Promise((resolve) => {
+        // 🧐 Verifica si la dirección tiene el formato "Lat: xx.xxxx, Lng: yy.yyyy"
+        const latLngMatch = direccion.match(/Lat:\s*(-?\d+\.\d+),\s*Lng:\s*(-?\d+\.\d+)/);
+
+        if (latLngMatch) {
+            // 📌 La dirección ya es lat/lng, la convertimos directamente
+            const lat = parseFloat(latLngMatch[1]);
+            const lng = parseFloat(latLngMatch[2]);
+            console.log(`📍 Dirección detectada como coordenadas: ${lat}, ${lng}`);
+            return resolve(new google.maps.LatLng(lat, lng));
+        }
+
+        // 🔍 Si no es coordenada, intenta geocodificar como dirección
         geocoder.geocode({ address: direccion }, (results, status) => {
             if (status === "OK" && results[0]) {
+                console.log(`📌 Dirección convertida a coordenadas: ${direccion} → ${results[0].geometry.location}`);
                 resolve(results[0].geometry.location);
             } else {
-                console.warn(`No se pudo geocodificar: ${direccion}`);
-                resolve(null); // Devuelve null si no se puede geocodificar
+                console.warn(`⚠️ No se pudo geocodificar: ${direccion}`);
+                resolve(null); // Evita que la función falle si no se puede geocodificar
             }
         });
     });
