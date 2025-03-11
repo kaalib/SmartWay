@@ -147,12 +147,10 @@ nav a {
     scrollbar-color: #0059FF #f8f8f8;
 }
 
-.message-box1 {
-height: 20%;
-}
+
 
 .message-box2 {
-height: 80%;
+height: 100%;
 }
 
 #map {
@@ -361,7 +359,7 @@ nav a:hover::after {
 
     /* 📦 Caja de Mensajes Empleados y Direcciones (más grande) */
     .message-box2 {
-        height: 67vh; /* Mayor tamaño que message-box1 */
+        height: 90vh; /* Mayor tamaño que message-box1 */
         background: #f8f8f8;
         border-radius: 8px;
         font-size: 16px;

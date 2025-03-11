@@ -1,10 +1,6 @@
-
 const jsonUrl = 'https://smartway.ddns.net/messages'; // Cambiar por la IP de tu servidor
-const wsUrl = 'wss://smartway.ddns.net'; // WebSocket en tu instancia EC2
-
-const tcpInputs = document.querySelectorAll('.tcpInput');
 const tcpDirectionsList = document.querySelectorAll('.tcpDirections');
-
+const socket = io("wss://smartway.ddns.net"); // Conectar al WebSocket en el puerto 443
 
 // Configurar barras laterales al cargar el DOM
 document.addEventListener("DOMContentLoaded", function () {
@@ -51,83 +47,41 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 
-
-
-
-// Cargar mensajes históricos desde /messages
-async function fetchMessages() {
+// 📥 Obtener mensajes TCP y mostrarlos en la lista (PC y móvil)
+async function mostrarMensajesTCP() {
     try {
-        const response = await fetch(jsonUrl);
-        if (!response.ok) throw new Error('Error al cargar el archivo JSON');
+        const response = await fetch('https://smartway.ddns.net/messages/tcp'); // 🔽 Ruta del JSON
+        if (!response.ok) throw new Error("Error al obtener los mensajes TCP");
 
         const data = await response.json();
-        tcpInput.innerText = (data.tcp.length)
-            ? data.tcp[data.tcp.length - 1] // Último mensaje TCP
-            : 'No hay mensajes TCP.';
-    } catch (error) {
-        console.error(error);
-        errorMessage.innerText = 'Error al cargar los mensajes históricos: ' + error.message;
-    }
-}
+        let mensajes = data.tcp || []; // Obtener lista de mensajes
 
+        if (mensajes.length <= 1) {
+            document.querySelectorAll('.tcpDirections').forEach(el => {
+                el.innerHTML = "<p>No hay suficientes mensajes TCP.</p>";
+            });
+            return;
+        }
 
-// Conectar al WebSocket para mensajes en tiempo real
-const ws = new WebSocket(wsUrl);
+        // 📋 Crear lista excluyendo el primer mensaje
+        const listaMensajes = mensajes.slice(1).map((msg, index) => 
+            `<p>${index + 1}. ${msg.nombre} ${msg.apellido} - ${msg.direccion}</p>`
+        ).join("");
 
-ws.onopen = () => {
-    console.log('Conectado al servidor WebSocket.');
-};
-
-ws.onmessage = (event) => {
-    try {
-        const data = JSON.parse(event.data);
-
-        if (data.type === 'tcp') {
-            let messageText = 'Mensaje TCP: Empleado no registrado/Huella no reconocida';
-
-            if (typeof data.data === 'object') {
-                messageText = `Empleado: ${data.data.id} ${data.data.nombre} ${data.data.apellido} ${data.data.direccion}`;
-                
-                if (data.data.direccion) {
-                    direccionesTCP.push(data.data.direccion);
-                    actualizarListaDirecciones(); 
-                }
-            }
-
-            // Actualizar ambos elementos tcpInput
-            tcpInputs.forEach(el => el.innerText = messageText);
-        } 
-    } catch (error) {
-        console.error('Error procesando el mensaje del WebSocket:', error);
-    }
-};
-
-// Actualizar ambas listas de direcciones
-function actualizarListaDirecciones() {
-    tcpDirectionsList.forEach(container => {
-        container.innerHTML = '';
-        direccionesTCP.forEach((direccion, index) => {
-            const item = document.createElement('p');
-            item.textContent = `${index + 1}. ${direccion}`;
-            container.appendChild(item);
+        // 🔽 Insertar en todos los elementos con la clase `tcpDirections`
+        document.querySelectorAll('.tcpDirections').forEach(el => {
+            el.innerHTML = listaMensajes;
         });
-    });
+
+    } catch (error) {
+        console.error("❌ Error obteniendo mensajes TCP:", error);
+        document.querySelectorAll('.tcpDirections').forEach(el => {
+            el.innerHTML = "<p>Error al cargar mensajes.</p>";
+        });
+    }
 }
-   
-
-ws.onerror = (error) => {
-    console.error('Error en el WebSocket:', error);
-};
-
-ws.onclose = () => {
-    console.warn('Conexión WebSocket cerrada.');
-};
-
-fetchMessages() 
 
 
-
-const socket = io("wss://smartway.ddns.net"); // Conectar al WebSocket en el puerto 443
 let map = null;
 let geocoder = null;
 let marcadores = []; // Array de marcadores en el mapa
@@ -491,6 +445,7 @@ async function enviarDireccionesAFlask() {
 
 // Asignar la función limpiarMapa al botón ya existente
 document.getElementById('btnAPI').addEventListener('click', () => {
+    mostrarMensajesTCP();
     enviarDireccionesAFlask();
     iniciarEnvioUbicacion();
 });
