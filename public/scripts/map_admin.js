@@ -1,6 +1,6 @@
 const jsonUrl = 'https://smartway.ddns.net/messages'; // Cambiar por la IP de tu servidor
 const tcpDirectionsList = document.querySelectorAll('.tcpDirections');
-const socket = io("wss://smartway.ddns.net"); // Conectar al WebSocket en el puerto 443
+const socket = io("https://smartway.ddns.net"); // Conectar a WebSocket
 
 // Configurar barras laterales al cargar el DOM
 document.addEventListener("DOMContentLoaded", function () {
@@ -150,6 +150,14 @@ function iniciarEnvioUbicacion() {
     }, 10000); // ⏳ Espera 10 segundos antes de empezar
 }
 
+function detenerEnvioUbicacion() {
+    if (!seguimientoActivo) return; // Si ya está detenido, no hacer nada
+
+    clearInterval(intervaloEnvio); // Detener el intervalo
+    seguimientoActivo = false; // Restablecer estado
+
+    console.log("🛑 Envío de ubicación detenido.");
+}
 
 // 🗺️ Obtener ubicación sin geocodificar y agregarla al JSON TCP
 function obtenerUbicacionYAgregarATCP() {
@@ -174,7 +182,7 @@ function obtenerUbicacionYAgregarATCP() {
 
             try {
                 // 🔽 Enviar la ubicación al servidor
-                const response = await fetch('https://smartway.ddns.net/messages', {
+                const response = await fetch('https://smartway.ddns.net/messages/tcp', {
                     method: 'POST',
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(ubicacionbus)
@@ -450,6 +458,7 @@ document.getElementById('btnAPI').addEventListener('click', () => {
     enviarDireccionesAFlask();
     iniciarEnvioUbicacion();
 });
+document.getElementById('btndetener').addEventListener('click', detenerEnvioUbicacion);
 document.getElementById('btnMostrarD').addEventListener('click', mostrarMensajesTCP);
 document.getElementById('btnLimpiar').addEventListener('click', limpiarMapa);
 document.getElementById('btnDbus').addEventListener('click', obtenerUbicacionYAgregarATCP);

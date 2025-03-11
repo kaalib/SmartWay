@@ -12,7 +12,6 @@ const net = require('net');
 const axios = require('axios');
 const socketIo = require("socket.io");
 const messages = { tcp: [], rutasIA: [] }; // Mensajes TCP, la API optimizadora de rutas
-
 require('dotenv').config(); // Cargar variables de entorno
 
 // Connect to MySQL database
@@ -49,9 +48,6 @@ const options = {
     cert: fs.readFileSync('/etc/letsencrypt/live/smartway.ddns.net/fullchain.pem'),
 };
 
-// Configuración del servidor HTTPS con Express
-const httpsServer = https.createServer(options, app);
-const io = socketIo(httpsServer); // Socket.io sobre HTTPS
 
 // Endpoint para obtener mensajes JSON (esto es una API)
 app.get('/messages', (req, res) => {
@@ -88,22 +84,27 @@ httpsServer.listen(443, () => {
 });
 
 
+// Configuración del servidor HTTPS con Express
+const httpsServer = https.createServer(options, app);
+const io = socketIo(httpsServer); // Socket.io sobre HTTPS
+
 // --- Servidor WebSocket ---
-const wss = new WebSocket.Server({ server: httpsServer });
 
-wss.on("connection", (ws) => {
-    console.log("Cliente WebSocket conectado");
+io.on("connection", (socket) => {
+    console.log("Cliente conectado a WebSocket");
 
-    ws.on("message", (data) => {
-        console.log("Mensaje recibido desde WebSocket:", data);
-    });
+    // Enviar rutas actuales al conectar
+    socket.emit("actualizar_rutas", { rutasIA: messages.rutasIA });
 
-    ws.on("close", () => {
-        console.log("Cliente WebSocket desconectado");
+    socket.on("disconnect", () => {
+        console.log("Cliente desconectado");
     });
 });
 
-
+// Emitir actualización cada vez que cambian las rutasIA
+function emitirActualizacionRutas() {
+    io.emit("actualizar_rutas", { rutasIA: messages.rutasIA });
+}
 
 
 // --- Servidor TCP ---
@@ -309,6 +310,9 @@ app.post("/enviar-direcciones", async (req, res) => {
         fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
             if (err) console.error("Error guardando rutasIA:", err);
         });
+
+        // Emitir la actualización a todos los clientes conectados
+        emitirActualizacionRutas();
 
         console.log("✅ Rutas actualizadas:", messages.rutasIA);
         res.json({ success: true, rutasIA: messages.rutasIA });
