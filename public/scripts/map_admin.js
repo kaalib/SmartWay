@@ -81,6 +81,8 @@ async function mostrarMensajesTCP() {
     }
 }
 
+// Cargar el mapa
+getApiKey();
 
 let map = null;
 let geocoder = null;
@@ -443,14 +445,12 @@ async function enviarDireccionesAFlask() {
     }
 }
 
-// Asignar la función limpiarMapa al botón ya existente
+// Asignar funciones a los botones
 document.getElementById('btnAPI').addEventListener('click', () => {
-    mostrarMensajesTCP();
     enviarDireccionesAFlask();
     iniciarEnvioUbicacion();
 });
+document.getElementById('btnMostrarD').addEventListener('click', mostrarMensajesTCP);
 document.getElementById('btnLimpiar').addEventListener('click', limpiarMapa);
 document.getElementById('btnDbus').addEventListener('click', obtenerUbicacionYAgregarATCP);
 
-// Cargar el mapa
-getApiKey();
