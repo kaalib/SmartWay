@@ -48,6 +48,46 @@ const options = {
     cert: fs.readFileSync('/etc/letsencrypt/live/smartway.ddns.net/fullchain.pem'),
 };
 
+// Configuración del servidor HTTPS con Express
+const httpsServer = https.createServer(options, app);
+
+// --- Servidor WebSocket ---
+const io = socketIo(httpsServer, {
+    cors: {
+        origin: "*", 
+        methods: ["GET", "POST"]
+    }
+});
+
+io.on("connection", (socket) => {
+    console.log("✅ Cliente conectado a Socket.io");
+
+
+    socket.on("disconnect", () => {
+        console.log("❌ Cliente desconectado");
+    });
+});
+
+
+// Emitir actualización cada vez que cambian las rutasIA
+function emitirActualizacionRutas() {
+    io.emit("actualizar_rutas", { rutasIA: messages.rutasIA });
+}
+
+// --- Redirige tráfico HTTP a HTTPS ---
+const httpServer = http.createServer((req, res) => {
+    res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
+    res.end();
+});
+
+httpServer.listen(80, () => {
+    console.log('Servidor HTTP redirigiendo a HTTPS');
+});
+
+// Escucha en el puerto 443
+httpsServer.listen(443, () => {
+    console.log('Servidor HTTPS escuchando en el puerto 443');
+});
 
 // Endpoint para obtener mensajes JSON (esto es una API)
 app.get('/messages', (req, res) => {
@@ -78,33 +118,7 @@ app.put("/updateBus", (req, res) => {
     });
 });
 
-// Escucha en el puerto 443
-httpsServer.listen(443, () => {
-    console.log('Servidor HTTPS escuchando en el puerto 443');
-});
 
-
-// Configuración del servidor HTTPS con Express
-const httpsServer = https.createServer(options, app);
-const io = socketIo(httpsServer); // Socket.io sobre HTTPS
-
-// --- Servidor WebSocket ---
-
-io.on("connection", (socket) => {
-    console.log("Cliente conectado a WebSocket");
-
-    // Enviar rutas actuales al conectar
-    socket.emit("actualizar_rutas", { rutasIA: messages.rutasIA });
-
-    socket.on("disconnect", () => {
-        console.log("Cliente desconectado");
-    });
-});
-
-// Emitir actualización cada vez que cambian las rutasIA
-function emitirActualizacionRutas() {
-    io.emit("actualizar_rutas", { rutasIA: messages.rutasIA });
-}
 
 
 // --- Servidor TCP ---
@@ -161,14 +175,8 @@ const tcpServer = net.createServer((socket) => {
                     if (err) console.error("Error guardando mensajes en archivo:", err);
                 });
 
-                // Enviar datos a clientes WebSocket
-                const jsonData = JSON.stringify({ type: "tcp", data: respuesta });
-
-                wss.clients.forEach((client) => {
-                    if (client.readyState === WebSocket.OPEN) {
-                        client.send(jsonData);
-                    }
-                });
+                // 🚀 Enviar datos a todos los clientes de Socket.io (en lugar de WebSocket puro)
+                io.emit("actualizar_tcp", { data: respuesta });
 
                 // Enviar respuesta al cliente TCP con manejo de errores en socket.write
                 try {
@@ -226,15 +234,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // --- Servidor UDP --- borrado
 
-// --- Redirige tráfico HTTP a HTTPS ---
-const httpServer = http.createServer((req, res) => {
-    res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
-    res.end();
-});
 
-httpServer.listen(80, () => {
-    console.log('Servidor HTTP redirigiendo a HTTPS');
-});
 
 
 app.post('/messages/tcp', (req, res) => {
