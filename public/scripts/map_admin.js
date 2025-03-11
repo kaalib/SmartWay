@@ -1,8 +1,9 @@
+
 const jsonUrl = 'https://smartway.ddns.net/messages'; // Cambiar por la IP de tu servidor
 const wsUrl = 'wss://smartway.ddns.net'; // WebSocket en tu instancia EC2
+
 const tcpInputs = document.querySelectorAll('.tcpInput');
 const tcpDirectionsList = document.querySelectorAll('.tcpDirections');
-
 
 
 // Configurar barras laterales al cargar el DOM
@@ -125,15 +126,74 @@ ws.onclose = () => {
 fetchMessages() 
 
 
-const mapElement = document.getElementById('map');
-const searchInput = document.getElementById('search');
+
+const socket = io("wss://smartway.ddns.net"); // Conectar al WebSocket en el puerto 443
 let map = null;
-let autocomplete = null;
 let geocoder = null;
-let socket = null;
 let marcadores = []; // Array de marcadores en el mapa
 let direccionesTCP = []; // Lista de direcciones recibidas
-let permisoDenegado = false; // Rastrea si el permiso fue denegado
+let seguimientoActivo = false;
+let intervaloEnvio = null;
+
+// 📡 Escuchar los datos en tiempo real desde WebSockets
+socket.on("actualizar_rutas", (data) => {
+    console.log("📡 Rutas actualizadas desde WebSocket:", data.rutasIA);
+    dibujarMarcadores(data.rutasIA);
+});
+
+
+// 📍 Obtener ubicación y actualizar el primer elemento de rutasIA
+async function obtenerYEnviarUbicacionrutasIA() {
+    if (!navigator.geolocation) {
+        return console.error("❌ Geolocalización no soportada.");
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            const { latitude, longitude } = position.coords;
+            const nuevaUbicacion = { direccion: `Lat: ${latitude}, Lng: ${longitude}` }; // 📌 Ubicación como objeto
+
+            try {
+                // 1️⃣ Obtener la última versión de rutasIA desde el servidor
+                const responseGet = await fetch('https://smartway.ddns.net/api/get_rutasIA');
+                if (!responseGet.ok) throw new Error("Error al obtener rutasIA del servidor");
+
+                const data = await responseGet.json();
+                let rutasIA = data.rutasIA || [];
+
+                // 2️⃣ Insertar la nueva ubicación en la primera posición
+                rutasIA = [nuevaUbicacion, ...rutasIA.slice(1)];
+
+                // 3️⃣ Enviar la nueva lista de rutasIA al servidor
+                const responsePost = await fetch('https://smartway.ddns.net/api/update_rutasIA', {
+                    method: 'POST',
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ rutasIA })
+                });
+
+                if (!responsePost.ok) throw new Error("Error al actualizar rutasIA en el servidor");
+
+                // ✅ Solo imprimir la nueva ubicación cada 10 segundos
+                console.log("📡 Nueva ubicación enviada:", nuevaUbicacion);
+            } catch (error) {
+                console.error("❌ Error al actualizar rutasIA:", error);
+            }
+        },
+        (error) => console.error("❌ Error obteniendo ubicación:", error)
+    );
+}
+
+// ⏳ Iniciar el envío de ubicación cada 10s después de la primera vez
+function iniciarEnvioUbicacion() {
+    if (seguimientoActivo) return; // Evitar múltiples inicios
+    seguimientoActivo = true;
+
+    setTimeout(() => {
+        console.log("⏳ Iniciando actualización de ubicación cada 10s...");
+        intervaloEnvio = setInterval(obtenerYEnviarUbicacionrutasIA, 10000);
+    }, 10000); // ⏳ Espera 10 segundos antes de empezar
+}
+
 
 // 🗺️ Obtener ubicación sin geocodificar y agregarla al JSON TCP
 function obtenerUbicacionYAgregarATCP() {
@@ -264,19 +324,9 @@ function initMap() {
 }
 
 
-// Nueva función para dibujar todos los marcadores desde el JSON del servidor
-async function dibujarMarcadores() {
+// 📍 Nueva función para dibujar los marcadores con los datos recibidos
+async function dibujarMarcadores(direcciones) {
     try {
-        // Hacer una solicitud al servidor para obtener los mensajes TCP
-        const response = await fetch(jsonUrl);
-        if (!response.ok) throw new Error('Error al obtener las direcciones TCP');
-
-        const data = await response.json();
-
-        // Extraer todas las direcciones de los mensajes TCP
-        const direcciones = data.rutasIA;
-
-        // Si no hay direcciones, no hacemos nada
         if (direcciones.length === 0) {
             console.log('No hay direcciones para dibujar.');
             return;
@@ -314,7 +364,6 @@ function geocodificarDireccion(direccion) {
         const latLngMatch = direccion.match(/Lat:\s*(-?\d+\.\d+),\s*Lng:\s*(-?\d+\.\d+)/);
 
         if (latLngMatch) {
-            // 📌 La dirección ya es lat/lng, la convertimos directamente
             const lat = parseFloat(latLngMatch[1]);
             const lng = parseFloat(latLngMatch[2]);
             console.log(`📍 Dirección detectada como coordenadas: ${lat}, ${lng}`);
@@ -328,12 +377,13 @@ function geocodificarDireccion(direccion) {
                 resolve(results[0].geometry.location);
             } else {
                 console.warn(`⚠️ No se pudo geocodificar: ${direccion}`);
-                resolve(null); // Evita que la función falle si no se puede geocodificar
+                resolve(null);
             }
         });
     });
 }
 
+// 📌 Función para agregar un marcador al mapa
 function agregarMarcador(location, direccion, bounds, numero) {
     let marcador;
 
@@ -353,7 +403,7 @@ function agregarMarcador(location, direccion, bounds, numero) {
         marcador = new google.maps.marker.AdvancedMarkerElement({
             position: location,
             map: map,
-            title: direccion, // ✅ Mantiene el título con la dirección
+            title: direccion,
             content: marcadorContainer,
         });
     } else {
@@ -440,7 +490,10 @@ async function enviarDireccionesAFlask() {
 }
 
 // Asignar la función limpiarMapa al botón ya existente
-document.getElementById('btnAPI').addEventListener('click', enviarDireccionesAFlask);
+document.getElementById('btnAPI').addEventListener('click', () => {
+    enviarDireccionesAFlask();
+    iniciarEnvioUbicacion();
+});
 document.getElementById('btnLimpiar').addEventListener('click', limpiarMapa);
 document.getElementById('btnDbus').addEventListener('click', obtenerUbicacionYAgregarATCP);
 

@@ -1,21 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Signika:wght@300;400;500;600;700&display=swap');
 
-@font-face {
-    font-family: 'BadgerScript';
-    src: url('styles/fonts/BadgerScript') format('truetype');
-    font-weight: normal;
-    font-style: normal;
-}
 
 /* Estilo general */
 * {
+    font-family: 'Signika';
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
 body {
-    font-family: 'BadgerScript', cursive;
     background: linear-gradient(to right, #e2e2e2, #c9d6ff);
     display: flex;
     flex-direction: column;
@@ -51,17 +45,13 @@ nav a:first-child {
 
 /* Estilos generales de los enlaces */
 nav a {
-    font-family: 'BadgerScript', cursive;
     color: white;
     text-decoration: none;
     padding: 10px 15px;
     transition: 0.3s;
 }
 
-nav a:hover {
-    background: #070054;
-    border-radius: 5px;
-}
+
 
 /* Menú lateral */
 .menu-icon {
@@ -87,19 +77,15 @@ nav a:hover {
 }
 
 .sidebar a {
-    font-family: 'BadgerScript', cursive;
     padding: 10px 15px;
     text-decoration: none;
     font-size: 18px;
     color: white;
-    
     display: block;
     transition: 0.3s;
 }
 
-.sidebar a:hover {
-    background: #070054;
-}
+
 
 .sidebar .close-btn {
     position: absolute;
@@ -152,9 +138,51 @@ h1 {
     transition: 0.3s ease;
 }
 
+nav a,
+.sidebar a,
+.btn {
+    position: relative;
+    text-decoration: none;
+}
+
+/* 🔵 Subrayado para `nav` y `sidebar` */
+nav a::after,
+.sidebar a::after {
+    content: "";
+    position: absolute;
+    bottom: -3px;
+    height: 2px;
+    background: white;
+    transition: all 0.3s ease-in-out;
+}
+
+/* 🌟 Desde el Centro para `nav` */
+nav a::after {
+    left: 50%;
+    width: 0%;
+    transform: translateX(-50%);
+}
+
+/* 🌟 Desde la Izquierda para `.sidebar` */
+.sidebar a::after {
+    left: 0;
+    width: 0%;
+}
+
+/* 🌟 Animación en Hover */
+nav a:hover::after {
+    width: 80%;
+}
+
+.sidebar a:hover::after {
+    width: 100%;
+}
+
+/* 🔵 Botones (`.btn`) - Solo cambio de color en hover */
 .btn:hover {
     background: #070054;
 }
+
 
 /* Ajustes para pantallas pequeñas */
 @media (max-width: 660px) {
@@ -169,4 +197,22 @@ h1 {
     .container {
         padding: 20px;
     }
+
+    .btn:active {
+        background: #070054;
+        transition: 0.3s ease-in-out;
+    }
+    
+    .btn:active::after {
+        content: "";
+        display: block;
+        animation: removeHover 0.5s forwards;
+    }
+}
+
+@keyframes removeHover {
+    100% {
+        background: none;
+    }
+
 }
