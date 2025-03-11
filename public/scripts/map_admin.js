@@ -50,7 +50,7 @@ document.addEventListener("DOMContentLoaded", function () {
 // 📥 Obtener mensajes TCP y mostrarlos en la lista (PC y móvil)
 async function mostrarMensajesTCP() {
     try {
-        const response = await fetch('https://smartway.ddns.net/messages/tcp'); // 🔽 Ruta del JSON
+        const response = await fetch('https://smartway.ddns.net/messages'); // 🔽 Ruta del JSON
         if (!response.ok) throw new Error("Error al obtener los mensajes TCP");
 
         const data = await response.json();
@@ -111,7 +111,7 @@ async function obtenerYEnviarUbicacionrutasIA() {
 
             try {
                 // 1️⃣ Obtener la última versión de rutasIA desde el servidor
-                const responseGet = await fetch('https://smartway.ddns.net/api/get_rutasIA');
+                const responseGet = await fetch('https://smartway.ddns.net/messages');
                 if (!responseGet.ok) throw new Error("Error al obtener rutasIA del servidor");
 
                 const data = await responseGet.json();
@@ -121,7 +121,7 @@ async function obtenerYEnviarUbicacionrutasIA() {
                 rutasIA = [nuevaUbicacion, ...rutasIA.slice(1)];
 
                 // 3️⃣ Enviar la nueva lista de rutasIA al servidor
-                const responsePost = await fetch('https://smartway.ddns.net/api/update_rutasIA', {
+                const responsePost = await fetch('https://smartway.ddns.net/messages', {
                     method: 'POST',
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ rutasIA })
@@ -174,7 +174,7 @@ function obtenerUbicacionYAgregarATCP() {
 
             try {
                 // 🔽 Enviar la ubicación al servidor
-                const response = await fetch('https://smartway.ddns.net/messages/tcp', {
+                const response = await fetch('https://smartway.ddns.net/messages', {
                     method: 'POST',
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(ubicacionbus)
