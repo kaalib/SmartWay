@@ -1,14 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Signika:wght@300;400;500;600;700&display=swap');
 
-@font-face {
-    font-family: 'BadgerScript';
-    src: url('styles/fonts/BadgerScript') format('truetype');
-    font-weight: normal;
-    font-style: normal;
+
+/* Estilo general */
+* {
+    font-family: 'Signika';
 }
 
 * {
-    font-family: 'BadgerScript', cursive;
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -50,7 +48,6 @@ span {
 }
 
 input {
-    font-family: 'BadgerScript', cursive;
     width: 100%;
     padding: 14px;
     margin: 12px 0;
@@ -62,7 +59,6 @@ input {
 
 /* Botón */
 button {
-    font-family: 'BadgerScript', cursive;
     background-color: #0059FF;
     color: #fff;
     font-size: 16px;

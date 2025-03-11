@@ -1,15 +1,13 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Signika:wght@300;400;500;600;700&display=swap');
 
-@font-face {
-    font-family: 'BadgerScript';
-    src: url('styles/fonts/BadgerScript') format('truetype');
-    font-weight: normal;
-    font-style: normal;
+
+/* Estilo general */
+* {
+    font-family: 'Signika';
 }
 
 /* Estilo general */
 body {
-    font-family: 'BadgerScript', cursive;
     margin: 0;
     padding: 0;
     background: linear-gradient(to right, #e2e2e2, #c9d6ff);
@@ -49,17 +47,13 @@ nav a:first-child {
 }
 
 nav a {
-    font-family: 'BadgerScript', cursive;
     color: white;
     text-decoration: none;
     padding: 10px 15px;
     transition: 0.3s;
 }
 
-nav a:hover {
-    background: #070054;
-    border-radius: 5px;
-}
+
 
 /* Menú lateral izquierdo (hamburguesa) */
 .menu-icon {
@@ -87,7 +81,6 @@ nav a:hover {
 }
 
 .sidebar a {
-    font-family: 'BadgerScript', cursive;
     padding: 10px 15px;
     text-decoration: none;
     font-size: 18px;
@@ -96,9 +89,7 @@ nav a:hover {
     transition: 0.3s;
 }
 
-.sidebar a:hover {
-    background: #070054;
-}
+
 
 
 .sidebar .close-btn {
@@ -145,7 +136,6 @@ nav a:hover {
 /* Message-box */
 .message-box1,
 .message-box2 {
-    flex: 1;
     background: #f8f8f8;
     border-bottom: 5px solid #0059FF;
     border-radius: 8px;
@@ -157,6 +147,14 @@ nav a:hover {
     scrollbar-color: #0059FF #f8f8f8;
 }
 
+.message-box1 {
+height: 20%;
+}
+
+.message-box2 {
+height: 80%;
+}
+
 #map {
     flex: 8;
     height: 100%;
@@ -166,7 +164,6 @@ nav a:hover {
 
 /* Barra lateral derecha para mensajes en móviles */
 .message-sidebar {
-    font-family: 'BadgerScript', cursive;
     height: 100%;
     width: 0;
     position: fixed;
@@ -180,17 +177,40 @@ nav a:hover {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    justify-content: flex-start;
     border-top-left-radius: 12px;
     border-bottom-left-radius: 12px;
 }
 
+/* ❌ Botón de Cierre (SVG) */
 .message-sidebar .close-btn {
     position: absolute;
-    top: 12px;
-    left: 25px;
-    font-size: 36px;
+    top: 15px;
+    left: 15px;
     cursor: pointer;
+}
+
+.message-sidebar .close-btn img {
     color: #0059FF;
+    display: block; /* Evita problemas de inline */
+    filter: brightness(0) saturate(100%) invert(24%) sepia(99%) saturate(2485%) hue-rotate(220deg) brightness(100%) contrast(100%);
+}
+
+/* ➖ Línea animada en hover */
+.message-sidebar .close-btn::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -6px; /* Posición de la línea */
+    width: 0%;
+    height: 3px;
+    background: #0059FF;
+    transition: width 0.3s ease-in-out;
+}
+
+/* 🔄 Hover: La línea se expande */
+.message-sidebar .close-btn:hover::after {
+    width: 100%;
 }
 
 .message-toggle {
@@ -211,7 +231,6 @@ nav a:hover {
 }
 
 .btn {
-    font-family: 'BadgerScript', cursive;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -226,9 +245,51 @@ nav a:hover {
     transition: 0.3s ease;
 }
 
+nav a,
+.sidebar a,
+.btn {
+    position: relative;
+    text-decoration: none;
+}
+
+/* 🔵 Subrayado para `nav` y `sidebar` */
+nav a::after,
+.sidebar a::after {
+    content: "";
+    position: absolute;
+    bottom: -3px;
+    height: 2px;
+    background: white;
+    transition: all 0.3s ease-in-out;
+}
+
+/* 🌟 Desde el Centro para `nav` */
+nav a::after {
+    left: 50%;
+    width: 0%;
+    transform: translateX(-50%);
+}
+
+/* 🌟 Desde la Izquierda para `.sidebar` */
+.sidebar a::after {
+    left: 0;
+    width: 0%;
+}
+
+/* 🌟 Animación en Hover */
+nav a:hover::after {
+    width: 80%;
+}
+
+.sidebar a:hover::after {
+    width: 100%;
+}
+
+/* 🔵 Botones (`.btn`) - Solo cambio de color en hover */
 .btn:hover {
     background: #070054;
 }
+
 
 .swal2-confirm {
     background-color: #0059FF !important;
@@ -287,22 +348,28 @@ nav a:hover {
     }
 
     
-
+    /* 📦 Caja de Mensajes TCP Entrantes (más pequeña) */
     .message-box1 {
-        height: 20%;
-        max-height: 30%;
-        width: 100%;
-        box-sizing: border-box;
-        border:5px;
+        height: 18vh; /* Ajusta el tamaño según necesidad */
+        background: #f8f8f8;
+        border-radius: 8px;
+        font-size: 16px;
+        color: black;
+        padding: 10px;
+        margin-bottom: 15px; /* Espacio entre message-box1 y message-box2 */
     }
 
+    /* 📦 Caja de Mensajes Empleados y Direcciones (más grande) */
     .message-box2 {
-        height: 70%;
-        max-height: 70%;
-        width: 100%;
-        box-sizing: border-box;
-        border:5px;
+        height: 67vh; /* Mayor tamaño que message-box1 */
+        background: #f8f8f8;
+        border-radius: 8px;
+        font-size: 16px;
+        color: black;
+        padding: 10px;
+        margin-bottom: 15px; /* Espacio antes del final del contenedor */
     }
+
 
     .button-container {
         display: flex;
@@ -315,6 +382,23 @@ nav a:hover {
         background: transparent;
         z-index: 1000;
         padding-bottom: 10px; /* Espacio adicional por si el navegador no soporta `safe-area-inset-bottom` */
+    }
+
+    .btn:active {
+        background: #070054;
+        transition: 0.3s ease-in-out;
+    }
+    
+    .btn:active::after {
+        content: "";
+        display: block;
+        animation: removeHover 0.5s forwards;
+    }
+}
+
+@keyframes removeHover {
+    100% {
+        background: none;
     }
     
 }

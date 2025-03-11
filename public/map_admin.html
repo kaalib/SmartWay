@@ -24,7 +24,8 @@
                 <img src="media/menu-icon.svg" alt="Menú">
             </div>
             <div id="sidebar" class="sidebar">
-            <a href="javascript:void(0)" class="close-btn" onclick="closeNav()">×</a>
+                <a href="javascript:void(0)" class="close-btn" onclick="closeNav()">
+                    <img src="media/xbuton.svg" alt="Cerrar" class="close-icon">
             <a href="index.html">
                 <img src="media/inicio.svg" alt="Inicio" width="120" height="32">
             </a>
@@ -53,11 +54,17 @@
         </div>
     </div>
     <!-- Barra lateral derecha para mensajes en móviles -->
-            <div class="message-toggle">
-                <img src="media/message-icon.svg" alt="Mensajes">
-            </div>
-    <div class="message-sidebar">
-        <a href="javascript:void(0)" class="close-btn" onclick="closeNav()">×</a>
+    <div class="message-toggle" onclick="openMessages()">
+        <img src="media/message-icon.svg" alt="Mensajes">
+    </div>
+    
+    <!-- 📬 Barra Lateral de Mensajes -->
+    <div class="message-sidebar" id="messageSidebar">
+        <!-- ❌ Botón para Cerrar -->
+        <a href="javascript:void(0)" class="close-btn" onclick="closeNav()">
+            <img src="media/xbuton.svg" alt="Cerrar" class="close-icon">
+        </a>
+        <!-- 📦 Contenedores de Mensajes -->
         <div class="tcpInput message-box1">Mensajes TCP entrantes</div>
         <div class="tcpDirections message-box2">Empleados y direcciones</div>
     </div>

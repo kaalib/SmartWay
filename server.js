@@ -10,7 +10,7 @@ const fs = require('fs');
 const app = express();
 const net = require('net');
 const axios = require('axios');
-
+const socketIo = require("socket.io");
 const messages = { tcp: [], rutasIA: [] }; // Mensajes TCP, la API optimizadora de rutas
 
 require('dotenv').config(); // Cargar variables de entorno
@@ -51,6 +51,7 @@ const options = {
 
 // Configuración del servidor HTTPS con Express
 const httpsServer = https.createServer(options, app);
+const io = socketIo(httpsServer); // Socket.io sobre HTTPS
 
 // Endpoint para obtener mensajes JSON (esto es una API)
 app.get('/messages', (req, res) => {
@@ -86,6 +87,7 @@ httpsServer.listen(443, () => {
     console.log('Servidor HTTPS escuchando en el puerto 443');
 });
 
+
 // --- Servidor WebSocket ---
 const wss = new WebSocket.Server({ server: httpsServer });
 
@@ -100,6 +102,9 @@ wss.on("connection", (ws) => {
         console.log("Cliente WebSocket desconectado");
     });
 });
+
+
+
 
 // --- Servidor TCP ---
 const tcpServer = net.createServer((socket) => {
@@ -291,33 +296,25 @@ app.post("/login", (req, res) => {
 });
 
 
-// --- Endpoint para enviar direcciones a Flask ---
+// 📩 Enviar direcciones a Flask
 app.post("/enviar-direcciones", async (req, res) => {
     try {
-        // Obtener direcciones de messages.tcp
         const direcciones = messages.tcp.map(msg => msg.direccion);
-
-        if (direcciones.length === 0) {
-            return res.status(400).json({ error: "No hay direcciones para procesar" });
-        }
+        if (direcciones.length === 0) return res.status(400).json({ error: "No hay direcciones para procesar" });
 
         console.log("📤 Enviando direcciones a Flask:", direcciones);
-
-        // Enviar datos a Flask
         const respuestaFlask = await axios.post("http://smartway.ddns.net:5000/api/process", { direcciones });
 
-        // Guardar la respuesta de Flask en rutasIA
         messages.rutasIA = respuestaFlask.data.rutasIA;
         fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
-            if (err) console.error("Error guardando rutasIA en archivo:", err);
+            if (err) console.error("Error guardando rutasIA:", err);
         });
 
-        console.log("✅ Respuesta de Flask guardada en rutasIA:", messages.rutasIA);
-
+        console.log("✅ Rutas actualizadas:", messages.rutasIA);
         res.json({ success: true, rutasIA: messages.rutasIA });
     } catch (error) {
-        console.error("❌ Error enviando a Flask:", error.message);
-        res.status(500).json({ success: false, message: "Error comunicándose con Flask" });
+        console.error("❌ Error al comunicarse con Flask:", error.message);
+        res.status(500).json({ success: false, message: "Error en Flask" });
     }
 });
 
