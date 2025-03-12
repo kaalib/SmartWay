@@ -260,7 +260,7 @@ app.post('/messages/tcp', (req, res) => {
 
 
 // Ruta de login
-app.post("/login", (req, res) => {
+pp.post("/login", (req, res) => {
     const { usuario, contraseña } = req.body;
 
     const query = `SELECT acceso, bus, cargo FROM empleados WHERE usuario = ? AND contraseña = ? AND (acceso = 1 OR bus = 1) LIMIT 1`;
@@ -274,28 +274,24 @@ app.post("/login", (req, res) => {
             const { acceso, bus, cargo } = results[0];
 
             let role = "desconocido";
-            let redirectUrl = "";
 
             if (acceso === 1) {
                 role = "Administrador";
-                redirectUrl = "map_admin.html";
             } else if (bus === 1) {
                 if (cargo.toLowerCase().includes("empleado")) {
                     role = "Empleado";
-                    redirectUrl = "map_empleado.html";
                 } else if (cargo.toLowerCase().includes("conductor")) {
                     role = "Conductor";
-                    redirectUrl = "map_conductor.html";
                 }
             }
 
-            return res.json({ success: true, message: `Ingresando a la vista de ${role}`, redirectUrl });
+            // Enviar el rol y la redirección a map.html
+            return res.json({ success: true, role, redirectUrl: "map.html" });
         } else {
             return res.json({ success: false, message: "Usuario o contraseña incorrectos" });
         }
     });
 });
-
 
 // 📩 Enviar direcciones a Flask
 app.post("/enviar-direcciones", async (req, res) => {

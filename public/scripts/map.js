@@ -2,8 +2,34 @@ const jsonUrl = 'https://smartway.ddns.net/messages'; // Cambiar por la IP de tu
 const tcpDirectionsList = document.querySelectorAll('.tcpDirections');
 const socket = io("https://smartway.ddns.net"); // Conectar a WebSocket
 
-// Configurar barras laterales al cargar el DOM
-document.addEventListener("DOMContentLoaded", function () {
+
+document.addEventListener("DOMContentLoaded", () => {
+    const role = localStorage.getItem("userRole");
+
+    if (role === "Empleado") {
+        ocultarElementos(["button-container", "message-container", "message-toggle"]);
+    } else if (role === "Administrador") {
+        ocultarElementos(["button-container"]);
+    } else if (role === "Conductor") {
+        // No ocultamos nada, el conductor tiene todos los permisos
+    } //else {
+      //  window.location.href = "login.html"; // Redirigir si no hay rol válido
+    //}
+
+    // 🔹 Configurar menús laterales después de verificar el rol
+    configurarBarrasLaterales();
+});
+
+// 🔹 Función para ocultar elementos
+function ocultarElementos(ids) {
+    ids.forEach(id => {
+        const elem = document.getElementById(id) || document.querySelector(`.${id}`);
+        if (elem) elem.remove();
+    });
+}
+
+// 🔹 Función para configurar las barras laterales
+function configurarBarrasLaterales() {
     // Menú lateral izquierdo (hamburguesa)
     const sidebar = document.querySelector('.sidebar');
     const menuIcon = document.querySelector('.menu-icon');
@@ -45,7 +71,7 @@ document.addEventListener("DOMContentLoaded", function () {
             closeMessageSidebar();
         }
     });
-});
+}
 
 // 📥 Obtener mensajes TCP y mostrarlos en la lista (PC y móvil)
 async function mostrarMensajesTCP() {

@@ -120,7 +120,6 @@ nav a {
 .map-and-messages {
     display: flex;
     width: 100%;
-    gap: 20px;
     align-items: stretch;
     flex: 1;
 }
@@ -130,6 +129,7 @@ nav a {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    margin-left: 20px; /* Espaciado a la izquierda */
     overflow: hidden;
 }
 
@@ -154,7 +154,7 @@ height: 100%;
 }
 
 #map {
-    flex: 8;
+    flex-grow: 8; /* Que el mapa se expanda automáticamente */
     height: 100%;
     border: 2px solid #ddd;
     border-radius: 8px;
