@@ -260,7 +260,7 @@ app.post('/messages/tcp', (req, res) => {
 
 
 // Ruta de login
-pp.post("/login", (req, res) => {
+app.post("/login", (req, res) => {
     const { usuario, contraseña } = req.body;
 
     const query = `SELECT acceso, bus, cargo FROM empleados WHERE usuario = ? AND contraseña = ? AND (acceso = 1 OR bus = 1) LIMIT 1`;
