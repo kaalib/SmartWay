@@ -9,12 +9,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (role === "Empleado") {
         ocultarElementos(["button-container", "message-container", "message-toggle"]);
     } else if (role === "Administrador") {
-        ocultarElementos(["button-container"]);
+       // ocultarElementos(["button-container"]);
     } else if (role === "Conductor") {
         // No ocultamos nada, el conductor tiene todos los permisos
-    } //else {
-      //  window.location.href = "login.html"; // Redirigir si no hay rol válido
-    //}
+    } else {
+        window.location.href = "login.html"; // Redirigir si no hay rol válido
+    }
 
     // 🔹 Configurar menús laterales después de verificar el rol
     configurarBarrasLaterales();
