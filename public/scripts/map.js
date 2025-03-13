@@ -198,21 +198,21 @@ async function gestionarUbicacion(reorganizarRutas = false) {
                 if (!responseGet.ok) throw new Error("Error al obtener mensajes actuales de TCP");
 
                 const data = await responseGet.json();
-                let mensajes = data.messages || []; // Asegurar que es un array
+                let mensajes = data.tcp || []; // ✅ Corregido
 
-                // 📌 Insertar `ubicacionBus` al inicio de los mensajes
-                mensajes = [ubicacionBus, ...mensajes];
+                // 📌 Insertar `ubicacionBus` al inicio de los mensajes (esto lo hace el backend)
+                console.log("📡 Enviando ubicación del bus a TCP...");
 
-                // 📡 Enviar la lista actualizada a TCP con `ubicacionBus` primero
+                // 📡 Enviar solo `ubicacionBus`, el backend lo coloca primero
                 const responseTCP = await fetch('https://smartway.ddns.net/messages/tcp', {
                     method: 'POST',
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(mensajes)
+                    body: JSON.stringify(ubicacionBus) // ✅ Corregido
                 });
 
                 if (!responseTCP.ok) throw new Error("Error al enviar ubicación a TCP");
 
-                console.log("✅ Ubicación enviada a TCP como primer dato:", ubicacionBus);
+                console.log("✅ Ubicación enviada a TCP:", ubicacionBus);
 
             } catch (error) {
                 console.error("❌ Error al actualizar mensajes en TCP:", error);
@@ -230,7 +230,7 @@ async function gestionarUbicacion(reorganizarRutas = false) {
                     if (!responseGet.ok) throw new Error("Error al obtener rutasIA");
 
                     const data = await responseGet.json();
-                    rutasIA = data.rutasIA || [];
+                    rutasIA = (data && data.rutasIA) ? data.rutasIA : []; // ✅ Corregido
                 }
 
                 // 📌 Reemplazar ubicación anterior del bus y agregar la nueva al inicio
