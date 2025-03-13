@@ -238,7 +238,7 @@ async function gestionarUbicacion(reorganizarRutas = false) {
 
 
 // 🚀 Nueva función para solicitar rutas organizadas a Flask
-async function enviarDatosFlask() {
+async function obtenerDireccionesDesdeFlask() {
     try {
         const responseFlask = await fetch('/enviar-direcciones', {
             method: "POST",
