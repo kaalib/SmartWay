@@ -110,162 +110,11 @@ async function mostrarMensajesTCP() {
 // Cargar el mapa
 getApiKey();
 
+let intervalID;
 let map = null;
 let geocoder = null;
 let marcadores = []; // Array de marcadores en el mapa
 let direccionesTCP = []; // Lista de direcciones recibidas
-let seguimientoActivo = false;
-let intervaloEnvio = null;
-
-// 📡 Escuchar los datos en tiempo real desde WebSockets
-socket.on("actualizar_rutas", (data) => {
-    console.log("📡 Rutas actualizadas desde WebSocket:", data.rutasIA);
-    dibujarMarcadores(data.rutasIA);
-});
-
-
-// 📍 Obtener ubicación y actualizar el primer elemento de rutasIA
-async function obtenerYEnviarUbicacionrutasIA() {
-    if (!navigator.geolocation) {
-        return console.error("❌ Geolocalización no soportada.");
-    }
-
-    navigator.geolocation.getCurrentPosition(
-        async (position) => {
-            const { latitude, longitude } = position.coords;
-            const nuevaUbicacion = { direccion: `Lat: ${latitude}, Lng: ${longitude}` }; // 📌 Ubicación como objeto
-
-            try {
-                // 1️⃣ Obtener la última versión de rutasIA desde el servidor
-                const responseGet = await fetch('https://smartway.ddns.net/messages');
-                if (!responseGet.ok) throw new Error("Error al obtener rutasIA del servidor");
-
-                const data = await responseGet.json();
-                let rutasIA = data.rutasIA || [];
-
-                // 2️⃣ Insertar la nueva ubicación en la primera posición
-                rutasIA = [nuevaUbicacion, ...rutasIA.slice(1)];
-
-                // 3️⃣ Enviar la nueva lista de rutasIA al servidor
-                const responsePost = await fetch('https://smartway.ddns.net/messages', {
-                    method: 'POST',
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ rutasIA })
-                });
-
-                if (!responsePost.ok) throw new Error("Error al actualizar rutasIA en el servidor");
-
-                // ✅ Solo imprimir la nueva ubicación cada 10 segundos
-                console.log("📡 Nueva ubicación enviada:", nuevaUbicacion);
-            } catch (error) {
-                console.error("❌ Error al actualizar rutasIA:", error);
-            }
-        },
-        (error) => console.error("❌ Error obteniendo ubicación:", error)
-    );
-}
-
-// ⏳ Iniciar el envío de ubicación cada 10s después de la primera vez
-function iniciarEnvioUbicacion() {
-    if (seguimientoActivo) return; // Evitar múltiples inicios
-    seguimientoActivo = true;
-
-    setTimeout(() => {
-        console.log("⏳ Iniciando actualización de ubicación cada 10s...");
-        intervaloEnvio = setInterval(obtenerYEnviarUbicacionrutasIA, 10000);
-    }, 10000); // ⏳ Espera 10 segundos antes de empezar
-}
-
-function detenerEnvioUbicacion() {
-    if (!seguimientoActivo) return; // Si ya está detenido, no hacer nada
-
-    clearInterval(intervaloEnvio); // Detener el intervalo
-    seguimientoActivo = false; // Restablecer estado
-
-    console.log("🛑 Envío de ubicación detenido.");
-}
-
-// 🗺️ Obtener ubicación sin geocodificar y agregarla al JSON TCP
-function obtenerUbicacionYAgregarATCP() {
-    if (!navigator.geolocation) {
-        return Swal.fire({
-            icon: "error",
-            title: "Geolocalización no disponible",
-            text: "Tu navegador no soporta la geolocalización."
-        });
-    }
-
-    navigator.geolocation.getCurrentPosition(
-        async (position) => {
-            const { latitude, longitude } = position.coords;
-            console.log("📌 Coordenadas obtenidas:", { latitude, longitude });
-
-            // 📍 Guardar directamente lo que se obtiene
-            const ubicacionObtenida = `Lat: ${latitude}, Lng: ${longitude}`;
-
-            // Enviar ubicación sin geocodificar
-            const ubicacionbus = { direccion: ubicacionObtenida };
-
-            try {
-                // 🔽 Enviar la ubicación al servidor
-                const response = await fetch('https://smartway.ddns.net/messages/tcp', {
-                    method: 'POST',
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(ubicacionbus)
-                });
-
-                if (!response.ok) throw new Error("Error en la solicitud al servidor");
-
-                console.log("✅ Ubicación enviada al servidor:", ubicacionbus);
-
-                Swal.fire({
-                    icon: "success",
-                    title: "Ubicación enviada",
-                    text: `📌 ${ubicacionObtenida}`,
-                    timer: 1500,
-                    showConfirmButton: false
-                });
-
-            } catch (error) {
-                console.error("❌ Error al enviar la ubicación:", error);
-                Swal.fire({
-                    icon: "error",
-                    title: "Error al enviar la ubicación",
-                    text: "No se pudo enviar al servidor."
-                });
-            }
-        },
-        (error) => {
-            if (error.code === error.PERMISSION_DENIED) {
-                permisoDenegado = true;
-                mostrarAlertaPermisoDenegado();
-            } else {
-                Swal.fire({
-                    icon: "error",
-                    title: "Error al obtener ubicación",
-                    text: `Ocurrió un error: ${error.message}`
-                });
-            }
-        }
-    );
-}
-
-// 🚨 Alerta cuando el usuario deniega la geolocalización
-function mostrarAlertaPermisoDenegado() {
-    Swal.fire({
-        icon: "error",
-        title: "Acceso denegado",
-        text: "Has denegado el acceso a tu ubicación. Para activarlo, ajusta los permisos en tu navegador.",
-        showCancelButton: true,
-        cancelButtonText: "Salir"
-    }).then((result) => {
-        if (result.isConfirmed) {
-            permisoDenegado = false;
-            obtenerUbicacionYAgregarATCP();
-        }
-    });
-}
-
 
 
 // Obtener API Key y cargar Google Maps
@@ -314,6 +163,179 @@ function initMap() {
 }
 
 
+// 📡 Escuchar los datos en tiempo real desde WebSockets
+socket.on("actualizar_rutas", (data) => {
+    if (data.rutasIA.length > 0 && data.rutasIA[0].id === "bus") {
+        const nuevaUbicacionBus = data.rutasIA[0].direccion;
+        if (rutasIA[0].direccion !== nuevaUbicacionBus) {
+            console.log("📡 WebSocket actualiza la ubicación:", data.rutasIA);
+            dibujarMarcadores(data.rutasIA);
+        }
+    }
+});
+
+// 🚏 Función principal de geolocalización y actualización de rutas
+async function gestionarUbicacion(reorganizarRutas = false) {
+    if (!navigator.geolocation) {
+        return Swal.fire({
+            icon: "error",
+            title: "Geolocalización no disponible",
+            text: "Tu navegador no soporta la geolocalización."
+        });
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            const { latitude, longitude } = position.coords;
+            console.log("📌 Ubicación obtenida:", { latitude, longitude });
+
+            // 📍 Crear objeto con la ubicación del bus
+            const ubicacionBus = { id: "bus", direccion: `Lat: ${latitude}, Lng: ${longitude}` };
+
+            try {
+                // 📥 Obtener los mensajes actuales del servidor TCP
+                const responseGet = await fetch('https://smartway.ddns.net/messages/tcp');
+                if (!responseGet.ok) throw new Error("Error al obtener mensajes actuales de TCP");
+
+                const data = await responseGet.json();
+                let mensajes = data.messages || []; // Asegurar que es un array
+
+                // 📌 Insertar `ubicacionBus` al inicio de los mensajes
+                mensajes = [ubicacionBus, ...mensajes];
+
+                // 📡 Enviar la lista actualizada a TCP con `ubicacionBus` primero
+                const responseTCP = await fetch('https://smartway.ddns.net/messages/tcp', {
+                    method: 'POST',
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(mensajes)
+                });
+
+                if (!responseTCP.ok) throw new Error("Error al enviar ubicación a TCP");
+
+                console.log("✅ Ubicación enviada a TCP como primer dato:", ubicacionBus);
+
+            } catch (error) {
+                console.error("❌ Error al actualizar mensajes en TCP:", error);
+            }
+
+            try {
+                let rutasIA = [];
+
+                if (reorganizarRutas) {
+                    // 🔄 Obtener rutas reorganizadas de Flask
+                    rutasIA = await enviarDatosFlask();
+                } else {
+                    // 🔄 Obtener la última versión de rutasIA
+                    const responseGet = await fetch('https://smartway.ddns.net/messages');
+                    if (!responseGet.ok) throw new Error("Error al obtener rutasIA");
+
+                    const data = await responseGet.json();
+                    rutasIA = data.rutasIA || [];
+                }
+
+                // 📌 Reemplazar ubicación anterior del bus y agregar la nueva al inicio
+                rutasIA = [ubicacionBus, ...rutasIA.filter(d => d.id !== "bus")];
+
+                // 📡 Guardar rutas actualizadas en el servidor
+                const responsePost = await fetch('https://smartway.ddns.net/messages', {
+                    method: 'POST',
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ rutasIA })
+                });
+
+                if (!responsePost.ok) throw new Error("Error al actualizar rutasIA");
+
+                console.log("📡 Ubicación del bus actualizada en rutasIA:", rutasIA);
+
+                // 📍 Actualizar el mapa con la nueva ubicación del bus y las rutas estáticas
+                actualizarMapa(rutasIA);
+
+            } catch (error) {
+                console.error("❌ Error en `gestionarUbicacion()`:", error);
+            }
+        },
+        (error) => {
+            console.error("❌ Error obteniendo ubicación:", error);
+            if (error.code === error.PERMISSION_DENIED) {
+                mostrarAlertaPermisoDenegado();
+            }
+        }
+    );
+}
+
+// 🚀 Nueva función para solicitar rutas organizadas a Flask
+async function enviarDatosFlask() {
+    try {
+        const responseFlask = await fetch('/enviar-direcciones', {
+            method: "POST",
+            headers: { "Content-Type": "application/json" }
+        });
+
+        if (!responseFlask.ok) throw new Error("Error al obtener rutas de Flask");
+
+        const data = await responseFlask.json();
+        console.log("📩 Rutas recibidas de Flask:", data.rutasIA);
+
+        return data.rutasIA;
+    } catch (error) {
+        console.error("❌ Error en `enviarDatosFlask()`:", error);
+        return []; // Retorna un array vacío en caso de error
+    }
+}
+
+
+// 🚨 Alerta si el usuario deniega permisos de ubicación
+function mostrarAlertaPermisoDenegado() {
+    Swal.fire({
+        icon: "error",
+        title: "Acceso denegado",
+        text: "Has denegado el acceso a tu ubicación. Para activarlo, ajusta los permisos en tu navegador.",
+        showCancelButton: true,
+        cancelButtonText: "Salir"
+    }).then((result) => {
+        if (result.isConfirmed) {
+            manejarUbicacionYActualizar();
+        }
+    });
+}
+
+
+
+
+// ⏳ Ejecutar cada 10 segundos
+setInterval(() => gestionarUbicacion(false), 10000);
+
+
+
+
+// 📍 Función para actualizar los marcadores en el mapa
+async function actualizarMapa(direcciones) {
+    if (!direcciones.length) return;
+
+    // Limpiar marcadores anteriores
+    marcadores.forEach(marcador => marcador.setMap(null));
+    marcadores = [];
+
+    const bounds = new google.maps.LatLngBounds();
+
+    // Convertir direcciones en coordenadas
+    const locations = await Promise.all(direcciones.map(geocodificarDireccion));
+
+    // Dibujar los marcadores
+    locations.forEach((location, index) => {
+        if (location) {
+            agregarMarcador(location, direcciones[index], bounds, index + 1);
+        }
+    });
+
+    // Ajustar vista del mapa
+    map.fitBounds(bounds);
+}
+
+
+
+
+
 // 📍 Nueva función para dibujar los marcadores con los datos recibidos
 async function dibujarMarcadores(direcciones) {
     try {
@@ -349,6 +371,17 @@ async function dibujarMarcadores(direcciones) {
 
 // 📍 Detectar si la dirección es lat/lng o texto y devolver la ubicación
 function geocodificarDireccion(direccion) {
+    if (!direccion) {
+        console.warn("⚠️ Dirección no válida:", direccion);
+        return Promise.resolve(null);
+    }
+
+    // Asegurar que `direccion` es un string
+    if (typeof direccion === "object" && direccion.direccion) {
+        direccion = direccion.direccion;
+    }
+    direccion = String(direccion).trim(); // Convertir a string y limpiar espacios
+
     return new Promise((resolve) => {
         // 🧐 Verifica si la dirección tiene el formato "Lat: xx.xxxx, Lng: yy.yyyy"
         const latLngMatch = direccion.match(/Lat:\s*(-?\d+\.\d+),\s*Lng:\s*(-?\d+\.\d+)/);
@@ -356,7 +389,7 @@ function geocodificarDireccion(direccion) {
         if (latLngMatch) {
             const lat = parseFloat(latLngMatch[1]);
             const lng = parseFloat(latLngMatch[2]);
-            console.log(`📍 Dirección detectada como coordenadas: ${lat}, ${lng}`);
+            console.log(`📍 Coordenadas detectadas: ${lat}, ${lng}`);
             return resolve(new google.maps.LatLng(lat, lng));
         }
 
@@ -372,6 +405,7 @@ function geocodificarDireccion(direccion) {
         });
     });
 }
+
 
 // 📌 Función para agregar un marcador al mapa
 function agregarMarcador(location, direccion, bounds, numero) {
@@ -420,7 +454,6 @@ function agregarMarcador(location, direccion, bounds, numero) {
 }
 
 
-
 function limpiarMapa() {
     // Eliminar todos los marcadores del mapa
     marcadores.forEach(marcador => marcador.setMap(null));
@@ -460,32 +493,17 @@ function limpiarMapa() {
 }
 
 
-async function enviarDireccionesAFlask() {
-    try {
-        const response = await fetch('/enviar-direcciones', {
-            method: "POST",
-            headers: { "Content-Type": "application/json" }
-        });
 
-        if (!response.ok) throw new Error("Error al enviar direcciones");
-
-        const data = await response.json();
-        console.log("📩 Rutas recibidas de Flask:", data.rutasIA);
-
-        // Llamar a dibujarMarcadores para actualizar el mapa con las rutas procesadas
-        dibujarMarcadores();
-    } catch (error) {
-        console.error("❌ Error al enviar direcciones a Flask:", error);
-    }
-}
 
 // Asignar funciones a los botones
-document.getElementById('btnAPI').addEventListener('click', () => {
-    enviarDireccionesAFlask();
-    iniciarEnvioUbicacion();
+document.getElementById('btnAPI').addEventListener("click", async () => {
+    await gestionarUbicacion(true); // Reorganiza al iniciar la ruta
+
+    if (intervalID) clearInterval(intervalID); // Evita intervalos duplicados
+    intervalID = setInterval(() => gestionarUbicacion(false), 10000);
 });
-document.getElementById('btndetener').addEventListener('click', detenerEnvioUbicacion);
+
 document.getElementById('btnMostrarD').addEventListener('click', mostrarMensajesTCP);
 document.getElementById('btnLimpiar').addEventListener('click', limpiarMapa);
-document.getElementById('btnDbus').addEventListener('click', obtenerUbicacionYAgregarATCP);
+
 
