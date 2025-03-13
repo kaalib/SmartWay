@@ -76,8 +76,11 @@ function emitirActualizacionRutas() {
     console.log("📡 Emitiendo rutas a todos los clientes WebSocket:", messages.rutasIA);
 }
 
-// 🔄 Emitir actualización automática cada 10 segundos para TODOS los clientes WebSocket
-setInterval(emitirActualizacionRutas, 10000);
+// 🔄 Emitir actualización de rutasIA cada 10 segundos para TODOS los clientes
+setInterval(() => {
+    emitirActualizacionRutas();
+    console.log("🔄 Emitiendo actualización global de rutasIA");
+}, 10000);
 
 app.post('/messages', (req, res) => {
     const { rutasIA } = req.body;

@@ -172,6 +172,7 @@ socket.on("actualizar_rutas", (data) => {
 });
 
 
+
 // 🚏 Función principal de geolocalización y actualización de rutas
 async function gestionarUbicacion(reorganizarRutas = false) {
     if (!navigator.geolocation) {
@@ -294,7 +295,6 @@ async function actualizarMapa(rutasIA) {
 
 
 
-// 📍 Nueva función para dibujar los marcadores con los datos recibidos
 async function dibujarMarcadores(direcciones) {
     try {
         if (direcciones.length === 0) {
@@ -306,16 +306,32 @@ async function dibujarMarcadores(direcciones) {
         marcadores.forEach(marcador => marcador.setMap(null));
         marcadores = [];
 
-        // Crear un objeto LatLngBounds para abarcar todos los marcadores
+        // Crear límites del mapa
         const bounds = new google.maps.LatLngBounds();
 
-        // Geocodificar todas las direcciones en el orden correcto
-        const locations = await Promise.all(direcciones.map(geocodificarDireccion));
+        let ubicacionBus = null;
+        const direccionesPasajeros = [];
 
-        // Dibujar los marcadores en el orden correcto
+        // Separar la ubicación del bus de las direcciones de pasajeros
+        direcciones.forEach((punto) => {
+            if (typeof punto === "object" && punto.lat !== undefined && punto.lng !== undefined) {
+                ubicacionBus = punto;
+            } else {
+                direccionesPasajeros.push(punto);
+            }
+        });
+
+        // Dibujar primero el bus
+        if (ubicacionBus) {
+            agregarMarcador(ubicacionBus, "bus", bounds, "bus");
+        }
+
+        // Geocodificar y dibujar las paradas en orden
+        const locations = await Promise.all(direccionesPasajeros.map(geocodificarDireccion));
+
         locations.forEach((location, index) => {
-            if (location) { // Evita errores si alguna dirección no pudo geocodificarse
-                agregarMarcador(location, direcciones[index], bounds, index + 1);
+            if (location) {
+                agregarMarcador(location, `Parada ${index + 1}`, bounds, index + 1);
             }
         });
 
@@ -362,44 +378,32 @@ function geocodificarDireccion(direccion) {
     });
 }
 
-// 📌 Función para agregar un marcador al mapa
-function agregarMarcador(location, title, bounds, numero) {
+function agregarMarcador(location, title, bounds, label) {
     let marcador;
 
-    if (numero === 0) {
-        // 🔹 Primer marcador (bus) usa icono personalizado
-        const marcadorContainer = document.createElement("div");
-        marcadorContainer.style.width = "40px";
-        marcadorContainer.style.height = "40px";
-
-        const iconoImg = document.createElement("img");
-        iconoImg.src = "media/iconobus.svg"; // Ruta del icono del bus
-        iconoImg.style.width = "100%";
-        iconoImg.style.height = "100%";
-
-        marcadorContainer.appendChild(iconoImg);
-
-        marcador = new google.maps.marker.AdvancedMarkerElement({
+    if (label === "bus") {
+        // 🔹 Bus usa icono SVG personalizado
+        marcador = new google.maps.Marker({
             position: location,
             map: map,
             title: "Bus",
-            content: marcadorContainer,
+            icon: {
+                url: "media/iconobus.svg",
+                scaledSize: new google.maps.Size(40, 40)
+            }
         });
     } else {
-        // 🔹 Marcadores siguientes: usan números
-        const pin = new google.maps.marker.PinElement({
-            glyph: `${numero}`, // Comienza en 1
-            glyphColor: '#FFFFFF',
-            background: '#070054',
-            borderColor: '#FFFFFF',
-            scale: 1.2
-        });
-
-        marcador = new google.maps.marker.AdvancedMarkerElement({
+        // 🔹 Pasajeros usan números
+        marcador = new google.maps.Marker({
             position: location,
             map: map,
-            title: `Parada ${numero}`,
-            content: pin.element
+            title: title,
+            label: {
+                text: String(label),
+                color: "white",
+                fontSize: "12px",
+                fontWeight: "bold"
+            }
         });
     }
 
