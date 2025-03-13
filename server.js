@@ -70,9 +70,74 @@ io.on("connection", (socket) => {
 
 
 // Emitir actualización cada vez que cambian las rutasIA
+
 function emitirActualizacionRutas() {
     io.emit("actualizar_rutas", { rutasIA: messages.rutasIA });
+    console.log("📡 Emitiendo rutas a todos los clientes WebSocket:", messages.rutasIA);
 }
+
+// 🔄 Emitir actualización automática cada 10 segundos para TODOS los clientes WebSocket
+setInterval(emitirActualizacionRutas, 10000);
+
+app.post('/messages', (req, res) => {
+    const { rutasIA } = req.body;
+
+    if (!rutasIA || !Array.isArray(rutasIA)) {
+        return res.status(400).json({ error: "Datos inválidos" });
+    }
+
+    // 🚍 Obtener la última ubicación del bus de messages.tcp
+    const ubicacionBus = messages.tcp.find(msg => msg.id === "bus");
+
+    // 📌 Reorganizar rutasIA: primero la ubicación del bus, luego el resto de destinos
+    if (ubicacionBus) {
+        messages.rutasIA = [ubicacionBus, ...rutasIA.filter(msg => msg.id !== "bus")];
+    } else {
+        messages.rutasIA = rutasIA; // Si no hay bus, mantener las rutas normales
+    }
+
+    console.log("📡 Nueva rutasIA enviada a WebSockets:", messages.rutasIA);
+
+    // Emitir actualización a todos los clientes conectados
+    emitirActualizacionRutas();
+
+    res.status(200).json({ message: "rutasIA actualizadas correctamente" });
+});
+
+// 📌 Endpoint para actualizar la ubicación del bus en tiempo real
+app.post('/messages/tcp', (req, res) => {
+    const { id, direccion } = req.body;
+
+    if (!direccion || !id) {
+        return res.status(400).json({ error: "Faltan datos en la solicitud" });
+    }
+
+    let nuevaUbicacion = { id, direccion };
+
+    if (id === "bus") {
+        // 🚍 Asegurar que el bus esté SIEMPRE de primero en rutasIA
+        messages.tcp = [nuevaUbicacion, ...messages.tcp.filter(msg => msg.id !== "bus")];
+        messages.rutasIA = [nuevaUbicacion, ...messages.rutasIA.filter(msg => msg.id !== "bus")];
+    } else {
+        // 🧍 Si es un pasajero, simplemente lo agrega
+        messages.tcp.push(nuevaUbicacion);
+    }
+
+    // Guardar en archivo JSON
+    fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
+        if (err) {
+            console.error("❌ Error guardando en archivo:", err);
+            return res.status(500).json({ error: "Error al guardar la ubicación" });
+        }
+
+        console.log("✅ Ubicación guardada:", nuevaUbicacion);
+
+        // 📡 Emitir actualización a WebSockets para TODOS los clientes
+        emitirActualizacionRutas();
+
+        res.status(200).json({ message: "Ubicación recibida correctamente" });
+    });
+});
 
 // --- Redirige tráfico HTTP a HTTPS ---
 const httpServer = http.createServer((req, res) => {
@@ -240,50 +305,6 @@ process.on('unhandledRejection', (reason, promise) => {
 // --- Servidor UDP --- borrado
 
 
-app.post('/messages', (req, res) => {
-    const { rutasIA } = req.body;
-
-    if (!rutasIA || !Array.isArray(rutasIA)) {
-        return res.status(400).json({ error: "Datos inválidos" });
-    }
-
-    messages.rutasIA = rutasIA; // Reemplazar rutasIA con las nuevas
-
-    // Emitir actualización a los clientes conectados
-    emitirActualizacionRutas();
-
-    res.status(200).json({ message: "rutasIA actualizadas correctamente" });
-});
-
-app.post('/messages/tcp', (req, res) => {
-    const { id, direccion } = req.body;
-
-    if (!direccion || !id) {
-        return res.status(400).json({ error: "Faltan datos en la solicitud" });
-    }
-
-    let nuevaUbicacion;
-
-    if (id === "bus") {
-        // 🚍 Si el mensaje es del bus, se asegura de colocarlo de primero
-        nuevaUbicacion = { id: "bus", direccion };
-        messages.tcp = [nuevaUbicacion, ...messages.tcp.filter(msg => msg.id !== "bus")];
-    } else {
-        // 🧍 Si es un pasajero, lo agrega con id "pasajero"
-        nuevaUbicacion = { id: "pasajero", direccion };
-        messages.tcp.push(nuevaUbicacion);
-    }
-
-    // Guardar en archivo JSON
-    fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
-        if (err) {
-            console.error("❌ Error guardando en archivo:", err);
-            return res.status(500).json({ error: "Error al guardar la ubicación" });
-        }
-        console.log("✅ Ubicación guardada:", nuevaUbicacion);
-        res.status(200).json({ message: "Ubicación recibida correctamente" });
-    });
-});
 
 // Ruta de login
 app.post("/login", (req, res) => {
