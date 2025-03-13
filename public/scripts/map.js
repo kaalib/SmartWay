@@ -275,7 +275,6 @@ function mostrarAlertaPermisoDenegado() {
 
 
 
-// 📍 Función para actualizar el mapa con los datos de rutasIA
 async function actualizarMapa(rutasIA) {
     if (!rutasIA.length) return;
 
@@ -285,10 +284,18 @@ async function actualizarMapa(rutasIA) {
 
     const bounds = new google.maps.LatLngBounds();
 
-    // 📌 Dibujar los marcadores en el orden correcto
-    rutasIA.forEach((location, index) => {
+    // 🗺️ Convertir direcciones a coordenadas si es necesario
+    const locations = await Promise.all(rutasIA.map(async (direccion) => {
+        if (typeof direccion === "string") {
+            return await geocodificarDireccion(direccion); // Geocodifica direcciones en texto
+        }
+        return direccion; // Si ya es un objeto { lat, lng }, lo usa directamente
+    }));
+
+    // 📌 Dibujar los marcadores solo con coordenadas válidas
+    locations.forEach((location, index) => {
         if (location) {
-            agregarMarcador(location, `Parada ${index}`, bounds, index);
+            agregarMarcador(location, `Parada ${index + 1}`, bounds, index + 1);
         }
     });
 
@@ -297,7 +304,6 @@ async function actualizarMapa(rutasIA) {
         map.fitBounds(bounds);
     }
 }
-
 
 
 
@@ -348,27 +354,16 @@ async function convertirDireccionesAUbicaciones(rutas) {
     return coordenadas;
 }
 
-// 📍 Función para detectar si es lat/lng o texto y geocodificar
 function geocodificarDireccion(direccion) {
-    if (!direccion) return Promise.resolve(null);
-
-    // Si `direccion` es un objeto con `.direccion`, extraer el string
-    if (typeof direccion === "object" && direccion.direccion) {
-        direccion = direccion.direccion;
-    }
-    direccion = String(direccion).trim(); // Convertir a string y limpiar espacios
-
     return new Promise((resolve) => {
-        // 📌 Detectar coordenadas directas
-        const latLngMatch = direccion.match(/Lat:\s*(-?\d+\.\d+),\s*Lng:\s*(-?\d+\.\d+)/);
+        if (!direccion) return resolve(null);
 
-        if (latLngMatch) {
-            const lat = parseFloat(latLngMatch[1]);
-            const lng = parseFloat(latLngMatch[2]);
-            return resolve(new google.maps.LatLng(lat, lng));
+        // 📌 Si ya es `{ lat, lng }`, no necesita geocodificación
+        if (typeof direccion === "object" && "lat" in direccion && "lng" in direccion) {
+            return resolve(new google.maps.LatLng(direccion.lat, direccion.lng));
         }
 
-        // 🔍 Geocodificar texto
+        // 🔍 Geocodificar direcciones en texto
         geocoder.geocode({ address: direccion }, (results, status) => {
             if (status === "OK" && results[0]) {
                 resolve(results[0].geometry.location);
