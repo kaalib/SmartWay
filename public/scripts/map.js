@@ -165,14 +165,12 @@ function initMap() {
 
 // 📡 Escuchar los datos en tiempo real desde WebSockets
 socket.on("actualizar_rutas", (data) => {
-    if (data.rutasIA.length > 0 && data.rutasIA[0].id === "bus") {
-        const nuevaUbicacionBus = data.rutasIA[0].direccion;
-        if (rutasIA[0].direccion !== nuevaUbicacionBus) {
-            console.log("📡 WebSocket actualiza la ubicación:", data.rutasIA);
-            dibujarMarcadores(data.rutasIA);
-        }
+    if (data.rutasIA.length > 0) {
+        console.log("📡 WebSocket actualiza la ubicación:", data.rutasIA);
+        dibujarMarcadores(data.rutasIA);  // 🔄 Llamar a la función para actualizar el mapa
     }
 });
+
 
 // 🚏 Función principal de geolocalización y actualización de rutas
 async function gestionarUbicacion(reorganizarRutas = false) {
@@ -196,9 +194,17 @@ async function gestionarUbicacion(reorganizarRutas = false) {
                 let rutasIA = [];
 
                 if (reorganizarRutas) {
-                    // 🔄 Obtener nuevas rutas desde Flask
-                    const direcciones = await obtenerDireccionesDesdeFlask();
-                    rutasIA = await convertirDireccionesAUbicaciones(direcciones);
+                    // 🔄 Solicitar reorganización de rutas a Node.js
+                    const responseFlask = await fetch('https://smartway.ddns.net/enviar-direcciones', {  
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" }
+                    });
+
+                    if (!responseFlask.ok) throw new Error("Error al obtener rutas de Flask");
+
+                    const dataFlask = await responseFlask.json();
+                    rutasIA = dataFlask.rutasIA || [];
+
                 } else {
                     // 🔄 Obtener la última versión de rutasIA desde el servidor
                     const responseGet = await fetch('https://smartway.ddns.net/messages');
@@ -211,11 +217,11 @@ async function gestionarUbicacion(reorganizarRutas = false) {
                 // 📌 Insertar ubicación del bus al inicio y limpiar duplicados
                 rutasIA = [ubicacionBus, ...rutasIA.filter(d => d.id !== "bus")];
 
-                // 📡 Enviar datos al backend
-                await fetch('https://smartway.ddns.net/messages/tcp', {
+                // 📡 Enviar ubicación actualizada del bus a Node.js
+                await fetch('https://smartway.ddns.net/messages/tcp', {  
                     method: 'POST',
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ id: "bus", direccion: { lat: latitude, lng: longitude } })
+                    body: JSON.stringify({ id: "bus", direccion: { lat: latitude, lng: longitude } })  
                 });
 
                 console.log("📡 Ubicación del bus actualizada en rutasIA:", rutasIA);
@@ -237,25 +243,6 @@ async function gestionarUbicacion(reorganizarRutas = false) {
 }
 
 
-// 🚀 Nueva función para solicitar rutas organizadas a Flask
-async function obtenerDireccionesDesdeFlask() {
-    try {
-        const responseFlask = await fetch('/enviar-direcciones', {
-            method: "POST",
-            headers: { "Content-Type": "application/json" }
-        });
-
-        if (!responseFlask.ok) throw new Error("Error al obtener rutas de Flask");
-
-        const data = await responseFlask.json();
-        console.log("📩 Rutas recibidas de Flask:", data.rutasIA);
-
-        return data.rutasIA;
-    } catch (error) {
-        console.error("❌ Error en `enviarDatosFlask()`:", error);
-        return []; // Retorna un array vacío en caso de error
-    }
-}
 
 
 // 🚨 Alerta si el usuario deniega permisos de ubicación
