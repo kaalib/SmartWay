@@ -94,6 +94,11 @@ app.get('/messages', (req, res) => {
     res.json(messages);
 });
 
+app.get('/messages/tcp', (req, res) => {
+    res.json({ tcp: messages.tcp }); // Solo devolvemos messages.tcp
+});
+
+
 // Endpoint para eliminar mensajes TCP y  rutasIA
 app.delete('/messages', (req, res) => {
     messages.tcp = []; // Vaciar el array de mensajes TCP
@@ -235,17 +240,36 @@ process.on('unhandledRejection', (reason, promise) => {
 // --- Servidor UDP --- borrado
 
 
+app.post('/messages', (req, res) => {
+    const { rutasIA } = req.body;
 
-
-app.post('/messages/tcp', (req, res) => {
-    const { direccion } = req.body;
-
-    if (!direccion) {
-        return res.status(400).json({ error: "Falta la dirección en la solicitud" });
+    if (!rutasIA || !Array.isArray(rutasIA)) {
+        return res.status(400).json({ error: "Datos inválidos" });
     }
 
-    const nuevaUbicacion = { direccion };
-    messages.tcp.push(nuevaUbicacion); // 📌 Agregar ubicación a messages.tcp
+    messages.rutasIA = rutasIA; // Reemplazar rutasIA con las nuevas
+
+    // Emitir actualización a los clientes conectados
+    emitirActualizacionRutas();
+
+    res.status(200).json({ message: "rutasIA actualizadas correctamente" });
+});
+
+app.post('/messages/tcp', (req, res) => {
+    const { id, direccion } = req.body;
+
+    if (!direccion || !id) {
+        return res.status(400).json({ error: "Faltan datos en la solicitud" });
+    }
+
+    const nuevaUbicacion = { id, direccion };
+
+    // 🏎 Si el mensaje es del bus, lo coloca al inicio del array
+    if (id === "bus") {
+        messages.tcp = [nuevaUbicacion, ...messages.tcp.filter(msg => msg.id !== "bus")];
+    } else {
+        messages.tcp.push(nuevaUbicacion); // Otros mensajes se agregan normalmente
+    }
 
     // Guardar en archivo JSON
     fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
@@ -257,7 +281,6 @@ app.post('/messages/tcp', (req, res) => {
         res.status(200).json({ message: "Ubicación recibida correctamente" });
     });
 });
-
 
 // Ruta de login
 app.post("/login", (req, res) => {
