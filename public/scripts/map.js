@@ -189,65 +189,46 @@ async function gestionarUbicacion(reorganizarRutas = false) {
             const { latitude, longitude } = position.coords;
             console.log("📌 Ubicación obtenida:", { latitude, longitude });
 
-            // 📍 Crear objeto con la ubicación del bus
-            const ubicacionBus = { id: "bus", direccion: `Lat: ${latitude}, Lng: ${longitude}` };
-
-            try {
-                // 📥 Obtener los mensajes actuales del servidor TCP
-                const responseGet = await fetch('https://smartway.ddns.net/messages/tcp');
-                if (!responseGet.ok) throw new Error("Error al obtener mensajes actuales de TCP");
-
-                const data = await responseGet.json();
-                let mensajes = data.tcp || []; // ✅ Corregido
-
-                // 📌 Insertar `ubicacionBus` al inicio de los mensajes (esto lo hace el backend)
-                console.log("📡 Enviando ubicación del bus a TCP...");
-
-                // 📡 Enviar solo `ubicacionBus`, el backend lo coloca primero
-                const responseTCP = await fetch('https://smartway.ddns.net/messages/tcp', {
-                    method: 'POST',
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(ubicacionBus) // ✅ Corregido
-                });
-
-                if (!responseTCP.ok) throw new Error("Error al enviar ubicación a TCP");
-
-                console.log("✅ Ubicación enviada a TCP:", ubicacionBus);
-
-            } catch (error) {
-                console.error("❌ Error al actualizar mensajes en TCP:", error);
-            }
+            // 📍 Ubicación del bus
+            const ubicacionBus = { id: "bus", lat: latitude, lng: longitude };
 
             try {
                 let rutasIA = [];
 
                 if (reorganizarRutas) {
-                    // 🔄 Obtener rutas reorganizadas de Flask
-                    rutasIA = await enviarDatosFlask();
+                    // 🔄 Obtener rutas en texto desde Flask
+                    const direcciones = await obtenerDireccionesDesdeFlask();
+
+                    // 🗺️ Convertir direcciones a coordenadas
+                    rutasIA = await convertirDireccionesAUbicaciones(direcciones);
                 } else {
                     // 🔄 Obtener la última versión de rutasIA
                     const responseGet = await fetch('https://smartway.ddns.net/messages');
                     if (!responseGet.ok) throw new Error("Error al obtener rutasIA");
 
                     const data = await responseGet.json();
-                    rutasIA = (data && data.rutasIA) ? data.rutasIA : []; // ✅ Corregido
+                    rutasIA = data.rutasIA || [];
                 }
 
-                // 📌 Reemplazar ubicación anterior del bus y agregar la nueva al inicio
+                // 📌 Insertar ubicación del bus al inicio de rutasIA
                 rutasIA = [ubicacionBus, ...rutasIA.filter(d => d.id !== "bus")];
 
-                // 📡 Guardar rutas actualizadas en el servidor
-                const responsePost = await fetch('https://smartway.ddns.net/messages', {
+                // 🔍 Asegurar que `rutasIA` tiene solo `{ lat, lng }`
+                rutasIA = rutasIA.map(d => ({
+                    lat: d.lat,
+                    lng: d.lng
+                }));
+
+                // 📡 Guardar rutas actualizadas
+                await fetch('https://smartway.ddns.net/messages', {
                     method: 'POST',
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ rutasIA })
                 });
 
-                if (!responsePost.ok) throw new Error("Error al actualizar rutasIA");
-
                 console.log("📡 Ubicación del bus actualizada en rutasIA:", rutasIA);
 
-                // 📍 Actualizar el mapa con la nueva ubicación del bus y las rutas estáticas
+                // 📍 Dibujar los marcadores en el mapa
                 actualizarMapa(rutasIA);
 
             } catch (error) {
@@ -301,16 +282,9 @@ function mostrarAlertaPermisoDenegado() {
 
 
 
-
-// ⏳ Ejecutar cada 10 segundos
-setInterval(() => gestionarUbicacion(false), 10000);
-
-
-
-
-// 📍 Función para actualizar los marcadores en el mapa
-async function actualizarMapa(direcciones) {
-    if (!direcciones.length) return;
+// 📍 Función para actualizar el mapa con datos limpios (lat, lng)
+async function actualizarMapa(rutasIA) {
+    if (!rutasIA.length) return;
 
     // Limpiar marcadores anteriores
     marcadores.forEach(marcador => marcador.setMap(null));
@@ -318,20 +292,21 @@ async function actualizarMapa(direcciones) {
 
     const bounds = new google.maps.LatLngBounds();
 
-    // Convertir direcciones en coordenadas
-    const locations = await Promise.all(direcciones.map(geocodificarDireccion));
+    // 🔄 Asegurar que todas las direcciones sean `{ lat, lng }`
+    const locations = await convertirDireccionesAUbicaciones(rutasIA);
 
-    // Dibujar los marcadores
+    // 📌 Dibujar los marcadores en el orden correcto
     locations.forEach((location, index) => {
         if (location) {
-            agregarMarcador(location, direcciones[index], bounds, index + 1);
+            agregarMarcador(location, `Parada ${index + 1}`, bounds, index + 1);
         }
     });
 
-    // Ajustar vista del mapa
-    map.fitBounds(bounds);
+    // Ajustar la vista del mapa
+    if (!bounds.isEmpty()) {
+        map.fitBounds(bounds);
+    }
 }
-
 
 
 
@@ -369,56 +344,32 @@ async function dibujarMarcadores(direcciones) {
     }
 }
 
-// 📍 Detectar si la dirección es lat/lng o texto y devolver la ubicación
-function geocodificarDireccion(direccion) {
-    if (!direccion) {
-        console.warn("⚠️ Dirección no válida:", direccion);
-        return Promise.resolve(null);
-    }
+// 📍 Convertir direcciones en texto a coordenadas `{ lat, lng }`
+async function convertirDireccionesAUbicaciones(rutas) {
+    const coordenadas = [];
 
-    // Asegurar que `direccion` es un string
-    if (typeof direccion === "object" && direccion.direccion) {
-        direccion = direccion.direccion;
-    }
-    direccion = String(direccion).trim(); // Convertir a string y limpiar espacios
-
-    return new Promise((resolve) => {
-        // 🧐 Verifica si la dirección tiene el formato "Lat: xx.xxxx, Lng: yy.yyyy"
-        const latLngMatch = direccion.match(/Lat:\s*(-?\d+\.\d+),\s*Lng:\s*(-?\d+\.\d+)/);
-
-        if (latLngMatch) {
-            const lat = parseFloat(latLngMatch[1]);
-            const lng = parseFloat(latLngMatch[2]);
-            console.log(`📍 Coordenadas detectadas: ${lat}, ${lng}`);
-            return resolve(new google.maps.LatLng(lat, lng));
+    for (const direccion of rutas) {
+        const ubicacion = await geocodificarDireccion(direccion);
+        if (ubicacion) {
+            coordenadas.push({ lat: ubicacion.lat(), lng: ubicacion.lng() });
         }
+    }
 
-        // 🔍 Si no es coordenada, intenta geocodificar como dirección
-        geocoder.geocode({ address: direccion }, (results, status) => {
-            if (status === "OK" && results[0]) {
-                console.log(`📌 Dirección convertida a coordenadas: ${direccion} → ${results[0].geometry.location}`);
-                resolve(results[0].geometry.location);
-            } else {
-                console.warn(`⚠️ No se pudo geocodificar: ${direccion}`);
-                resolve(null);
-            }
-        });
-    });
+    return coordenadas;
 }
 
-
 // 📌 Función para agregar un marcador al mapa
-function agregarMarcador(location, direccion, bounds, numero) {
+function agregarMarcador(location, title, bounds, numero) {
     let marcador;
 
     if (numero === 1) {
-        // 🔹 Primer marcador: usa el icono personalizado sin número
+        // 🔹 Primer marcador (bus) usa icono personalizado
         const marcadorContainer = document.createElement("div");
         marcadorContainer.style.width = "40px";
         marcadorContainer.style.height = "40px";
 
         const iconoImg = document.createElement("img");
-        iconoImg.src = "media/iconobus.svg"; // Ruta del icono personalizado
+        iconoImg.src = "media/iconobus.svg"; // Ruta del icono del bus
         iconoImg.style.width = "100%";
         iconoImg.style.height = "100%";
 
@@ -427,11 +378,11 @@ function agregarMarcador(location, direccion, bounds, numero) {
         marcador = new google.maps.marker.AdvancedMarkerElement({
             position: location,
             map: map,
-            title: direccion,
+            title: "Bus", // Evita errores con objetos en `title`
             content: marcadorContainer,
         });
     } else {
-        // 🔹 Marcadores siguientes: usan el marcador por defecto con número
+        // 🔹 Marcadores siguientes: usan números
         const pin = new google.maps.marker.PinElement({
             glyph: `${numero - 1}`, // Se empieza en 1 para el segundo marcador
             glyphColor: '#FFFFFF',
@@ -443,7 +394,7 @@ function agregarMarcador(location, direccion, bounds, numero) {
         marcador = new google.maps.marker.AdvancedMarkerElement({
             position: location,
             map: map,
-            title: direccion,
+            title: `Parada ${numero - 1}`, // Evita errores con `title`
             content: pin.element
         });
     }
