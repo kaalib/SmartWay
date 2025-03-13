@@ -262,13 +262,16 @@ app.post('/messages/tcp', (req, res) => {
         return res.status(400).json({ error: "Faltan datos en la solicitud" });
     }
 
-    const nuevaUbicacion = { id, direccion };
+    let nuevaUbicacion;
 
-    // 🏎 Si el mensaje es del bus, lo coloca al inicio del array
     if (id === "bus") {
+        // 🚍 Si el mensaje es del bus, se asegura de colocarlo de primero
+        nuevaUbicacion = { id: "bus", direccion };
         messages.tcp = [nuevaUbicacion, ...messages.tcp.filter(msg => msg.id !== "bus")];
     } else {
-        messages.tcp.push(nuevaUbicacion); // Otros mensajes se agregan normalmente
+        // 🧍 Si es un pasajero, lo agrega con id "pasajero"
+        nuevaUbicacion = { id: "pasajero", direccion };
+        messages.tcp.push(nuevaUbicacion);
     }
 
     // Guardar en archivo JSON
