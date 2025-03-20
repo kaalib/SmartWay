@@ -495,7 +495,25 @@ function limpiarMapa() {
 }
 
 
+async function iniciarEnvioActualizacion() {
+    try {
+        const response = await fetch("/iniciar-emision", { method: "POST" });
+        const data = await response.json();
+        console.log("✅ Emisión activada:", data);
+    } catch (error) {
+        console.error("❌ Error al iniciar la emisión:", error);
+    }
+}
 
+async function detenerEnvioActualizacion() {
+    try {
+        const response = await fetch("/detener-emision", { method: "POST" });
+        const data = await response.json();
+        console.log("🛑 Emisión detenida:", data);
+    } catch (error) {
+        console.error("❌ Error al detener la emisión:", error);
+    }
+}
 
 // Asignar funciones a los botones
 
@@ -509,6 +527,7 @@ document.getElementById('btnAPI').addEventListener("click", async () => {
     }
 
     await gestionarUbicacion(); // 🔄 Envía la ubicación inicial
+    await iniciarEnvioActualizacion(); // 📡 Inicia la emisión de ubicación
     await solicitarActualizacionRutas(); // 📡 Solicita rutas solo una vez
 
     // 🔄 Enviar ubicación cada 10 segundos
@@ -519,6 +538,7 @@ document.getElementById('btnAPI').addEventListener("click", async () => {
 // 🛑 Botón para detener el envío de ubicación
 document.getElementById('btnLimpiar').addEventListener('click', () => {
     limpiarMapa(); // 🗑️ Limpia el mapa
+    detenerEnvioActualizacion(); // 🛑 Detiene la emisión de ubicación
 
     if (intervalID) {
         clearInterval(intervalID); // 🛑 Detiene el intervalo

@@ -69,19 +69,43 @@ io.on("connection", (socket) => {
 });
 
 
-// Emitir actualización cada vez que cambian las rutasIA
+let emitirRutas = false; // 🔴 Controlador de emisión (empieza desactivado)
+let intervaloRutas = null; // Guardar el intervalo para detenerlo después
 
-function emitirActualizacionRutas() {
-    io.emit("actualizar_rutas", { rutasIA: messages.rutasIA });
-    console.log("📡 Emitiendo rutas a todos los clientes WebSocket:", messages.rutasIA);
+// 📡 Función para iniciar la emisión de rutasIA
+function iniciarEmisionRutas() {
+    if (!intervaloRutas) {
+        emitirRutas = true;
+        intervaloRutas = setInterval(() => {
+            if (emitirRutas) {
+                emitirActualizacionRutas();
+                console.log("🔄 Emitiendo actualización global de rutasIA");
+            }
+        }, 10000);
+        console.log("✅ Emisión de rutas ACTIVADA");
+    }
 }
 
-// 🔄 Emitir actualización de rutasIA cada 10 segundos para TODOS los clientes
-setInterval(() => {
-    emitirActualizacionRutas();
-    console.log("🔄 Emitiendo actualización global de rutasIA");
-}, 10000);
+// ⛔ Función para detener la emisión de rutasIA
+function detenerEmisionRutas() {
+    emitirRutas = false;
+    if (intervaloRutas) {
+        clearInterval(intervaloRutas);
+        intervaloRutas = null;
+    }
+    console.log("🛑 Emisión de rutas DETENIDA");
+}
 
+// 🔘 Endpoints para activar/desactivar desde el frontend
+app.post("/iniciar-emision", (req, res) => {
+    iniciarEmisionRutas();
+    res.json({ estado: true });
+});
+
+app.post("/detener-emision", (req, res) => {
+    detenerEmisionRutas();
+    res.json({ estado: false });
+});
 
 
 
@@ -111,6 +135,7 @@ app.get('/messages', (req, res) => {
 app.delete('/messages', (req, res) => {
     messages.tcp = []; // Vaciar el array de mensajes TCP
     messages.rutasIA = []; // Vaciar el array de mensajes rutasIA
+    messages.bus = []; // Vaciar el array de mensajes bus
     fs.writeFileSync("messages.json", JSON.stringify(messages, null, 2)); // Guardar cambios en el archivo
     res.json({ success: true, message: "Mensajes TCP eliminados" });
 });
