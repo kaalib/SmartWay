@@ -11,7 +11,7 @@ const app = express();
 const net = require('net');
 const axios = require('axios');
 const socketIo = require("socket.io");
-const messages = { tcp: [], rutasIA: [] }; // Mensajes TCP, la API optimizadora de rutas
+const messages = { tcp: [], rutasIA: [], bus: [] }; // Mensajes TCP, la API optimizadora de rutas
 require('dotenv').config(); // Cargar variables de entorno
 
 // Connect to MySQL database
@@ -82,65 +82,8 @@ setInterval(() => {
     console.log("🔄 Emitiendo actualización global de rutasIA");
 }, 10000);
 
-app.post('/messages', (req, res) => {
-    const { rutasIA } = req.body;
 
-    if (!rutasIA || !Array.isArray(rutasIA)) {
-        return res.status(400).json({ error: "Datos inválidos" });
-    }
 
-    // 🚍 Obtener la última ubicación del bus de messages.tcp
-    const ubicacionBus = messages.tcp.find(msg => msg.id === "bus");
-
-    // 📌 Reorganizar rutasIA: primero la ubicación del bus, luego el resto de destinos
-    if (ubicacionBus) {
-        messages.rutasIA = [ubicacionBus, ...rutasIA.filter(msg => msg.id !== "bus")];
-    } else {
-        messages.rutasIA = rutasIA; // Si no hay bus, mantener las rutas normales
-    }
-
-    console.log("📡 Nueva rutasIA enviada a WebSockets:", messages.rutasIA);
-
-    // Emitir actualización a todos los clientes conectados
-    emitirActualizacionRutas();
-
-    res.status(200).json({ message: "rutasIA actualizadas correctamente" });
-});
-
-// 📌 Endpoint para actualizar la ubicación del bus en tiempo real
-app.post('/messages/tcp', (req, res) => {
-    const { id, direccion } = req.body;
-
-    if (!direccion || !id) {
-        return res.status(400).json({ error: "Faltan datos en la solicitud" });
-    }
-
-    let nuevaUbicacion = { id, direccion };
-
-    if (id === "bus") {
-        // 🚍 Asegurar que el bus esté SIEMPRE de primero en rutasIA
-        messages.tcp = [nuevaUbicacion, ...messages.tcp.filter(msg => msg.id !== "bus")];
-        messages.rutasIA = [nuevaUbicacion, ...messages.rutasIA.filter(msg => msg.id !== "bus")];
-    } else {
-        // 🧍 Si es un pasajero, simplemente lo agrega
-        messages.tcp.push(nuevaUbicacion);
-    }
-
-    // Guardar en archivo JSON
-    fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
-        if (err) {
-            console.error("❌ Error guardando en archivo:", err);
-            return res.status(500).json({ error: "Error al guardar la ubicación" });
-        }
-
-        console.log("✅ Ubicación guardada:", nuevaUbicacion);
-
-        // 📡 Emitir actualización a WebSockets para TODOS los clientes
-        emitirActualizacionRutas();
-
-        res.status(200).json({ message: "Ubicación recibida correctamente" });
-    });
-});
 
 // --- Redirige tráfico HTTP a HTTPS ---
 const httpServer = http.createServer((req, res) => {
@@ -162,9 +105,6 @@ app.get('/messages', (req, res) => {
     res.json(messages);
 });
 
-app.get('/messages/tcp', (req, res) => {
-    res.json({ tcp: messages.tcp }); // Solo devolvemos messages.tcp
-});
 
 
 // Endpoint para eliminar mensajes TCP y  rutasIA
@@ -341,6 +281,26 @@ app.post("/login", (req, res) => {
             return res.json({ success: false, message: "Usuario o contraseña incorrectos" });
         }
     });
+});
+
+
+app.post('/messages', async (req, res) => {
+    try {
+        let data = req.body;
+        fs.writeFileSync('messages.json', JSON.stringify(data, null, 2));
+
+        // 📡 Emitir actualización solo si `bus` tiene datos
+        if (Array.isArray(data.bus) && data.bus.length > 0) {
+            const ultimaUbicacion = data.bus[data.bus.length - 1]; // 📍 Última ubicación
+            io.emit("actualizarUbicacionBus", ultimaUbicacion);
+            console.log("📡 WebSocket emitido: Nueva ubicación del bus", ultimaUbicacion);
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error("❌ Error actualizando `/messages`:", error);
+        res.status(500).json({ success: false });
+    }
 });
 
 // 📩 Enviar direcciones a Flask
