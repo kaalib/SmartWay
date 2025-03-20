@@ -274,6 +274,7 @@ async function solicitarReorganizacionRutas() {
         console.error("❌ Error en `solicitarReorganizacionRutas()`:", error);
     }
 }
+
 async function actualizarMapa(rutasIA) {
     if (!rutasIA.length) return;
 
@@ -325,17 +326,37 @@ function geocodificarDireccion(direccion) {
 
 // 📌 Agregar un marcador al mapa usando el predeterminado de Google con numeración
 function agregarMarcador(location, title, bounds, index) {
+    // 🏷️ Crear un contenedor para el marcador
+    const markerContainer = document.createElement("div");
+    markerContainer.style.position = "relative";
+    markerContainer.style.display = "flex";
+    markerContainer.style.justifyContent = "center";
+    markerContainer.style.alignItems = "center";
+    markerContainer.style.width = "30px";
+    markerContainer.style.height = "30px";
+    markerContainer.style.borderRadius = "50%";
+    markerContainer.style.backgroundColor = "#0059FF"; // Azul Google Maps
+    markerContainer.style.color = "#fff";
+    markerContainer.style.fontSize = "14px";
+    markerContainer.style.fontWeight = "bold";
+
+    // 🔢 Crear el número de la parada
+    markerContainer.textContent = index;
+
+    // 📍 Crear el marcador
     const marcador = new google.maps.marker.AdvancedMarkerElement({
         position: location,
         map: map,
         title: title, // Muestra el nombre al pasar el cursor
-        glyph: String(index) // 🔢 Muestra el número en el marcador
+        content: markerContainer, // Usar el div personalizado como marcador
     });
 
     // Guardar marcador y actualizar límites
     marcadores.push(marcador);
     bounds.extend(location);
 }
+
+
 let marcadorBus = null; // Marcador global del bus
 let ultimaUbicacionBus = null; // Guardar última ubicación para evitar redibujos innecesarios
 
