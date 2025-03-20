@@ -173,8 +173,8 @@ socket.on("actualizar_rutas", (data) => {
 
 
 
-// 🚏 Función principal de geolocalización y actualización de rutas
-async function gestionarUbicacion(reorganizarRutas = false) {
+// 🚏 Función principal de geolocalización del dispositivo y envio al json bus
+async function gestionarUbicacion() {
     if (!navigator.geolocation) {
         return Swal.fire({
             icon: "error",
@@ -186,52 +186,39 @@ async function gestionarUbicacion(reorganizarRutas = false) {
     navigator.geolocation.getCurrentPosition(
         async (position) => {
             const { latitude, longitude } = position.coords;
-            console.log("📌 Ubicación obtenida:", { latitude, longitude });
+            const timestamp = new Date(position.timestamp).toISOString(); // ⏳ Convertir a formato ISO
 
-            // 📍 Ubicación del bus con ID correcto
-            const ubicacionBus = { id: "bus", lat: latitude, lng: longitude };
+            console.log("📌 Ubicación obtenida:", { latitude, longitude, timestamp });
 
+            // 📡 Obtener los datos actuales en `/messages`
             try {
-                let rutasIA = [];
+                const responseGet = await fetch('https://smartway.ddns.net/messages');
+                if (!responseGet.ok) throw new Error("Error obteniendo datos de /messages");
 
-                if (reorganizarRutas) {
-                    // 🔄 Solicitar reorganización de rutas a Node.js
-                    const responseFlask = await fetch('https://smartway.ddns.net/enviar-direcciones', {  
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" }
-                    });
+                let data = await responseGet.json();
 
-                    if (!responseFlask.ok) throw new Error("Error al obtener rutas de Flask");
-
-                    const dataFlask = await responseFlask.json();
-                    rutasIA = dataFlask.rutasIA || [];
-
-                } else {
-                    // 🔄 Obtener la última versión de rutasIA desde el servidor
-                    const responseGet = await fetch('https://smartway.ddns.net/messages');
-                    if (!responseGet.ok) throw new Error("Error al obtener rutasIA");
-
-                    const data = await responseGet.json();
-                    rutasIA = data.rutasIA || [];
+                // 🔄 Verificar si `bus[]` existe, si no, crearlo
+                if (!Array.isArray(data.bus)) {
+                    data.bus = [];
                 }
 
-                // 📌 Insertar ubicación del bus al inicio y limpiar duplicados
-                rutasIA = [ubicacionBus, ...rutasIA.filter(d => d.id !== "bus")];
-
-                // 📡 Enviar ubicación actualizada del bus a Node.js
-                await fetch('https://smartway.ddns.net/messages/tcp', {  
-                    method: 'POST',
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ id: "bus", direccion: { lat: latitude, lng: longitude } })  
+                // 📌 Agregar la nueva ubicación al array `bus[]`
+                data.bus.push({
+                    id: "bus",
+                    direccion: { lat: latitude, lng: longitude },
+                    tiempo: timestamp
                 });
 
-                console.log("📡 Ubicación del bus actualizada en rutasIA:", rutasIA);
+                // 📡 Enviar los datos actualizados al servidor
+                await fetch('https://smartway.ddns.net/messages', {
+                    method: 'POST',
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ bus: data.bus })
+                });
 
-                // 📍 Actualizar el mapa
-                actualizarMapa(rutasIA);
-
+                console.log("📡 Ubicación añadida a `bus[]` en /messages:", data.bus);
             } catch (error) {
-                console.error("❌ Error en `gestionarUbicacion()`:", error);
+                console.error("❌ Error actualizando `bus[]` en /messages`:", error);
             }
         },
         (error) => {
@@ -261,7 +248,26 @@ function mostrarAlertaPermisoDenegado() {
     });
 }
 
+async function solicitarReorganizacionRutas() {
+    try {
+        console.log("📡 Solicitando reorganización de rutas a Node.js...");
 
+        const response = await fetch("https://smartway.ddns.net/enviar-direcciones", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" }
+        });
+
+        if (!response.ok) throw new Error("Error al solicitar reorganización de rutas");
+
+        const data = await response.json();
+        console.log("✅ Rutas reorganizadas recibidas:", data.rutasIA);
+
+        // 📍 Actualizar el mapa con las nuevas rutas
+        dibujarMarcadores(data.rutasIA);
+    } catch (error) {
+        console.error("❌ Error en `solicitarReorganizacionRutas()`:", error);
+    }
+}
 
 async function actualizarMapa(rutasIA) {
     if (!rutasIA.length) return;
@@ -274,14 +280,20 @@ async function actualizarMapa(rutasIA) {
 
     // 🗺️ Convertir direcciones a coordenadas si es necesario
     const locations = await Promise.all(rutasIA.map(async (direccion) => {
-        if (typeof direccion === "string") {
-            return await geocodificarDireccion(direccion); // Geocodifica direcciones en texto
-        }
-        return direccion; // Si ya es un objeto { lat, lng }, lo usa directamente
+        return typeof direccion === "string" ? await geocodificarDireccion(direccion) : direccion;
     }));
 
-    // 📌 Dibujar los marcadores solo con coordenadas válidas
-    locations.forEach((location, index) => {
+    // 📌 Separar la ubicación del bus y las paradas
+    const ubicacionBus = locations[0]; // 🚍 La primera es el bus
+    const paradas = locations.slice(1); // 📍 El resto son paradas
+
+    // 📍 Dibujar el bus con icono especial
+    if (ubicacionBus) {
+        agregarMarcador(ubicacionBus, "Bus", bounds, "bus");
+    }
+
+    // 🔵 Dibujar las paradas con números crecientes
+    paradas.forEach((location, index) => {
         if (location) {
             agregarMarcador(location, `Parada ${index + 1}`, bounds, index + 1);
         }
@@ -293,70 +305,7 @@ async function actualizarMapa(rutasIA) {
     }
 }
 
-
-
-async function dibujarMarcadores(direcciones) {
-    try {
-        if (direcciones.length === 0) {
-            console.log('No hay direcciones para dibujar.');
-            return;
-        }
-
-        // Limpiar marcadores previos
-        marcadores.forEach(marcador => marcador.setMap(null));
-        marcadores = [];
-
-        // Crear límites del mapa
-        const bounds = new google.maps.LatLngBounds();
-
-        let ubicacionBus = null;
-        const direccionesPasajeros = [];
-
-        // Separar la ubicación del bus de las direcciones de pasajeros
-        direcciones.forEach((punto) => {
-            if (typeof punto === "object" && punto.lat !== undefined && punto.lng !== undefined) {
-                ubicacionBus = punto;
-            } else {
-                direccionesPasajeros.push(punto);
-            }
-        });
-
-        // Dibujar primero el bus
-        if (ubicacionBus) {
-            agregarMarcador(ubicacionBus, "bus", bounds, "bus");
-        }
-
-        // Geocodificar y dibujar las paradas en orden
-        const locations = await Promise.all(direccionesPasajeros.map(geocodificarDireccion));
-
-        locations.forEach((location, index) => {
-            if (location) {
-                agregarMarcador(location, `Parada ${index + 1}`, bounds, index + 1);
-            }
-        });
-
-        // Ajustar el mapa para incluir todos los marcadores
-        map.fitBounds(bounds);
-
-    } catch (error) {
-        console.error('Error al dibujar los marcadores:', error);
-    }
-}
-
 // 📍 Convertir direcciones en texto a coordenadas `{ lat, lng }`
-async function convertirDireccionesAUbicaciones(rutas) {
-    const coordenadas = [];
-
-    for (const direccion of rutas) {
-        const ubicacion = await geocodificarDireccion(direccion);
-        if (ubicacion) {
-            coordenadas.push({ lat: ubicacion.lat(), lng: ubicacion.lng() });
-        }
-    }
-
-    return coordenadas;
-}
-
 function geocodificarDireccion(direccion) {
     return new Promise((resolve) => {
         if (!direccion) return resolve(null);
@@ -378,11 +327,12 @@ function geocodificarDireccion(direccion) {
     });
 }
 
+// 📌 Agregar un marcador al mapa
 function agregarMarcador(location, title, bounds, label) {
     let marcador;
 
     if (label === "bus") {
-        // 🔹 Bus usa icono SVG personalizado
+        // 🚍 Bus usa icono especial
         marcador = new google.maps.Marker({
             position: location,
             map: map,
@@ -393,7 +343,7 @@ function agregarMarcador(location, title, bounds, label) {
             }
         });
     } else {
-        // 🔹 Pasajeros usan números
+        // 🔵 Pasajeros usan números con icono azul oscuro
         marcador = new google.maps.Marker({
             position: location,
             map: map,
@@ -403,6 +353,14 @@ function agregarMarcador(location, title, bounds, label) {
                 color: "white",
                 fontSize: "12px",
                 fontWeight: "bold"
+            },
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 8,
+                fillColor: "#003366",
+                fillOpacity: 1,
+                strokeWeight: 1,
+                strokeColor: "#000000"
             }
         });
     }
@@ -412,6 +370,107 @@ function agregarMarcador(location, title, bounds, label) {
     bounds.extend(location);
 }
 
+let marcadorBus = null; // Marcador global del bus
+let ultimaUbicacionBus = null; // Guardar última ubicación para evitar redibujos innecesarios
+
+async function dibujarUbicacionBus() {
+    try {
+        const response = await fetch('https://smartway.ddns.net/messages');
+        if (!response.ok) throw new Error("Error obteniendo datos de /messages");
+
+        const data = await response.json();
+        if (!Array.isArray(data.bus) || data.bus.length === 0) {
+            console.warn("🚫 No hay datos de ubicación del bus.");
+            return;
+        }
+
+        // 📍 Obtener la última ubicación del bus
+        const ultimaUbicacion = data.bus[data.bus.length - 1].direccion;
+        if (!ultimaUbicacion || !ultimaUbicacion.lat || !ultimaUbicacion.lng) {
+            console.warn("⚠️ Ubicación del bus no válida:", ultimaUbicacion);
+            return;
+        }
+
+        // 🚀 Evitar redibujar si la ubicación no ha cambiado
+        if (ultimaUbicacionBus && 
+            ultimaUbicacion.lat === ultimaUbicacionBus.lat && 
+            ultimaUbicacion.lng === ultimaUbicacionBus.lng) {
+            console.log("🔄 La ubicación del bus no ha cambiado.");
+            return;
+        }
+
+        // 🗑️ Limpiar marcador anterior
+        if (marcadorBus) {
+            marcadorBus.setMap(null);
+        }
+
+        // 🚍 Agregar nuevo marcador del bus en ROJO
+        marcadorBus = new google.maps.Marker({
+            position: new google.maps.LatLng(ultimaUbicacion.lat, ultimaUbicacion.lng),
+            map: map,
+            title: "Ubicación actual del Bus",
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 8, 
+                fillColor: "#FF0000", 
+                fillOpacity: 1,
+                strokeWeight: 2,
+                strokeColor: "#FFFFFF"
+            }
+        });
+
+        // 🔄 Guardar última ubicación para comparación
+        ultimaUbicacionBus = ultimaUbicacion;
+
+        console.log("🛑 Marcador del bus actualizado:", ultimaUbicacion);
+
+    } catch (error) {
+        console.error("❌ Error obteniendo la ubicación del bus:", error);
+    }
+}
+
+// 📡 WebSocket: Escuchar cambios en la ubicación del bus en tiempo real
+socket.on("actualizarUbicacionBus", (ubicacion) => {
+    if (!ubicacion || !ubicacion.lat || !ubicacion.lng) return;
+
+    console.log("🛑 Ubicación del bus recibida por WebSocket:", ubicacion);
+
+    // 🚀 Evitar redibujar si la ubicación no ha cambiado
+    if (ultimaUbicacionBus &&
+        ubicacion.lat === ultimaUbicacionBus.lat &&
+        ubicacion.lng === ultimaUbicacionBus.lng) {
+        console.log("🔄 WebSocket: La ubicación del bus no ha cambiado.");
+        return;
+    }
+
+    // 🗑️ Limpiar marcador anterior
+    if (marcadorBus) {
+        marcadorBus.setMap(null);
+    }
+
+    // 🚍 Dibujar el nuevo marcador en rojo
+    marcadorBus = new google.maps.Marker({
+        position: new google.maps.LatLng(ubicacion.lat, ubicacion.lng),
+        map: map,
+        title: "Ubicación actual del Bus",
+        icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 8,
+            fillColor: "#FF0000",
+            fillOpacity: 1,
+            strokeWeight: 2,
+            strokeColor: "#FFFFFF"
+        }
+    });
+
+    // 🔄 Guardar última ubicación para comparación
+    ultimaUbicacionBus = ubicacion;
+
+    console.log("✅ WebSocket: Ubicación del bus actualizada en el mapa.");
+});
+
+// ⏳ Actualizar cada 10 segundos solo si WebSocket no lo hizo ya
+setInterval(dibujarUbicacionBus, 10000);
 
 function limpiarMapa() {
     // Eliminar todos los marcadores del mapa
@@ -455,23 +514,32 @@ function limpiarMapa() {
 
 
 // Asignar funciones a los botones
-document.getElementById('btnAPI').addEventListener("click", async () => {
-    await gestionarUbicacion(true); // Reorganiza al iniciar la ruta
-
-    if (intervalID) clearInterval(intervalID); // Evita intervalos duplicados
-    intervalID = setInterval(() => gestionarUbicacion(false), 10000);
-});
 
 document.getElementById('btnMostrarD').addEventListener('click', mostrarMensajesTCP);
 
-document.getElementById('btnLimpiar').addEventListener('click', () => {
-    limpiarMapa(); // Llama a la función existente para limpiar el mapa
-
+// 📍 Botón para iniciar el envío de ubicación
+document.getElementById('btnAPI').addEventListener("click", async () => {
     if (intervalID) {
-        clearInterval(intervalID); // 🛑 Detiene el intervalo de envío de ubicación
-        intervalID = null; // Restablece la variable para evitar problemas futuros
-        console.log("🚫 Envío de ubicación detenido.");
+        console.log("⚠️ El envío de ubicación ya está activo.");
+        return; // Evita iniciar múltiples intervalos
     }
+
+    await gestionarUbicacion(); // 🔄 Envía la ubicación inicial
+
+    // 🔄 Enviar ubicación cada 10 segundos
+    intervalID = setInterval(gestionarUbicacion, 10000);
+    console.log("✅ Envío de ubicación activado.");
 });
 
+// 🛑 Botón para detener el envío de ubicación
+document.getElementById('btnLimpiar').addEventListener('click', () => {
+    limpiarMapa(); // 🗑️ Limpia el mapa
 
+    if (intervalID) {
+        clearInterval(intervalID); // 🛑 Detiene el intervalo
+        intervalID = null; // Restablece la variable
+        console.log("🚫 Envío de ubicación detenido.");
+    } else {
+        console.log("⚠️ No hay envío de ubicación activo.");
+    }
+});
