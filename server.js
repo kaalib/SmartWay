@@ -286,14 +286,14 @@ app.post("/login", (req, res) => {
 
 app.post('/messages', async (req, res) => {
     try {
-        let data = req.body;
-        fs.writeFileSync('messages.json', JSON.stringify(data, null, 2));
+        let data = JSON.parse(fs.readFileSync('messages.json', 'utf8')); // 📄 Leer JSON actual
+        let nuevaUbicacionBus = req.body.bus;
 
-        // 📡 Emitir actualización solo si `bus` tiene datos
-        if (Array.isArray(data.bus) && data.bus.length > 0) {
-            const ultimaUbicacion = data.bus[data.bus.length - 1]; // 📍 Última ubicación
-            io.emit("actualizarUbicacionBus", ultimaUbicacion);
-            console.log("📡 WebSocket emitido: Nueva ubicación del bus", ultimaUbicacion);
+        if (Array.isArray(nuevaUbicacionBus) && nuevaUbicacionBus.length > 0) {
+            data.bus = nuevaUbicacionBus; // 📌 Guardar en `bus[]`
+            fs.writeFileSync('messages.json', JSON.stringify(data, null, 2)); // 💾 Guardar cambios
+            io.emit("actualizarUbicacionBus", nuevaUbicacionBus);
+            console.log("📡 WebSocket emitido: Nueva ubicación del bus", nuevaUbicacionBus);
         }
 
         res.json({ success: true });
@@ -301,6 +301,27 @@ app.post('/messages', async (req, res) => {
         console.error("❌ Error actualizando `/messages`:", error);
         res.status(500).json({ success: false });
     }
+});
+
+app.post("/actualizar-ubicacion-bus", (req, res) => {
+    const { lat, lng } = req.body;
+    if (!lat || !lng) {
+        return res.status(400).json({ error: "Faltan lat o lng" });
+    }
+
+    // 🛑 Elimina ubicaciones anteriores (opcional, si solo quieres la última ubicación)
+    messages.bus = [];
+
+    // 📌 Guardar nueva ubicación
+    messages.bus.push({
+        id: "bus",
+        direccion: { lat, lng },
+        tiempo: new Date().toISOString()
+    });
+
+    console.log("✅ Nueva ubicación del bus guardada:", messages.bus);
+
+    res.json({ success: true });
 });
 
 // 📩 Enviar direcciones a Flask
