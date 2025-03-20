@@ -274,12 +274,11 @@ async function solicitarReorganizacionRutas() {
         console.error("❌ Error en `solicitarReorganizacionRutas()`:", error);
     }
 }
-
 async function actualizarMapa(rutasIA) {
     if (!rutasIA.length) return;
 
     // Limpiar marcadores anteriores
-    marcadores.forEach(marcador => marcador.setMap(null));
+    marcadores.forEach(marcador => marcador.map = null);
     marcadores = [];
 
     const bounds = new google.maps.LatLngBounds();
@@ -289,17 +288,8 @@ async function actualizarMapa(rutasIA) {
         return typeof direccion === "string" ? await geocodificarDireccion(direccion) : direccion;
     }));
 
-    // 📌 Separar la ubicación del bus y las paradas
-    const ubicacionBus = locations[0]; // 🚍 La primera es el bus
-    const paradas = locations.slice(1); // 📍 El resto son paradas
-
-    // 📍 Dibujar el bus con icono especial
-    if (ubicacionBus) {
-        agregarMarcador(ubicacionBus, "Bus", bounds, "bus");
-    }
-
-    // 🔵 Dibujar las paradas con números crecientes
-    paradas.forEach((location, index) => {
+    // 🔵 Dibujar las paradas con números crecientes usando el marcador predeterminado
+    locations.forEach((location, index) => {
         if (location) {
             agregarMarcador(location, `Parada ${index + 1}`, bounds, index + 1);
         }
@@ -333,49 +323,19 @@ function geocodificarDireccion(direccion) {
     });
 }
 
-// 📌 Agregar un marcador al mapa
-function agregarMarcador(location, title, bounds, label) {
-    let marcador;
-
-    if (label === "bus") {
-        // 🚍 Bus usa icono especial
-        marcador = new google.maps.Marker({
-            position: location,
-            map: map,
-            title: "Bus",
-            icon: {
-                url: "media/iconobus.svg",
-                scaledSize: new google.maps.Size(40, 40)
-            }
-        });
-    } else {
-        // 🔵 Pasajeros usan números con icono azul oscuro
-        marcador = new google.maps.Marker({
-            position: location,
-            map: map,
-            title: title,
-            label: {
-                text: String(label),
-                color: "white",
-                fontSize: "12px",
-                fontWeight: "bold"
-            },
-            icon: {
-                path: google.maps.SymbolPath.CIRCLE,
-                scale: 8,
-                fillColor: "#003366",
-                fillOpacity: 1,
-                strokeWeight: 1,
-                strokeColor: "#000000"
-            }
-        });
-    }
+// 📌 Agregar un marcador al mapa usando el predeterminado de Google con numeración
+function agregarMarcador(location, title, bounds, index) {
+    const marcador = new google.maps.marker.AdvancedMarkerElement({
+        position: location,
+        map: map,
+        title: title, // Muestra el nombre al pasar el cursor
+        glyph: String(index) // 🔢 Muestra el número en el marcador
+    });
 
     // Guardar marcador y actualizar límites
     marcadores.push(marcador);
     bounds.extend(location);
 }
-
 let marcadorBus = null; // Marcador global del bus
 let ultimaUbicacionBus = null; // Guardar última ubicación para evitar redibujos innecesarios
 
@@ -399,8 +359,8 @@ async function dibujarUbicacionBus() {
         }
 
         // 🚀 Evitar redibujar si la ubicación no ha cambiado
-        if (ultimaUbicacionBus && 
-            ultimaUbicacion.lat === ultimaUbicacionBus.lat && 
+        if (ultimaUbicacionBus &&
+            ultimaUbicacion.lat === ultimaUbicacionBus.lat &&
             ultimaUbicacion.lng === ultimaUbicacionBus.lng) {
             console.log("🔄 La ubicación del bus no ha cambiado.");
             return;
@@ -411,20 +371,18 @@ async function dibujarUbicacionBus() {
             marcadorBus.setMap(null);
         }
 
-        // 🚍 Agregar nuevo marcador del bus en ROJO
-        marcadorBus = new google.maps.Marker({
+        // 🚍 Agregar nuevo marcador del bus con icono personalizado
+        marcadorBus = new google.maps.marker.AdvancedMarkerElement({
             position: new google.maps.LatLng(ultimaUbicacion.lat, ultimaUbicacion.lng),
             map: map,
             title: "Ubicación actual del Bus",
-            icon: {
-                path: google.maps.SymbolPath.CIRCLE,
-                scale: 8, 
-                fillColor: "#FF0000", 
-                fillOpacity: 1,
-                strokeWeight: 2,
-                strokeColor: "#FFFFFF"
-            }
+            content: document.createElement("img"), // Se usará para mostrar el ícono
         });
+
+        // Configurar la imagen personalizada
+        marcadorBus.content.src = "media/iconobus.svg";
+        marcadorBus.content.style.width = "40px";
+        marcadorBus.content.style.height = "40px";
 
         // 🔄 Guardar última ubicación para comparación
         ultimaUbicacionBus = ultimaUbicacion;
@@ -455,20 +413,18 @@ socket.on("actualizarUbicacionBus", (ubicacion) => {
         marcadorBus.setMap(null);
     }
 
-    // 🚍 Dibujar el nuevo marcador en rojo
-    marcadorBus = new google.maps.Marker({
+    // 🚍 Dibujar el nuevo marcador con icono personalizado
+    marcadorBus = new google.maps.marker.AdvancedMarkerElement({
         position: new google.maps.LatLng(ubicacion.lat, ubicacion.lng),
         map: map,
         title: "Ubicación actual del Bus",
-        icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 8,
-            fillColor: "#FF0000",
-            fillOpacity: 1,
-            strokeWeight: 2,
-            strokeColor: "#FFFFFF"
-        }
+        content: document.createElement("img"),
     });
+
+    // Configurar la imagen personalizada
+    marcadorBus.content.src = "media/iconobus.svg";
+    marcadorBus.content.style.width = "40px";
+    marcadorBus.content.style.height = "40px";
 
     // 🔄 Guardar última ubicación para comparación
     ultimaUbicacionBus = ubicacion;
