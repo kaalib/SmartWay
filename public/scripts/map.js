@@ -167,13 +167,12 @@ function initMap() {
 socket.on("actualizar_rutas", (data) => {
     if (data.rutasIA.length > 0) {
         console.log("📡 WebSocket actualiza la ubicación:", data.rutasIA);
-        dibujarMarcadores(data.rutasIA);  // 🔄 Llamar a la función para actualizar el mapa
+        actualizarMapa(data.rutasIA);  // 🔄 Llamar a la función para actualizar el mapa
     }
 });
 
 
-
-// 🚏 Función principal de geolocalización del dispositivo y envio al json bus
+// 🚏 Función para obtener la ubicación y enviarla al servidor
 async function gestionarUbicacion() {
     if (!navigator.geolocation) {
         return Swal.fire({
@@ -190,46 +189,38 @@ async function gestionarUbicacion() {
 
             console.log("📌 Ubicación obtenida:", { latitude, longitude, timestamp });
 
-            // 📡 Obtener los datos actuales en `/messages`
             try {
-                const responseGet = await fetch('https://smartway.ddns.net/messages');
-                if (!responseGet.ok) throw new Error("Error obteniendo datos de /messages");
-
-                let data = await responseGet.json();
-
-                // 🔄 Verificar si `bus[]` existe, si no, crearlo
-                if (!Array.isArray(data.bus)) {
-                    data.bus = [];
-                }
-
-                // 📌 Agregar la nueva ubicación al array `bus[]`
-                data.bus.push({
-                    id: "bus",
-                    direccion: { lat: latitude, lng: longitude },
-                    tiempo: timestamp
-                });
-
-                // 📡 Enviar los datos actualizados al servidor
-                await fetch('https://smartway.ddns.net/messages', {
+                // 📡 Enviar los datos al servidor
+                const response = await fetch('https://smartway.ddns.net/actualizar-ubicacion-bus', {
                     method: 'POST',
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ bus: data.bus })
+                    body: JSON.stringify({ lat: latitude, lng: longitude })
                 });
 
-                console.log("📡 Ubicación añadida a `bus[]` en /messages:", data.bus);
+                // 🛑 Verificar si la solicitud fue exitosa
+                if (!response.ok) {
+                    throw new Error(`Error en la respuesta del servidor: ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log("📡 Respuesta del servidor:", result);
+                
             } catch (error) {
-                console.error("❌ Error actualizando `bus[]` en /messages`:", error);
+                console.error("❌ Error enviando ubicación al servidor:", error);
             }
         },
         (error) => {
             console.error("❌ Error obteniendo ubicación:", error);
             if (error.code === error.PERMISSION_DENIED) {
-                mostrarAlertaPermisoDenegado();
+                Swal.fire({
+                    icon: "warning",
+                    title: "Permiso de ubicación denegado",
+                    text: "Activa la ubicación para actualizar la ruta en tiempo real."
+                });
             }
         }
     );
 }
-
 
 async function solicitarActualizacionRutas() {
     try {
@@ -278,7 +269,7 @@ async function solicitarReorganizacionRutas() {
         console.log("✅ Rutas reorganizadas recibidas:", data.rutasIA);
 
         // 📍 Actualizar el mapa con las nuevas rutas
-        dibujarMarcadores(data.rutasIA);
+        actualizarMapa(data.rutasIA);
     } catch (error) {
         console.error("❌ Error en `solicitarReorganizacionRutas()`:", error);
     }
@@ -400,9 +391,10 @@ async function dibujarUbicacionBus() {
         }
 
         // 📍 Obtener la última ubicación del bus
-        const ultimaUbicacion = data.bus[data.bus.length - 1].direccion;
+        const ultimaUbicacion = data.bus.length > 0 ? data.bus[data.bus.length - 1].direccion : null;
+
         if (!ultimaUbicacion || !ultimaUbicacion.lat || !ultimaUbicacion.lng) {
-            console.warn("⚠️ Ubicación del bus no válida:", ultimaUbicacion);
+            console.warn("⚠️ No se encontró una ubicación válida para el bus en /messages:", data);
             return;
         }
 
