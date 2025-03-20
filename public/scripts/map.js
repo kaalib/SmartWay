@@ -231,7 +231,22 @@ async function gestionarUbicacion() {
 }
 
 
+async function solicitarActualizacionRutas() {
+    try {
+        console.log("📡 Solicitando actualización de rutas...");
+        const response = await fetch("/enviar-direcciones", { method: "POST" });
+        const data = await response.json();
 
+        if (data.success) {
+            console.log("✅ Rutas actualizadas:", data.rutasIA);
+            actualizarMarcadores(data.rutasIA); // 📌 Actualizar los marcadores en el mapa
+        } else {
+            console.error("❌ Error al actualizar rutas:", data.message);
+        }
+    } catch (error) {
+        console.error("❌ Error al comunicarse con el servidor:", error);
+    }
+}
 
 // 🚨 Alerta si el usuario deniega permisos de ubicación
 function mostrarAlertaPermisoDenegado() {
@@ -525,6 +540,7 @@ document.getElementById('btnAPI').addEventListener("click", async () => {
     }
 
     await gestionarUbicacion(); // 🔄 Envía la ubicación inicial
+    await solicitarActualizacionRutas(); // 📡 Solicita rutas solo una vez
 
     // 🔄 Enviar ubicación cada 10 segundos
     intervalID = setInterval(gestionarUbicacion, 10000);
