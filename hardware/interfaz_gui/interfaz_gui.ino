@@ -25,6 +25,9 @@ TFT_eSPI tft = TFT_eSPI(SCREEN_WIDTH, SCREEN_HEIGHT);
 
 #define FINGERPRINT_RX 16
 #define FINGERPRINT_TX 17
+
+
+
 HardwareSerial mySerial(2);
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
@@ -169,7 +172,7 @@ void lv_create_main_gui(void) {
     lv_label_set_text(label_status, "Seleccione un modo");
     lv_obj_align(label_status, LV_ALIGN_CENTER, 0, 40);
 }
-
+//k
 void setup() {
     Serial.begin(115200);
     WiFi.begin(SSID, PASSWORD);
@@ -214,3 +217,4 @@ void loop() {
         readFingerprint();
     }
 }
+
