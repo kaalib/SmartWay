@@ -68,45 +68,87 @@ io.on("connection", (socket) => {
     });
 });
 
+// 📡 Emitir actualización de rutasIA
+function emitirActualizacionRutas() {
+    if (!messages.rutasIA) {
+        console.log("⚠️ No hay rutasIA para emitir.");
+        return;
+    }
+    io.emit("actualizar_rutas", { rutasIA: messages.rutasIA });
+    console.log("📡 Emitiendo rutas a todos los clientes WebSocket:", messages.rutasIA);
+}
 
-let emitirRutas = false; // 🔴 Controlador de emisión (empieza desactivado)
-let intervaloRutas = null; // Guardar el intervalo para detenerlo después
+// 🔄 Control de emisión
+let emitirRutas = false;
+let intervaloRutas = null;
 
-// 📡 Función para iniciar la emisión de rutasIA
+// ✅ Iniciar emisión de rutasIA
 function iniciarEmisionRutas() {
-    if (!intervaloRutas) {
+    if (!emitirRutas) {
         emitirRutas = true;
         intervaloRutas = setInterval(() => {
             if (emitirRutas) {
-                emitirActualizacionRutas();
-                console.log("🔄 Emitiendo actualización global de rutasIA");
+                emitirActualizacionRutas(); // ✅ Se usa la función en lugar de repetir código
             }
         }, 10000);
         console.log("✅ Emisión de rutas ACTIVADA");
     }
 }
 
-// ⛔ Función para detener la emisión de rutasIA
+// 🛑 Detener emisión de rutasIA
 function detenerEmisionRutas() {
-    emitirRutas = false;
-    if (intervaloRutas) {
+    if (emitirRutas) {
+        emitirRutas = false;
         clearInterval(intervaloRutas);
         intervaloRutas = null;
+        console.log("🛑 Emisión de rutas DETENIDA");
     }
-    console.log("🛑 Emisión de rutas DETENIDA");
 }
 
 // 🔘 Endpoints para activar/desactivar desde el frontend
 app.post("/iniciar-emision", (req, res) => {
     iniciarEmisionRutas();
-    res.json({ estado: true });
+    res.json({ estado: emitirRutas, message: "Emisión iniciada" });
 });
 
 app.post("/detener-emision", (req, res) => {
     detenerEmisionRutas();
-    res.json({ estado: false });
+    res.json({ estado: emitirRutas, message: "Emisión detenida" });
 });
 
+// 📩 Enviar direcciones a Flask
+app.post("/enviar-direcciones", async (req, res) => {
+    try {
+        if (!messages.tcp || messages.tcp.length === 0) {
+            return res.status(400).json({ success: false, message: "No hay direcciones para procesar" });
+        }
+
+        const direcciones = messages.tcp.map(msg => msg.direccion);
+        console.log("📤 Enviando direcciones a Flask:", direcciones);
+
+        const respuestaFlask = await axios.post("http://smartway.ddns.net:5000/api/process", { direcciones });
+
+        messages.rutasIA = respuestaFlask.data.rutasIA || [];
+        
+        // Guardar en el archivo JSON
+        fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
+            if (err) {
+                console.error("❌ Error guardando rutasIA:", err);
+                return res.status(500).json({ success: false, message: "Error al guardar rutasIA" });
+            }
+            console.log("✅ Rutas guardadas en messages.json");
+        });
+
+        // Emitir la actualización a todos los clientes conectados
+        emitirActualizacionRutas();
+
+        console.log("✅ Rutas actualizadas:", messages.rutasIA);
+        res.json({ success: true, rutasIA: messages.rutasIA });
+    } catch (error) {
+        console.error("❌ Error al comunicarse con Flask:", error.message);
+        res.status(500).json({ success: false, message: "Error en Flask" });
+    }
+});
 
 
 // --- Redirige tráfico HTTP a HTTPS ---
@@ -349,29 +391,5 @@ app.post("/actualizar-ubicacion-bus", (req, res) => {
     res.json({ success: true });
 });
 
-// 📩 Enviar direcciones a Flask
-app.post("/enviar-direcciones", async (req, res) => {
-    try {
-        const direcciones = messages.tcp.map(msg => msg.direccion);
-        if (direcciones.length === 0) return res.status(400).json({ error: "No hay direcciones para procesar" });
-
-        console.log("📤 Enviando direcciones a Flask:", direcciones);
-        const respuestaFlask = await axios.post("http://smartway.ddns.net:5000/api/process", { direcciones });
-
-        messages.rutasIA = respuestaFlask.data.rutasIA;
-        fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
-            if (err) console.error("Error guardando rutasIA:", err);
-        });
-
-        // Emitir la actualización a todos los clientes conectados
-        emitirActualizacionRutas();
-
-        console.log("✅ Rutas actualizadas:", messages.rutasIA);
-        res.json({ success: true, rutasIA: messages.rutasIA });
-    } catch (error) {
-        console.error("❌ Error al comunicarse con Flask:", error.message);
-        res.status(500).json({ success: false, message: "Error en Flask" });
-    }
-});
 
 
