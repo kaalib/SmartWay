@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 
 # Cargar variables de entorno
-dotenv_path = Path(__file__).parent.parent / ".env"
+dotenv_path = Path(__file__).resolve().parents[2] / ".env"
 load_dotenv(dotenv_path=dotenv_path)
 API_KEY = os.getenv("api_key2")
 
@@ -16,7 +16,7 @@ if API_KEY:
     print("✅ API Key cargada correctamente")
 else:
     print("⚠️ ERROR: No se pudo cargar la API Key")
-    
+
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
