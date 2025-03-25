@@ -191,67 +191,73 @@ async function obtenerDireccion(lat, lng) {
 
 // 🚏 Función para obtener la ubicación y enviarla al servidor
 async function gestionarUbicacion() {
-    if (!navigator.geolocation) {
-        return Swal.fire({
-            icon: "error",
-            title: "Geolocalización no disponible",
-            text: "Tu navegador no soporta la geolocalización."
-        });
-    }
-
-    navigator.geolocation.getCurrentPosition(
-        async (position) => {
-            const { latitude, longitude } = position.coords;
-            const timestamp = new Date(position.timestamp).toISOString();
-            console.log("📌 Ubicación obtenida:", { latitude, longitude, timestamp });
-
-            try {
-                let direccion = null;
-
-                // 🚀 Solo la primera vez convertimos la lat/lng a dirección
-                if (primeraVez) {
-                    direccion = await obtenerDireccion(latitude, longitude);
-                    console.log("📍 Dirección obtenida:", direccion);
-                }
-
-                // 📡 Enviar datos al servidor
-                const response = await fetch('https://smartway.ddns.net/actualizar-ubicacion-bus', {
-                    method: 'POST',
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        lat: latitude,
-                        lng: longitude,
-                        direccion: direccion // 📍 Solo la primera vez tiene valor
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Error en la respuesta del servidor: ${response.status}`);
-                }
-
-                const result = await response.json();
-                console.log("📡 Respuesta del servidor:", result);
-
-                // 🚀 Marcar que ya se envió la dirección
-                if (primeraVez) {
-                    primeraVez = false;
-                }
-
-            } catch (error) {
-                console.error("❌ Error enviando ubicación al servidor:", error);
-            }
-        },
-        (error) => {
-            console.error("❌ Error obteniendo ubicación:", error);
-            if (error.code === error.PERMISSION_DENIED) {
-                Swal.fire({
-                    icon: "warning",
-                    title: "Permiso de ubicación denegado",
-                    text: "Activa la ubicación para actualizar la ruta en tiempo real."
-                });
-            }
+    return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            Swal.fire({
+                icon: "error",
+                title: "Geolocalización no disponible",
+                text: "Tu navegador no soporta la geolocalización."
+            });
+            return reject("Geolocalización no disponible");
         }
-    );
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const { latitude, longitude } = position.coords;
+                const timestamp = new Date(position.timestamp).toISOString();
+                console.log("📌 Ubicación obtenida:", { latitude, longitude, timestamp });
+
+                try {
+                    let direccion = null;
+
+                    // 🚀 Solo la primera vez convertimos la lat/lng a dirección
+                    if (primeraVez) {
+                        direccion = await obtenerDireccion(latitude, longitude);
+                        console.log("📍 Dirección obtenida:", direccion);
+                    }
+
+                    // 📡 Enviar datos al servidor
+                    const response = await fetch('https://smartway.ddns.net/actualizar-ubicacion-bus', {
+                        method: 'POST',
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            lat: latitude,
+                            lng: longitude,
+                            direccion: direccion // 📍 Solo la primera vez tiene valor
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Error en la respuesta del servidor: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    console.log("📡 Respuesta del servidor:", result);
+
+                    // 🚀 Marcar que ya se envió la dirección
+                    if (primeraVez) {
+                        primeraVez = false;
+                    }
+
+                    resolve(); // ✅ Resuelve la promesa cuando todo ha terminado correctamente
+                } catch (error) {
+                    console.error("❌ Error enviando ubicación al servidor:", error);
+                    reject(error);
+                }
+            },
+            (error) => {
+                console.error("❌ Error obteniendo ubicación:", error);
+                if (error.code === error.PERMISSION_DENIED) {
+                    Swal.fire({
+                        icon: "warning",
+                        title: "Permiso de ubicación denegado",
+                        text: "Activa la ubicación para actualizar la ruta en tiempo real."
+                    });
+                }
+                reject(error);
+            }
+        );
+    });
 }
 
 async function solicitarActualizacionRutas() {
@@ -262,7 +268,7 @@ async function solicitarActualizacionRutas() {
 
         if (data.success) {
             console.log("✅ Rutas actualizadas:", data.rutasIA);
-            actualizarMarcadores(data.rutasIA); // 📌 Actualizar los marcadores en el mapa
+            actualizarMapa(data.rutasIA); // 📌 Actualizar el mapa con las rutas y marcadores
         } else {
             console.error("❌ Error al actualizar rutas:", data.message);
         }
@@ -270,6 +276,17 @@ async function solicitarActualizacionRutas() {
         console.error("❌ Error al comunicarse con el servidor:", error);
     }
 }
+
+// 🔥 Ejecutar funciones en orden
+async function ejecutarProcesoenorden() {
+    try {
+        await gestionarUbicacion(); // ✅ Esperar a que se complete la actualización de ubicación
+        await solicitarActualizacionRutas(); // ✅ Luego, actualizar rutas
+    } catch (error) {
+        console.error("❌ Error en el proceso:", error);
+    }
+}
+
 
 // 🚨 Alerta si el usuario deniega permisos de ubicación
 function mostrarAlertaPermisoDenegado() {
@@ -558,15 +575,12 @@ document.getElementById('btnMostrarD').addEventListener('click', mostrarMensajes
 
 // 📍 Botón para iniciar el envío de ubicación
 document.getElementById('btnAPI').addEventListener("click", async () => {
+    await ejecutarProcesoenorden(); // 🔄 Envía la ubicación inicial
+    await iniciarEnvioActualizacion(); // 📡 Inicia la emisión de ubicación
     if (intervalID) {
         console.log("⚠️ El envío de ubicación ya está activo.");
         return; // Evita iniciar múltiples intervalos
     }
-
-    await gestionarUbicacion(); // 🔄 Envía la ubicación inicial
-    await iniciarEnvioActualizacion(); // 📡 Inicia la emisión de ubicación
-    await solicitarActualizacionRutas(); // 📡 Solicita rutas solo una vez
-
     // 🔄 Enviar ubicación cada 10 segundos
     intervalID = setInterval(gestionarUbicacion, 10000);
     console.log("✅ Envío de ubicación activado.");
