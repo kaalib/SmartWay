@@ -8,7 +8,7 @@ from pathlib import Path
 #APIKEY
 dotenv_path = Path(__file__).parent.parent / ".env"
 load_dotenv(dotenv_path=dotenv_path)
-API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
+API_KEY = os.getenv("api_key2")
 
 # Función para obtener la distancia y tráfico entre dos direcciones
 def get_route_data(origin, destination):
@@ -38,7 +38,7 @@ def get_route_data(origin, destination):
 
 # Direcciones
 ORIGIN = "universidad del norte, Barranquilla, Colombia"
-DESTINATION = "Colegio Karl C. Parrish, Barranquilla, Atlántico"
+DESTINATION = "universidad del norte, Barranquilla, Colombia"
 DESTINOS = [
     "calle 71 #68-30, Barranquilla, Colombia",
     "cra 26b #74b-52, Barranquilla, Colombia",
