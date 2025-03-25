@@ -114,6 +114,7 @@ let intervalID;
 let map = null;
 let geocoder = null;
 let marcadores = []; // Array de marcadores en el mapa
+let rutasDibujadas = []; // Array de rutas dibujadas en el mapa
 let direccionesTCP = []; // Lista de direcciones recibidas
 
 
