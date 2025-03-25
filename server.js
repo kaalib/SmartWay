@@ -371,25 +371,35 @@ app.post('/messages', async (req, res) => {
 });
 
 app.post("/actualizar-ubicacion-bus", (req, res) => {
-    const { lat, lng } = req.body;
+    const { lat, lng, direccion } = req.body;
     if (!lat || !lng) {
-        return res.status(400).json({ error: "Faltan lat o lng" });
+        return res.status(400).json({ error: "Faltan datos: lat o lng" });
     }
 
-    // 🛑 Elimina ubicaciones anteriores (opcional, si solo quieres la última ubicación)
-    messages.bus = [];
-
-    // 📌 Guardar nueva ubicación
-    messages.bus.push({
+    // 🛑 Actualizar `/messages/bus` con la ubicación del bus (siempre)
+    messages.bus = [{
         id: "bus",
         direccion: { lat, lng },
         tiempo: new Date().toISOString()
-    });
+    }];
 
-    console.log("✅ Nueva ubicación del bus guardada:", messages.bus);
+    console.log("✅ Ubicación del bus actualizada:", messages.bus);
+
+    // 🚀 Si `direccion` está presente, significa que es el primer envío
+    if (direccion) {
+        // 🛑 Eliminar cualquier entrada previa del bus en TCP
+        messages.tcp = messages.tcp.filter(m => m.id !== "bus");
+
+        // 📌 Insertar la dirección del bus en TCP como primer dato
+        const busData = {
+            id: "bus",
+            direccion: direccion,
+        };
+
+        messages.tcp.unshift(busData);
+        console.log("📌 messages.tcp actualizado:", messages.tcp);
+    }
 
     res.json({ success: true });
 });
-
-
 

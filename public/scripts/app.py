@@ -11,11 +11,35 @@ from pathlib import Path
 dotenv_path = Path(__file__).resolve().parents[2] / ".env"
 load_dotenv(dotenv_path=dotenv_path)
 API_KEY = os.getenv("api_key2")
+API_KEY_WEATHER = os.getenv("api_weather")
 
 if API_KEY:
     print("✅ API Key cargada correctamente")
 else:
     print("⚠️ ERROR: No se pudo cargar la API Key")
+
+if API_KEY_WEATHER:
+    print("✅ API Weather Key cargada correctamente")
+else:
+    print("⚠️ ERROR: No se pudo cargar la API Weather Key")
+
+# Obtener clima en Barranquilla
+def get_weather():
+    location = "Barranquilla"
+    url = f"http://api.weatherapi.com/v1/current.json?key={API_KEY_WEATHER}&q={location}&aqi=no"
+    
+    try:
+        response = requests.get(url).json()
+        if "current" in response:
+            condition = response["current"]["condition"]["text"]
+            temperature = response["current"]["temp_c"]
+            # Convertir condición de clima a 0 (despejado) o 1 (lluvia)
+            is_raining = 1 if "rain" in condition.lower() else 0
+            return condition, temperature, is_raining
+    except Exception as e:
+        print(f"⚠️ ERROR obteniendo el clima: {e}")
+    
+    return None, None, None
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -121,11 +145,19 @@ def process_message():
         best_route_distance = genetic_algorithm(destinos, origin, destination, distance_matrix, traffic_matrix, fitness_distance)
         best_route_traffic = genetic_algorithm(destinos, origin, destination, distance_matrix, traffic_matrix, fitness_traffic)
 
+        # Obtener el clima actual
+        weather_description, temperature, is_raining = get_weather()
+
         rutasIA = {
             "mejor_ruta_distancia": best_route_distance,
             "distancia_total_km": fitness_distance(best_route_distance, distance_matrix) / 1000,
             "mejor_ruta_trafico": best_route_traffic,
-            "tiempo_total_min": fitness_traffic(best_route_traffic, traffic_matrix) / 60
+            "tiempo_total_min": fitness_traffic(best_route_traffic, traffic_matrix) / 60,
+            "clima": {
+                "descripcion": weather_description,
+                "temperatura": temperature,
+                "lluvia": is_raining  # 0: despejado, 1: lloviendo
+            }
         }
 
         socketio.emit("actualizar_rutas", {"rutasIA": rutasIA})
