@@ -384,32 +384,59 @@ function geocodificarDireccion(direccion) {
     });
 }
 
-// 📌 Agregar un marcador personalizado
-function agregarMarcador(location, title, bounds, label, color) {
-    const marcador = new google.maps.Marker({
+// 📌 Agregar un marcador personalizado con AdvancedMarkerElement
+function agregarMarcador(location, title, bounds, label) {
+    const iconUrl = "media/iconouser.svg"; // Ruta del icono SVG
+
+    const marcador = new google.maps.marker.AdvancedMarkerElement({
         position: location,
         map: map,
         title: title,
-        label: {
-            text: label.toString(),
-            color: "white",
-            fontWeight: "bold"
-        },
-        icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 10,
-            fillColor: color,
-            fillOpacity: 1,
-            strokeWeight: 2,
-            strokeColor: "white"
-        }
+        content: crearIconoPersonalizado(iconUrl, label) // 📌 Usar SVG como contenido del marcador
     });
 
     marcadores.push(marcador);
     bounds.extend(location);
 }
 
-// 🚗 Dibujar la ruta con restricciones de carreteras (modo conductor)
+// 🔹 Función para crear un icono personalizado con SVG y label
+function crearIconoPersonalizado(iconUrl, label) {
+    const div = document.createElement("div");
+    div.style.position = "relative";
+    div.style.display = "flex";
+    div.style.alignItems = "center";
+    div.style.justifyContent = "center";
+    div.style.width = "40px";
+    div.style.height = "40px";
+
+    // Imagen del ícono
+    const img = document.createElement("img");
+    img.src = iconUrl;
+    img.style.width = "40px";
+    img.style.height = "40px";
+
+    // Etiqueta del marcador
+    const span = document.createElement("span");
+    span.textContent = label;
+    span.style.position = "absolute";
+    span.style.top = "50%";
+    span.style.left = "50%";
+    span.style.transform = "translate(-50%, -50%)";
+    span.style.color = "white";
+    span.style.fontWeight = "bold";
+    span.style.background = "rgba(0, 0, 0, 0.5)";
+    span.style.padding = "2px 6px";
+    span.style.borderRadius = "4px";
+    span.style.fontSize = "12px";
+
+    div.appendChild(img);
+    div.appendChild(span);
+
+    return div;
+}
+
+
+// 🚗 Dibujar la ruta con restricciones de carreteras (modo conductor) con flechas
 function dibujarRutaConductor(locations, color) {
     const directionsService = new google.maps.DirectionsService();
     const directionsRenderer = new google.maps.DirectionsRenderer({
@@ -418,7 +445,18 @@ function dibujarRutaConductor(locations, color) {
         polylineOptions: {
             strokeColor: color,
             strokeOpacity: 0.8,
-            strokeWeight: 5
+            strokeWeight: 5,
+            icons: [{
+                icon: {
+                    path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, // 🔺 Flecha de dirección
+                    scale: 4, // Tamaño de la flecha
+                    strokeColor: color,
+                    strokeWeight: 2,
+                    fillOpacity: 1
+                },
+                offset: "0%", // Inicia desde el principio
+                repeat: "1000px" // Espaciado entre flechas
+            }]
         }
     });
 
@@ -436,6 +474,7 @@ function dibujarRutaConductor(locations, color) {
         }
     });
 }
+
 
 
 let marcadorBus = null; // Marcador global del bus
@@ -519,6 +558,16 @@ function limpiarMapa() {
     // Vaciar la lista de direcciones
     direccionesTCP = [];
 
+    // 🗑️ Eliminar marcador del bus si existe
+    if (marcadorBus) {
+        marcadorBus.setMap(null);
+        marcadorBus = null; // Reiniciar la variable
+    }
+
+        // 🗑️ Eliminar todas las polilíneas dibujadas
+        rutasDibujadas.forEach(ruta => ruta.setMap(null));
+        rutasDibujadas = [];
+
     // Limpiar contenido de los elementos HTML (soporte para `input` y `div`)
     document.querySelectorAll(".tcpInput").forEach(el => {
         if (el.tagName === "INPUT") {
@@ -572,10 +621,10 @@ async function detenerEnvioActualizacion() {
 
 // Asignar funciones a los botones
 
-document.getElementById('btnMostrarD').addEventListener('click', mostrarMensajesTCP);
 
 // 📍 Botón para iniciar el envío de ubicación
 document.getElementById('btnAPI').addEventListener("click", async () => {
+    mostrarMensajesTCP(); // 📥 Mostrar mensajes TCP en la lista
     await ejecutarProcesoenorden(); // 🔄 Envía la ubicación inicial
     await iniciarEnvioActualizacion(); // 📡 Inicia la emisión de ubicación
     if (intervalID) {
