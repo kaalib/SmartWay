@@ -171,6 +171,23 @@ socket.on("actualizar_rutas", (data) => {
     }
 });
 
+let primeraVez = true;
+// 📍 Función optimizada para obtener la dirección a partir de lat/lng
+async function obtenerDireccion(lat, lng) {
+    return new Promise((resolve, reject) => {
+        const latLng = { lat: parseFloat(lat), lng: parseFloat(lng) };
+
+        geocoder.geocode({ location: latLng }, (results, status) => {
+            if (status === "OK" && results[0]) {
+                resolve(results[0].formatted_address);
+            } else {
+                console.error("❌ Error obteniendo dirección:", status);
+                resolve("Dirección desconocida");
+            }
+        });
+    });
+}
+
 
 // 🚏 Función para obtener la ubicación y enviarla al servidor
 async function gestionarUbicacion() {
@@ -185,26 +202,41 @@ async function gestionarUbicacion() {
     navigator.geolocation.getCurrentPosition(
         async (position) => {
             const { latitude, longitude } = position.coords;
-            const timestamp = new Date(position.timestamp).toISOString(); // ⏳ Convertir a formato ISO
-
+            const timestamp = new Date(position.timestamp).toISOString();
             console.log("📌 Ubicación obtenida:", { latitude, longitude, timestamp });
 
             try {
-                // 📡 Enviar los datos al servidor
+                let direccion = null;
+
+                // 🚀 Solo la primera vez convertimos la lat/lng a dirección
+                if (primeraVez) {
+                    direccion = await obtenerDireccion(latitude, longitude);
+                    console.log("📍 Dirección obtenida:", direccion);
+                }
+
+                // 📡 Enviar datos al servidor
                 const response = await fetch('https://smartway.ddns.net/actualizar-ubicacion-bus', {
                     method: 'POST',
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ lat: latitude, lng: longitude })
+                    body: JSON.stringify({
+                        lat: latitude,
+                        lng: longitude,
+                        direccion: direccion // 📍 Solo la primera vez tiene valor
+                    })
                 });
 
-                // 🛑 Verificar si la solicitud fue exitosa
                 if (!response.ok) {
                     throw new Error(`Error en la respuesta del servidor: ${response.status}`);
                 }
 
                 const result = await response.json();
                 console.log("📡 Respuesta del servidor:", result);
-                
+
+                // 🚀 Marcar que ya se envió la dirección
+                if (primeraVez) {
+                    primeraVez = false;
+                }
+
             } catch (error) {
                 console.error("❌ Error enviando ubicación al servidor:", error);
             }
@@ -276,29 +308,45 @@ async function solicitarReorganizacionRutas() {
 }
 
 async function actualizarMapa(rutasIA) {
-    if (!rutasIA.length) return;
+    if (!rutasIA) return;
 
-    // Limpiar marcadores anteriores
+    // Limpiar marcadores y rutas anteriores
     marcadores.forEach(marcador => marcador.map = null);
     marcadores = [];
+    rutasDibujadas.forEach(ruta => ruta.setMap(null));
+    rutasDibujadas = [];
 
+    // Obtener las rutas
+    const { mejor_ruta_distancia, mejor_ruta_trafico } = rutasIA;
     const bounds = new google.maps.LatLngBounds();
 
-    // 🗺️ Convertir direcciones a coordenadas si es necesario
-    const locations = await Promise.all(rutasIA.map(async (direccion) => {
-        return typeof direccion === "string" ? await geocodificarDireccion(direccion) : direccion;
-    }));
+    // Procesar ambas rutas
+    await Promise.all([
+        procesarRuta(mejor_ruta_distancia, '#002366', bounds, 'A', 'B'), // Azul oscuro
+        procesarRuta(mejor_ruta_trafico, '#FF0000', bounds, 'A', 'B') // Rojo
+    ]);
 
-    // 🔵 Dibujar las paradas con números crecientes usando el marcador predeterminado
+    // Ajustar vista del mapa
+    if (!bounds.isEmpty()) {
+        map.fitBounds(bounds);
+    }
+}
+
+async function procesarRuta(direcciones, color, bounds, inicio, fin) {
+    if (!direcciones || !direcciones.length) return;
+
+    const locations = await Promise.all(direcciones.map(geocodificarDireccion));
+    
     locations.forEach((location, index) => {
         if (location) {
-            agregarMarcador(location, `Parada ${index + 1}`, bounds, index + 1);
+            let label = (index === 0) ? inicio : (index === locations.length - 1 ? fin : index);
+            agregarMarcador(location, `Parada ${index + 1}`, bounds, label, color);
         }
     });
 
-    // Ajustar la vista del mapa
-    if (!bounds.isEmpty()) {
-        map.fitBounds(bounds);
+    // Dibujar ruta con Directions API
+    if (locations.length > 1) {
+        dibujarRutaConductor(locations, color);
     }
 }
 
@@ -307,12 +355,6 @@ function geocodificarDireccion(direccion) {
     return new Promise((resolve) => {
         if (!direccion) return resolve(null);
 
-        // 📌 Si ya es `{ lat, lng }`, no necesita geocodificación
-        if (typeof direccion === "object" && "lat" in direccion && "lng" in direccion) {
-            return resolve(new google.maps.LatLng(direccion.lat, direccion.lng));
-        }
-
-        // 🔍 Geocodificar direcciones en texto
         geocoder.geocode({ address: direccion }, (results, status) => {
             if (status === "OK" && results[0]) {
                 resolve(results[0].geometry.location);
@@ -324,41 +366,62 @@ function geocodificarDireccion(direccion) {
     });
 }
 
-// 📌 Agregar un marcador al mapa usando el predeterminado de Google con numeración
-function agregarMarcador(location, title, bounds, index) {
-    // 🏷️ Crear un contenedor para el marcador
-    const markerContainer = document.createElement("div");
-    markerContainer.style.position = "relative";
-    markerContainer.style.display = "flex";
-    markerContainer.style.justifyContent = "center";
-    markerContainer.style.alignItems = "center";
-    markerContainer.style.width = "30px";
-    markerContainer.style.height = "30px";
-    markerContainer.style.borderRadius = "50%";
-    markerContainer.style.backgroundColor = "#0059FF"; // Azul Google Maps
-    markerContainer.style.color = "#fff";
-    markerContainer.style.fontSize = "14px";
-    markerContainer.style.fontWeight = "bold";
-
-    // 🔢 Crear el número de la parada
-    markerContainer.textContent = index;
-
-    // 📍 Crear el marcador
-    const marcador = new google.maps.marker.AdvancedMarkerElement({
+// 📌 Agregar un marcador personalizado
+function agregarMarcador(location, title, bounds, label, color) {
+    const marcador = new google.maps.Marker({
         position: location,
         map: map,
-        title: title, // Muestra el nombre al pasar el cursor
-        content: markerContainer, // Usar el div personalizado como marcador
+        title: title,
+        label: {
+            text: label.toString(),
+            color: "white",
+            fontWeight: "bold"
+        },
+        icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: color,
+            fillOpacity: 1,
+            strokeWeight: 2,
+            strokeColor: "white"
+        }
     });
 
-    // Guardar marcador y actualizar límites
     marcadores.push(marcador);
     bounds.extend(location);
 }
 
+// 🚗 Dibujar la ruta con restricciones de carreteras (modo conductor)
+function dibujarRutaConductor(locations, color) {
+    const directionsService = new google.maps.DirectionsService();
+    const directionsRenderer = new google.maps.DirectionsRenderer({
+        map: map,
+        suppressMarkers: true,
+        polylineOptions: {
+            strokeColor: color,
+            strokeOpacity: 0.8,
+            strokeWeight: 5
+        }
+    });
+
+    directionsService.route({
+        origin: locations[0],
+        destination: locations[locations.length - 1],
+        waypoints: locations.slice(1, -1).map(loc => ({ location: loc, stopover: true })),
+        travelMode: google.maps.TravelMode.DRIVING
+    }, (result, status) => {
+        if (status === google.maps.DirectionsStatus.OK) {
+            directionsRenderer.setDirections(result);
+            rutasDibujadas.push(directionsRenderer);
+        } else {
+            console.error("❌ Error al calcular ruta:", status);
+        }
+    });
+}
+
 
 let marcadorBus = null; // Marcador global del bus
-let ultimaUbicacionBus = null; // Guardar última ubicación para evitar redibujos innecesarios
+let ultimaUbicacionBus = null; // Última ubicación conocida del bus
 
 async function dibujarUbicacionBus() {
     try {
@@ -371,61 +434,34 @@ async function dibujarUbicacionBus() {
             return;
         }
 
-        // 📍 Obtener la última ubicación del bus
-        const ultimaUbicacion = data.bus.length > 0 ? data.bus[data.bus.length - 1].direccion : null;
-
+        // 📍 Obtener la última ubicación
+        const ultimaUbicacion = data.bus[data.bus.length - 1].direccion;
         if (!ultimaUbicacion || !ultimaUbicacion.lat || !ultimaUbicacion.lng) {
-            console.warn("⚠️ No se encontró una ubicación válida para el bus en /messages:", data);
+            console.warn("⚠️ No se encontró una ubicación válida para el bus:", data);
             return;
         }
 
-        // 🚀 Evitar redibujar si la ubicación no ha cambiado
-        if (ultimaUbicacionBus &&
-            ultimaUbicacion.lat === ultimaUbicacionBus.lat &&
-            ultimaUbicacion.lng === ultimaUbicacionBus.lng) {
-            console.log("🔄 La ubicación del bus no ha cambiado.");
-            return;
-        }
-
-        // 🗑️ Limpiar marcador anterior
-        if (marcadorBus) {
-            marcadorBus.setMap(null);
-        }
-
-        // 🚍 Agregar nuevo marcador del bus con icono personalizado
-        marcadorBus = new google.maps.marker.AdvancedMarkerElement({
-            position: new google.maps.LatLng(ultimaUbicacion.lat, ultimaUbicacion.lng),
-            map: map,
-            title: "Ubicación actual del Bus",
-            content: document.createElement("img"), // Se usará para mostrar el ícono
-        });
-
-        // Configurar la imagen personalizada
-        marcadorBus.content.src = "media/iconobus.svg";
-        marcadorBus.content.style.width = "40px";
-        marcadorBus.content.style.height = "40px";
-
-        // 🔄 Guardar última ubicación para comparación
-        ultimaUbicacionBus = ultimaUbicacion;
-
-        console.log("🛑 Marcador del bus actualizado:", ultimaUbicacion);
-
+        actualizarMarcadorBus(ultimaUbicacion); // Llamamos la nueva función optimizada
     } catch (error) {
         console.error("❌ Error obteniendo la ubicación del bus:", error);
     }
 }
 
-// 📡 WebSocket: Escuchar cambios en la ubicación del bus en tiempo real
+// 📡 WebSocket: Escuchar cambios en la ubicación del bus
 socket.on("actualizarUbicacionBus", (ubicacion) => {
     if (!ubicacion || !ubicacion.lat || !ubicacion.lng) return;
-
     console.log("🛑 Ubicación del bus recibida por WebSocket:", ubicacion);
+    
+    actualizarMarcadorBus(ubicacion); // Llamamos la nueva función optimizada
+});
 
+// 🏎️ Función optimizada para actualizar el marcador del bus
+function actualizarMarcadorBus(ubicacion) {
     // 🚀 Evitar redibujar si la ubicación no ha cambiado
     if (ultimaUbicacionBus &&
         ubicacion.lat === ultimaUbicacionBus.lat &&
         ubicacion.lng === ultimaUbicacionBus.lng) {
-        console.log("🔄 WebSocket: La ubicación del bus no ha cambiado.");
+        console.log("🔄 La ubicación del bus no ha cambiado.");
         return;
     }
 
@@ -434,7 +470,7 @@ socket.on("actualizarUbicacionBus", (ubicacion) => {
         marcadorBus.setMap(null);
     }
 
-    // 🚍 Dibujar el nuevo marcador con icono personalizado
+    // 🚍 Crear nuevo marcador con ícono personalizado
     marcadorBus = new google.maps.marker.AdvancedMarkerElement({
         position: new google.maps.LatLng(ubicacion.lat, ubicacion.lng),
         map: map,
@@ -447,14 +483,15 @@ socket.on("actualizarUbicacionBus", (ubicacion) => {
     marcadorBus.content.style.width = "40px";
     marcadorBus.content.style.height = "40px";
 
-    // 🔄 Guardar última ubicación para comparación
+    // 🔄 Guardar última ubicación
     ultimaUbicacionBus = ubicacion;
 
-    console.log("✅ WebSocket: Ubicación del bus actualizada en el mapa.");
-});
+    console.log("✅ Marcador del bus actualizado:", ubicacion);
+}
 
 // ⏳ Actualizar cada 10 segundos solo si WebSocket no lo hizo ya
 setInterval(dibujarUbicacionBus, 10000);
+
 
 function limpiarMapa() {
     // Eliminar todos los marcadores del mapa
@@ -547,4 +584,7 @@ document.getElementById('btnLimpiar').addEventListener('click', () => {
     } else {
         console.log("⚠️ No hay envío de ubicación activo.");
     }
+
+    primeraVez = true; // 🔄 Se restablece la bandera para el próximo envío
+    console.log("🔄 Se ha reiniciado la bandera primeraVez.");
 });
