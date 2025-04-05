@@ -722,9 +722,10 @@ async function mostrarLoader() {
 
     if (dataLoaded) {
         loader.classList.add("hidden");
-        modalText.textContent = "Datos cargados. ¿Mostrar opciones de ruta?";
+        modalText.textContent = "Datos cargados. Escoja la mejor ruta según la información brindada.";
         btnInicio.disabled = true;
         btnSeleccionRuta.disabled = false;
+        setTimeout(cerrarLoader, 2000);
         await actualizarMapa({ mejor_ruta_distancia: window.rutaDistancia, mejor_ruta_trafico: window.rutaTrafico });
     } else {
         modalText.textContent = "Error al cargar datos";
