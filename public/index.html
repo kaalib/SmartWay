@@ -1,51 +1,274 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Proyecto Final</title>
+    <title>SmartWay - Soluciones Inteligentes de Transporte</title>
     <link rel="icon" type="image/png" href="media/favicon.png">
     <link rel="stylesheet" href="styles/index.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-
     <!-- Barra de navegación -->
     <div class="nav-container">
         <nav>
-            <a href="index.html">
-                <img src="media/inicio.svg" alt="Inicio" width="120" height="32">
+            <a href="index.html" class="logo">
+                <span>Smart</span><span class="way-text">Way</span>
             </a>
-            <a href="map.html">Mapa</a>
-            <a href="login.html">Login</a>
-            <a href="contact.html">Contacto</a>
+            <div class="nav-links">
+                <a href="#inicio">Inicio</a>
+                <a href="#soluciones">Soluciones</a>
+                <a href="#beneficios">Beneficios</a>
+                <a href="#contacto">Contacto</a>
+                <a href="login.html" class="login-btn">Iniciar Sesión</a>
+            </div>
         </nav>
     </div>
 
     <div class="menu-icon" onclick="openNav()">
-        <img src="media/menu-icon.svg" alt="Menú">
-    </div>
-    
-
-
-<div id="sidebar" class="sidebar">
-    <a href="javascript:void(0)" class="close-btn" onclick="closeNav()">
-        <img src="media/xbuton.svg" alt="Cerrar" class="close-icon">
-    </a>
-    <a href="index.html">
-        <img src="media/inicio.svg" alt="Inicio" width="120" height="32">
-    </a>
-    <a href="map.html">Mapa</a>
-    <a href="login.html">Login</a>
-    <a href="contact.html">Contacto</a>
-</div>
-
-    <!-- Contenedor principal -->
-    <div class="container">
-        <h1>Proyecto Final - Ingeniería Electrónica</h1>
-        <p>Esta página está siendo desarrollada por Orlando Arroyo y Karen Barros para el proyecto final de Ingeniería Electrónica de la Universidad del Norte.</p>
-</div>
+        <i class="fas fa-bars"></i>
     </div>
 
-    <script src="scripts/index.js"></script>
+    <div id="sidebar" class="sidebar">
+        <a href="javascript:void(0)" class="close-btn" onclick="closeNav()">
+            <i class="fas fa-times"></i>
+        </a>
+        <a href="#inicio">Inicio</a>
+        <a href="#soluciones">Soluciones</a>
+        <a href="#beneficios">Beneficios</a>
+        <a href="#contacto">Contacto</a>
+        <a href="login.html">Iniciar Sesión</a>
+    </div>
+
+    <!-- Hero Section -->
+    <section id="inicio" class="hero">
+        <div class="hero-content">
+            <h1>Transformando el Transporte Empresarial</h1>
+            <p>Sistema inteligente de registro biométrico y optimización de rutas para mejorar la seguridad y bienestar de los empleados</p>
+            <div class="button-container">
+                <a href="#contacto" class="btn primary-btn">Solicitar Demo</a>
+                <a href="#soluciones" class="btn secondary-btn">Conocer Más</a>
+            </div>
+        </div>
+        <div class="hero-image">
+            <img src="media/technology.png" alt="SmartWay Technology">
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="soluciones" class="features">
+        <h2>Nuestras Soluciones Tecnológicas</h2>
+        <div class="features-container">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-fingerprint"></i>
+                </div>
+                <h3>Registro Biométrico</h3>
+                <p>Hardware embebido con sensor de huellas dactilares para un registro seguro y eficiente de pasajeros.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-route"></i>
+                </div>
+                <h3>Optimización de Rutas</h3>
+                <p>Algoritmos de IA que analizan patrones de tráfico en tiempo real para determinar las rutas más eficientes.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3>Seguridad Avanzada</h3>
+                <p>Control de acceso y monitoreo en tiempo real para garantizar la seguridad de los empleados durante el transporte.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h3>Análisis de Datos</h3>
+                <p>Informes detallados sobre tiempos de viaje, asistencia y optimización de recursos para la toma de decisiones.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Benefits Section -->
+    <section id="beneficios" class="benefits">
+        <div class="benefits-content">
+            <h2>Beneficios para su Empresa</h2>
+            <ul class="benefits-list">
+                <li><i class="fas fa-check-circle"></i> Reducción de hasta 30% en tiempos de viaje</li>
+                <li><i class="fas fa-check-circle"></i> Mayor seguridad para sus empleados</li>
+                <li><i class="fas fa-check-circle"></i> Optimización de recursos de transporte</li>
+                <li><i class="fas fa-check-circle"></i> Mejora del bienestar y satisfacción laboral</li>
+                <li><i class="fas fa-check-circle"></i> Reducción de la huella de carbono</li>
+                <li><i class="fas fa-check-circle"></i> Datos en tiempo real para toma de decisiones</li>
+            </ul>
+            <a href="#contacto" class="btn primary-btn">Implementar Ahora</a>
+        </div>
+        <div class="benefits-image">
+            <img src="media/benefits.png" alt="SmartWay Benefits">
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works">
+        <h2>¿Cómo Funciona?</h2>
+        <div class="steps-container">
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-icon"><i class="fas fa-id-card"></i></div>
+                <h3>Registro de Empleados</h3>
+                <p>Registro único de huellas dactilares de cada empleado en el sistema.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-icon"><i class="fas fa-fingerprint"></i></div>
+                <h3>Verificación de Identidad</h3>
+                <p>Los empleados se registran al abordar mediante el sensor de huellas.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-icon"><i class="fas fa-map-marked-alt"></i></div>
+                <h3>Optimización de Rutas</h3>
+                <p>El algoritmo de IA calcula la ruta óptima basada en datos en tiempo real.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-icon"><i class="fas fa-chart-pie"></i></div>
+                <h3>Análisis y Mejora</h3>
+                <p>Generación de informes para optimización continua del servicio.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="testimonials">
+        <h2>Lo que Dicen Nuestros Clientes</h2>
+        <div class="testimonials-container">
+            <div class="testimonial-card">
+                <div class="testimonial-text">
+                    <i class="fas fa-quote-left"></i>
+                    <p>Desde que implementamos SmartWay, hemos reducido los tiempos de viaje de nuestros empleados en un 25%, mejorando significativamente su calidad de vida.</p>
+                </div>
+                <div class="testimonial-author">
+                    <img src="https://via.placeholder.com/60x60" alt="Cliente">
+                    <div>
+                        <h4>Carlos Rodríguez</h4>
+                        <p>Director de Operaciones, TechCorp</p>
+                    </div>
+                </div>
+            </div>
+            <div class="testimonial-card">
+                <div class="testimonial-text">
+                    <i class="fas fa-quote-left"></i>
+                    <p>La seguridad de nuestro personal ha mejorado notablemente gracias al sistema de registro biométrico y las rutas optimizadas que evitan zonas de alto riesgo.</p>
+                </div>
+                <div class="testimonial-author">
+                    <img src="https://via.placeholder.com/60x60" alt="Cliente">
+                    <div>
+                        <h4>Ana Martínez</h4>
+                        <p>Gerente de RRHH, Industrias Globales</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contacto" class="contact">
+        <h2>¿Listo para Optimizar el Transporte de su Empresa?</h2>
+        <div class="contact-container">
+            <div class="contact-form">
+                <h3>Contáctenos</h3>
+                <form>
+                    <div class="form-group">
+                        <label for="name">Nombre</label>
+                        <input type="text" id="name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="company">Empresa</label>
+                        <input type="text" id="company" name="company" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Correo Electrónico</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Teléfono</label>
+                        <input type="tel" id="phone" name="phone">
+                    </div>
+                    <div class="form-group">
+                        <label for="message">Mensaje</label>
+                        <textarea id="message" name="message" rows="4" required></textarea>
+                    </div>
+                    <button type="submit" class="btn primary-btn">Enviar Mensaje</button>
+                </form>
+            </div>
+            <div class="contact-info">
+                <div class="info-item">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <p>Calle Principal #123, Ciudad</p>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-phone"></i>
+                    <p>+57 300 123 4567</p>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-envelope"></i>
+                    <p>info@smartway.com</p>
+                </div>
+                <div class="social-media">
+                    <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="social-icon"><i class="fab fa-linkedin-in"></i></a>
+                    <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-logo">
+                <a href="index.html" class="logo">
+                    <span>Smart</span><span class="way-text">Way</span>
+                </a>
+                <p>Soluciones inteligentes para el transporte empresarial</p>
+            </div>
+            <div class="footer-links">
+                <div class="footer-column">
+                    <h4>Empresa</h4>
+                    <a href="#">Sobre Nosotros</a>
+                    <a href="#">Equipo</a>
+                    <a href="#">Carreras</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Soluciones</h4>
+                    <a href="#">Hardware Biométrico</a>
+                    <a href="#">Algoritmos de IA</a>
+                    <a href="#">Análisis de Datos</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Soporte</h4>
+                    <a href="#">Centro de Ayuda</a>
+                    <a href="#">Documentación</a>
+                    <a href="#">Contacto</a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 SmartWay. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    <script>
+        function openNav() {
+            document.getElementById("sidebar").style.width = "250px";
+        }
+        
+        function closeNav() {
+            document.getElementById("sidebar").style.width = "0";
+        }
+    </script>
 </body>
 </html>

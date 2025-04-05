@@ -302,6 +302,149 @@ nav a:hover::after {
 }
 
 
+/* Modal (Container General) - Compartido por todos los contenedores */
+.modal-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5); /* Fondo oscurecido */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out, visibility 0s linear 0.3s; /* Optimizado */
+    z-index: 1000; /* Asegura que esté sobre otros elementos */
+}
+
+/* Contenido del modal - Compartido por todos */
+.modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    width: 300px;
+    max-width: 90%; /* Adaptable a pantallas pequeñas */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px; /* Espaciado consistente */
+}
+
+/* Texto principal del modal - Compartido */
+#modalText, #ubicacionText, #rutaText, #confirmText {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0; /* Elimina márgenes inconsistentes */
+}
+
+/* Opciones (ubicación y rutas) - Estilo unificado */
+.ubicacion-options, .ruta-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+}
+
+/* Etiquetas de opciones - Estilo unificado */
+.ubicacion-label, .ruta-label {
+    background: #f1f1f1;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    transition: background 0.3s ease;
+}
+
+.ubicacion-label:hover, .ruta-label:hover {
+    background: #e0e0e0;
+}
+
+.ubicacion-label input, .ruta-label input {
+    cursor: pointer;
+}
+
+/* Loader - Específico para #loaderContainer */
+.loader {
+    width: 60px;
+    aspect-ratio: 4;
+    background: radial-gradient(circle closest-side, #000 90%, #0000) 0/calc(100%/3) 100% space;
+    clip-path: inset(0 100% 0 0);
+    animation: l1 1s steps(4) infinite;
+}
+
+@keyframes l1 {
+    to { clip-path: inset(0 -34% 0 0); }
+}
+
+
+/* Botón primario - Usado en #btnSeleccionarUbicacion y #btnSeleccionarRutaConfirm */
+.btn-primary {
+    background: #0059FF;
+    color: white;
+}
+
+/* Hover para botón primario */
+.btn-primary:hover:not(:disabled) {
+    background: #070054;
+}
+
+/* Botón danger - Usado en #confirmYes */
+.btn-danger {
+    background: #FF0000;
+    color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: #D90000;
+}
+
+/* Botón secundario - Usado en #confirmNo */
+.btn-secondary {
+    background: #ccc;
+    color: black;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: #999;
+}
+
+/* Botón deshabilitado - Aplicado a todos los botones */
+.btn:disabled {
+    background: #ccc !important;
+    cursor: not-allowed !important;
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Botón habilitado - Aplicado dinámicamente */
+.btn-enabled {
+    background: #0059FF !important;
+    cursor: pointer !important;
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Contenedor de botones del modal de confirmación */
+.modal-buttons {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    gap: 10px; /* Espaciado consistente */
+}
+
+/* Ocultar elementos */
+.hidden {
+    display: none;
+}
+
 /* Media Query para móviles */
 @media (max-width: 660px) {
     .nav-container {
