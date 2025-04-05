@@ -1,37 +1,61 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <title>SmartWay - Iniciar Sesión</title>
     <link rel="stylesheet" href="styles/login.css">
-    <title>Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="icon" type="image/png" href="media/favicon.png">
 </head>
-
 <body>
-
-    <div class="container" id="container">
-
-        <div class="form-container sign-in">
-            <form>
-                <h1>Iniciar sesión</h1>
-                <span>Usa tu usuario y contraseña dados por la empresa</span>
-                <input type="text" placeholder="Usuario">
-                <div class="password-container">
-                    <input type="password" id="password" placeholder="Contraseña">
-                    <span id="togglePassword" class="eye-icon">
-                        <img src="media/eye-closed.svg" alt="Mostrar contraseña">
-                    </span>
+    <div class="login-wrapper">
+        <div class="back-to-home">
+            <a href="index.html">
+                <i class="fas fa-arrow-left"></i> Volver al inicio
+            </a>
+        </div>
+        
+        <div class="container">
+            <h1>Iniciar Sesión</h1>
+            <span>Accede a la visualización del mapa</span>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <div class="input-container">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="username" placeholder="Usuario o correo electrónico" required>
+                    </div>
                 </div>
-                <a href="recuperar.html">Olvidaste tu contraseña?</a>
-                <button>Ingresar</button>
+                
+                <div class="form-group">
+                    <div class="password-container">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="password" placeholder="Contraseña" required>
+                        <div class="eye-icon" id="togglePassword">
+                            <img src="media/eye-closed.svg" alt="Mostrar contraseña" id="eye-icon-img">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="remember-forgot">
+                    <div class="remember-me">
+                        <input type="checkbox" id="remember">
+                        <label for="remember">Recordarme</label>
+                    </div>
+                    <a href="#" class="forgot-password">¿Olvidaste tu contraseña?</a>
+                </div>
+                
+                <button type="submit" class="btn primary-btn">Iniciar Sesión</button>
             </form>
         </div>
-    </div> 
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    </div>
+    
+    <!-- Mantenemos solo la referencia al script externo -->
     <script src="scripts/login.js"></script>
+    <!-- Personalización de SweetAlert2 -->
+    <link rel="stylesheet" href="styles/sweetalert-custom.css">
+    <!-- Asegúrate de incluir SweetAlert si lo estás usando -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </body>
-
 </html>

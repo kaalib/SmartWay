@@ -1,0 +1,159 @@
+/* Personalización de SweetAlert2 para SmartWay */
+
+/* Colores principales */
+:root {
+    --smartway-primary: #0059FF;
+    --smartway-dark: #003ecb;
+    --smartway-light: #f0f4ff;
+  }
+  
+  /* Estilo general del modal */
+  .swal2-popup {
+    border-radius: 15px;
+    padding: 2em;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    font-family: 'Poppins', sans-serif;
+  }
+  
+  /* Título */
+  .swal2-title {
+    color: #333;
+    font-family: 'Signika', sans-serif;
+    font-weight: 600;
+  }
+  
+  /* Texto */
+  .swal2-html-container {
+    color: #555;
+  }
+  
+  /* Botón de confirmación */
+  .swal2-confirm {
+    background-color: var(--smartway-primary) !important;
+    border-radius: 30px !important;
+    padding: 12px 30px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+  }
+  
+  .swal2-confirm:hover {
+    background-color: var(--smartway-dark) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 5px 15px rgba(0, 89, 255, 0.3) !important;
+  }
+  
+  /* Botón de cancelación */
+  .swal2-cancel {
+    background-color: #f8f9fa !important;
+    color: #333 !important;
+    border-radius: 30px !important;
+    padding: 12px 30px !important;
+    font-weight: 600 !important;
+    border: 1px solid #ddd !important;
+    transition: all 0.3s ease !important;
+  }
+  
+  .swal2-cancel:hover {
+    background-color: #e9ecef !important;
+  }
+  
+  /* Iconos */
+  .swal2-icon.swal2-warning {
+    border-color: #ff9800 !important;
+    color: #ff9800 !important;
+  }
+  
+  .swal2-icon.swal2-error {
+    border-color: #ff3333 !important;
+    color: #ff3333 !important;
+  }
+  
+  .swal2-icon.swal2-success {
+    border-color: var(--smartway-primary) !important;
+  }
+  
+  .swal2-icon.swal2-success [class^=swal2-success-line] {
+    background-color: var(--smartway-primary) !important;
+  }
+  
+  .swal2-icon.swal2-success .swal2-success-ring {
+    border-color: var(--smartway-primary) !important;
+  }
+  
+  /* Animación personalizada */
+  .swal2-popup.swal2-show {
+    animation: smartwayFadeIn 0.3s;
+  }
+  
+  @keyframes smartwayFadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Fondo del overlay */
+  .swal2-backdrop-show {
+    background: rgba(0, 0, 0, 0.6) !important;
+  }
+  
+  /* Contenedor de iconos */
+  .swal2-icon {
+    border-width: 3px !important;
+  }
+  
+  /* Personalización específica para cada tipo de alerta */
+  
+  /* Éxito */
+  .swal2-icon.swal2-success .swal2-success-fix {
+    background-color: transparent !important;
+  }
+  
+  .swal2-icon.swal2-success .swal2-success-circular-line-left,
+  .swal2-icon.swal2-success .swal2-success-circular-line-right {
+    background-color: transparent !important;
+  }
+  
+  /* Advertencia */
+  .swal2-icon.swal2-warning .swal2-icon-content {
+    color: #ff9800 !important;
+  }
+  
+  /* Error */
+  .swal2-icon.swal2-error [class^=swal2-x-mark-line] {
+    background-color: #ff3333 !important;
+  }
+  
+  /* Personalización adicional */
+  .swal2-actions {
+    margin-top: 1.5rem !important;
+  }
+  
+  .swal2-styled:focus {
+    box-shadow: none !important;
+  }
+  
+  /* Responsive */
+  @media (max-width: 500px) {
+    .swal2-popup {
+      padding: 1.5em;
+      width: 90% !important;
+    }
+    
+    .swal2-title {
+      font-size: 1.5em !important;
+    }
+    
+    .swal2-html-container {
+      font-size: 0.9em !important;
+    }
+    
+    .swal2-confirm, .swal2-cancel {
+      padding: 10px 20px !important;
+      font-size: 0.9em !important;
+    }
+  }
