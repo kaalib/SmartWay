@@ -96,4 +96,38 @@ async function detenerEnvioActualizacion() {
     }
 }
 
-export { mostrarMensajesTCP, solicitarActualizacionRutas, solicitarReorganizacionRutas, ejecutarProcesoenorden, iniciarEnvioActualizacion, detenerEnvioActualizacion };
+async function limpiarMapa() {
+    window.marcadores.forEach(marcador => marcador.setMap(null));
+    window.marcadores = [];
+    window.rutasDibujadas.forEach(ruta => ruta.setMap(null));
+    window.rutasDibujadas = [];
+
+    if (window.marcadorBus) {
+        window.marcadorBus.setMap(null);
+        window.marcadorBus = null;
+    }
+
+    document.querySelectorAll(".tcpInput").forEach(el => {
+        if (el.tagName === "INPUT") el.value = "";
+        else el.innerHTML = "";
+    });
+
+    document.querySelectorAll(".tcpDirections").forEach(el => {
+        if (el.tagName === "INPUT") el.value = "";
+        else el.innerHTML = "";
+    });
+
+    fetch('/messages', { method: 'DELETE' })
+        .then(response => response.json())
+        .then(data => console.log(data.message))
+        .catch(error => console.error('Error al limpiar mensajes:', error));
+
+    fetch('/updateBus', { method: 'PUT' })
+        .then(response => response.json())
+        .then(data => console.log(data.message))
+        .catch(error => console.error('Error al actualizar bus:', error));
+}
+
+
+
+export { mostrarMensajesTCP, solicitarActualizacionRutas, solicitarReorganizacionRutas, ejecutarProcesoenorden, iniciarEnvioActualizacion, detenerEnvioActualizacion, limpiarMapa };

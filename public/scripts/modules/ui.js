@@ -1,9 +1,8 @@
 // scripts/modules/ui.js
 import { actualizarMapa } from './map-markers.js';
 import { iniciarActualizacionRuta, detenerActualizacionRuta, actualizarRutaSeleccionada, setupSocket } from './socket.js';
-import { mostrarMensajesTCP, ejecutarProcesoenorden, iniciarEnvioActualizacion, detenerEnvioActualizacion } from './api.js';
+import { mostrarMensajesTCP, ejecutarProcesoenorden, iniciarEnvioActualizacion, detenerEnvioActualizacion, limpiarMapa } from './api.js';
 import { gestionarUbicacion, dibujarUbicacionBus } from './location.js';
-import { limpiarMapa } from '../utils/helpers.js';
 
 async function mostrarLoader() {
     const modal = document.getElementById("loaderContainer");
