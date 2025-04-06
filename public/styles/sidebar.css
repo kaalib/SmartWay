@@ -1,0 +1,199 @@
+/* Estilos unificados para la barra lateral de SmartWay */
+
+/* Menú lateral */
+.sidebar {
+    height: 100%;
+    width: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: linear-gradient(135deg, #0059FF 0%, #003ecb 100%);
+    overflow-x: hidden;
+    transition: all 0.3s ease-in-out;
+    padding-top: 60px;
+    z-index: 1001;
+    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Botón para cerrar el sidebar */
+.sidebar .close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: white;
+    font-size: 20px;
+    text-decoration: none;
+}
+
+.sidebar .close-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: rotate(90deg);
+}
+
+/* Logo en el sidebar */
+.sidebar-logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 30px;
+    padding: 0 20px;
+    text-decoration: none;
+    font-family: 'Signika', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+/* Colores invertidos para el logo en el sidebar */
+.sidebar .smart-text {
+    color: white;
+}
+
+.sidebar .way-text {
+    color: #a3c2ff;
+}
+
+/* Enlaces del sidebar */
+.sidebar a {
+    padding: 15px 25px;
+    text-decoration: none;
+    font-size: 16px;
+    color: white;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s ease;
+    position: relative;
+    border-left: 3px solid transparent;
+}
+
+.sidebar a i {
+    margin-right: 12px;
+    font-size: 18px;
+    width: 24px;
+    text-align: center;
+}
+
+.sidebar a:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-left-color: white;
+}
+
+.sidebar a.active {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-left-color: white;
+    font-weight: 600;
+}
+
+/* Separador en el sidebar */
+.sidebar-divider {
+    height: 1px;
+    background-color: rgba(255, 255, 255, 0.1);
+    margin: 10px 20px;
+}
+
+/* Sección de usuario en el sidebar (opcional) */
+.sidebar-user {
+    display: flex;
+    align-items: center;
+    padding: 20px 25px;
+    background-color: rgba(0, 0, 0, 0.1);
+    margin-top: auto;
+    margin-bottom: 20px;
+}
+
+.sidebar-user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    color: white;
+    font-size: 18px;
+}
+
+.sidebar-user-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-user-name {
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.sidebar-user-role {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 12px;
+}
+
+/* Botón para abrir el sidebar */
+.menu-icon {
+    display: none;
+    cursor: pointer;
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 999;
+    background: linear-gradient(135deg, #0059FF 0%, #003ecb 100%);
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 8px rgba(0, 89, 255, 0.3);
+    transition: all 0.3s ease;
+}
+
+.menu-icon:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 12px rgba(0, 89, 255, 0.4);
+}
+
+.menu-icon i {
+    font-size: 18px;
+}
+
+/* Animación para el sidebar */
+@keyframes slideIn {
+    from {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.sidebar.open {
+    width: 280px;
+    animation: slideIn 0.3s forwards;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .menu-icon {
+        display: flex;
+    }
+    
+    .sidebar {
+        width: 0;
+    }
+    
+    .sidebar.open {
+        width: 280px;
+    }
+}

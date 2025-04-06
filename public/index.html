@@ -6,6 +6,7 @@
     <title>SmartWay - Soluciones Inteligentes de Transporte</title>
     <link rel="icon" type="image/png" href="media/favicon.png">
     <link rel="stylesheet" href="styles/index.css">
+    <link rel="stylesheet" href="styles/sidebar.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
@@ -25,20 +26,39 @@
         </nav>
     </div>
 
-    <div class="menu-icon" onclick="openNav()">
-        <i class="fas fa-bars"></i>
-    </div>
+    <!-- Menú móvil -->
+<div class="menu-icon" onclick="toggleSidebar()">
+    <i class="fas fa-bars"></i>
+</div>
 
-    <div id="sidebar" class="sidebar">
-        <a href="javascript:void(0)" class="close-btn" onclick="closeNav()">
-            <i class="fas fa-times"></i>
-        </a>
-        <a href="#inicio">Inicio</a>
-        <a href="#soluciones">Soluciones</a>
-        <a href="#beneficios">Beneficios</a>
-        <a href="#contacto">Contacto</a>
-        <a href="login.html">Iniciar Sesión</a>
-    </div>
+<!-- Sidebar -->
+<div id="sidebar" class="sidebar">
+    <a href="javascript:void(0)" class="close-btn" onclick="toggleSidebar()">
+        <i class="fas fa-times"></i>
+    </a>
+    <a href="index.html" class="sidebar-logo">
+        <span class="smart-text">Smart</span><span class="way-text">Way</span>
+    </a>
+    
+    <a href="index.html" class="active">
+        <i class="fas fa-home"></i> Inicio
+    </a>
+    <a href="#soluciones">
+        <i class="fas fa-lightbulb"></i> Soluciones
+    </a>
+    <a href="#beneficios">
+        <i class="fas fa-check-circle"></i> Beneficios
+    </a>
+    <a href="#contacto">
+        <i class="fas fa-envelope"></i> Contacto
+    </a>
+    
+    <div class="sidebar-divider"></div>
+    
+    <a href="login.html">
+        <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+    </a>
+</div>
 
     <!-- Hero Section -->
     <section id="inicio" class="hero">
@@ -71,7 +91,7 @@
                     <i class="fas fa-route"></i>
                 </div>
                 <h3>Optimización de Rutas</h3>
-                <p>Algoritmos de IA que analizan patrones de tráfico en tiempo real para determinar las rutas más eficientes.</p>
+                <p>Algoritmos que analizan patrones de tráfico en tiempo real para determinar las rutas más eficientes.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">
@@ -129,7 +149,7 @@
                 <div class="step-number">3</div>
                 <div class="step-icon"><i class="fas fa-map-marked-alt"></i></div>
                 <h3>Optimización de Rutas</h3>
-                <p>El algoritmo de IA calcula la ruta óptima basada en datos en tiempo real.</p>
+                <p>La IA calcula la ruta óptima basada en datos en tiempo real.</p>
             </div>
             <div class="step">
                 <div class="step-number">4</div>
@@ -150,10 +170,10 @@
                     <p>Desde que implementamos SmartWay, hemos reducido los tiempos de viaje de nuestros empleados en un 25%, mejorando significativamente su calidad de vida.</p>
                 </div>
                 <div class="testimonial-author">
-                    <img src="https://via.placeholder.com/60x60" alt="Cliente">
+                    <img src="media/carlos.png" alt="Cliente">
                     <div>
-                        <h4>Carlos Rodríguez</h4>
-                        <p>Director de Operaciones, TechCorp</p>
+                        <h4>Carlos Ordoñez</h4>
+                        <p>Director de Operaciones, Lieu</p>
                     </div>
                 </div>
             </div>
@@ -163,10 +183,10 @@
                     <p>La seguridad de nuestro personal ha mejorado notablemente gracias al sistema de registro biométrico y las rutas optimizadas que evitan zonas de alto riesgo.</p>
                 </div>
                 <div class="testimonial-author">
-                    <img src="https://via.placeholder.com/60x60" alt="Cliente">
+                    <img src="media/samy.png" alt="Cliente">
                     <div>
-                        <h4>Ana Martínez</h4>
-                        <p>Gerente de RRHH, Industrias Globales</p>
+                        <h4>Samir Mercado</h4>
+                        <p>Gerente de TI, Geotaxi</p>
                     </div>
                 </div>
             </div>
@@ -206,7 +226,7 @@
             <div class="contact-info">
                 <div class="info-item">
                     <i class="fas fa-map-marker-alt"></i>
-                    <p>Calle Principal #123, Ciudad</p>
+                    <p>Carrera 53 #98-15, Centro empresarial Buena Vista</p>
                 </div>
                 <div class="info-item">
                     <i class="fas fa-phone"></i>
@@ -262,13 +282,16 @@
     </footer>
 
     <script>
-        function openNav() {
-            document.getElementById("sidebar").style.width = "250px";
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar.style.width === '280px') {
+            sidebar.style.width = '0';
+            sidebar.classList.remove('open');
+        } else {
+            sidebar.style.width = '280px';
+            sidebar.classList.add('open');
         }
-        
-        function closeNav() {
-            document.getElementById("sidebar").style.width = "0";
-        }
+    }
     </script>
 </body>
 </html>

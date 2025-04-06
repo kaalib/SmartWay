@@ -1,135 +1,211 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa</title>
+    <title>SmartWay - Mapa de Rutas</title>
     <link rel="icon" type="image/png" href="media/favicon.png">
-    <link rel="stylesheet" href="styles/map_admin.css">
+    <link rel="stylesheet" href="styles/map.css">
+    <link rel="stylesheet" href="styles/sidebar.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="sweetalert-custom.css">
 </head>
 <body>
-            <!-- Barra de navegación -->
-            <div class="nav-container">
-                <nav>
-                    <a href="index.html">
-                        <img src="media/inicio.svg" alt="Inicio" width="120" height="32">
-                    </a>
-                    <a href="map.html">Mapa</a>
-                    <a href="login.html">Login</a>
-                    <a href="contact.html">Contacto</a>
-                </nav>
-            </div>
-
-            <div class="menu-icon" onclick="openNav()">
-                <img src="media/menu-icon.svg" alt="Menú">
-            </div>
-            <div id="sidebar" class="sidebar">
-                <a href="javascript:void(0)" class="close-btn" onclick="closeNav()">
-                    <img src="media/xbuton.svg" alt="Cerrar" class="close-icon">
-            <a href="index.html">
-                <img src="media/inicio.svg" alt="Inicio" width="120" height="32">
+    <!-- Barra de navegación simplificada -->
+    <div class="nav-container">
+        <nav>
+            <a href="index.html" class="logo">
+                <span class="smart-text">Smart</span><span class="way-text">Way</span>
             </a>
-            <a href="map.html">Mapa</a>
-            <a href="login.html">Login</a>
-            <a href="contact.html">Contacto</a>
-
+            <div class="nav-links">
+                <a href="#" class="admin-link"><i class="fas fa-history"></i> Datos históricos</a>
+                <a href="#" class="admin-link"><i class="fas fa-shield-alt"></i> Seguridad</a>
             </div>
+        </nav>
+    </div>
 
+
+<!-- Menú móvil -->
+<div class="menu-icon" onclick="toggleSidebar()">
+    <i class="fas fa-bars"></i>
+</div>
+
+<!-- Sidebar -->
+<div id="sidebar" class="sidebar">
+    <a href="javascript:void(0)" class="close-btn" onclick="toggleSidebar()">
+        <i class="fas fa-times"></i>
+    </a>
+    <a href="index.html" class="sidebar-logo">
+        <span class="smart-text">Smart</span><span class="way-text">Way</span>
+    </a>
+    
+    <a href="index.html">
+        <i class="fas fa-home"></i> Inicio
+    </a>
+    <a href="#" class="active">
+        <i class="fas fa-map-marked-alt"></i> Mapa
+    </a>
+    <a href="#" class="admin-link">
+        <i class="fas fa-history"></i> Datos históricos
+    </a>
+    <a href="#" class="admin-link">
+        <i class="fas fa-shield-alt"></i> Seguridad
+    </a>
+</div>
+
+    <!-- Contenedor principal -->
     <div class="container">
         <!-- Contenedor del mapa y los mensajes -->
         <div class="map-and-messages">
-            <div id="map"></div>
+            <div id="map" class="map-container">
+                <!-- El mapa se cargará aquí -->
+            </div>
             <div class="message-container">
+                <div class="message-header">
+                    <h3><i class="fas fa-comment-alt"></i> Pasajeros a bordo</h3>
+                </div>
                 <div class="tcpDirections message-box2"></div>
             </div>
-
         </div>
 
-        <!-- Botones -->
+        <!-- Botones de control -->
         <div class="button-container">
-            <button id="btnInicio" class="btn">Iniciar</button>
-            <button id="btnSeleccionRuta" class="btn" disabled>Seleccionar Ruta</button>
-            <button id="btnFin" class="btn" disabled>Finalizar</button>
+            <button id="btnInicio" class="btn primary-btn">
+                <i class="fas fa-play"></i> Iniciar
+            </button>
+            <button id="btnSeleccionRuta" class="btn primary-btn" disabled>
+                <i class="fas fa-route"></i> Seleccionar Ruta
+            </button>
+            <button id="btnFin" class="btn danger-btn" disabled>
+                <i class="fas fa-stop"></i> Finalizar
+            </button>
         </div>
     </div>
 
-        <!-- Modal de Selección de Última Parada -->
+    <!-- Modal de Selección de Última Parada -->
     <div id="ubicacionContainer" class="modal-container">
         <div class="modal-content">
+            <h3 class="modal-title">Selección de destino</h3>
             <p id="ubicacionText">Seleccionar la ubicación de la última parada de la ruta:</p>
 
             <!-- Opciones de ubicación -->
             <div class="ubicacion-options">
                 <label class="ubicacion-label">
                     <input type="radio" name="ubicacion" value="actual" id="opcionActual">
-                    Ubicación actual (Retornar al mismo punto)
+                    <span class="radio-custom"></span>
+                    <div class="option-text">
+                        <strong>Ubicación actual</strong>
+                        <span>Retornar al mismo punto</span>
+                    </div>
                 </label>
 
                 <label class="ubicacion-label">
                     <input type="radio" name="ubicacion" value="parqueadero" id="opcionParqueadero">
-                    Parqueadero empresarial: Carrera 15 #27A-40
+                    <span class="radio-custom"></span>
+                    <div class="option-text">
+                        <strong>Parqueadero empresarial</strong>
+                        <span>Carrera 15 #27A-40</span>
+                    </div>
                 </label>
             </div>
 
             <!-- Botón para enviar la ubicación -->
-            <button id="btnSeleccionarUbicacion" class="btn btn-primary" disabled>Seleccionar</button>
+            <button id="btnSeleccionarUbicacion" class="btn primary-btn" disabled>Seleccionar</button>
         </div>
     </div>
 
-    <!-- Contenedor del Loader (solo loader, sin opciones de ruta) -->
+    <!-- Contenedor del Loader -->
     <div id="loaderContainer" class="modal-container">
         <div class="modal-content">
+            <h3 class="modal-title">Procesando</h3>
             <p id="modalText">Calculando ruta</p>
             <div id="loader" class="loader"></div>
         </div>
     </div>
 
-    <!-- Nuevo contenedor para selección de rutas -->
+    <!-- Contenedor para selección de rutas -->
     <div id="rutaContainer" class="modal-container" style="visibility: hidden; opacity: 0;">
         <div class="modal-content">
+            <h3 class="modal-title">Opciones de ruta</h3>
             <p id="rutaText">Seleccione una ruta:</p>
             <div class="ruta-options">
                 <label class="ruta-label">
                     <input type="radio" name="ruta" value="mejor_ruta_distancia" id="opcionDistancia">
-                    <span id="rutaDistanciaText">Cargando datos...</span>
+                    <span class="radio-custom"></span>
+                    <div class="option-text">
+                        <strong>Ruta más corta</strong>
+                        <span id="rutaDistanciaText">Cargando datos...</span>
+                    </div>
                 </label>
                 <label class="ruta-label">
                     <input type="radio" name="ruta" value="mejor_ruta_trafico" id="opcionTrafico">
-                    <span id="rutaTraficoText">Cargando datos...</span>
+                    <span class="radio-custom"></span>
+                    <div class="option-text">
+                        <strong>Ruta con menos tráfico</strong>
+                        <span id="rutaTraficoText">Cargando datos...</span>
+                    </div>
                 </label>
             </div>
-            <button id="btnSeleccionarRutaConfirm" class="btn btn-primary" disabled>Seleccionar Ruta</button>
+            <button id="btnSeleccionarRutaConfirm" class="btn primary-btn" disabled>Seleccionar Ruta</button>
         </div>
     </div>
 
-        <!-- Modal de Confirmación -->
+    <!-- Modal de Confirmación -->
     <div id="confirmContainer" class="modal-container">
         <div class="modal-content">
+            <h3 class="modal-title">Confirmar acción</h3>
             <p id="confirmText">¿Estás seguro de finalizar la ruta? Esto detendrá el envío de ubicación y limpiará el mapa.</p>
             <div class="modal-buttons">
-                <button id="confirmYes" class="btn btn-danger">Sí, finalizar</button>
-                <button id="confirmNo" class="btn btn-secondary">Cancelar</button>
+                <button id="confirmYes" class="btn danger-btn">Sí, finalizar</button>
+                <button id="confirmNo" class="btn secondary-btn">Cancelar</button>
             </div>
         </div>
     </div>
 
-    <!-- Barra lateral derecha para mensajes en móviles -->
+    <!-- Botón para abrir mensajes en móviles (solo visible en móvil) -->
     <div class="message-toggle" onclick="openMessages()">
-        <img src="media/message-icon.svg" alt="Mensajes">
+        <i class="fas fa-comments"></i>
+        <span class="notification-badge">1</span>
     </div>
     
-    <!-- 📬 Barra Lateral de Mensajes -->
+    <!-- Barra Lateral de Mensajes -->
     <div class="message-sidebar" id="messageSidebar">
-        <!-- ❌ Botón para Cerrar -->
-        <a href="javascript:void(0)" class="close-btn" onclick="closeNav()">
-            <img src="media/xbuton.svg" alt="Cerrar" class="close-icon">
+        <!-- Botón para Cerrar -->
+        <a href="javascript:void(0)" class="close-btn" onclick="closeMessages()">
+            <i class="fas fa-times"></i>
         </a>
-        <!-- 📦 Contenedores de Mensajes -->
+        <div class="sidebar-header">
+            <h3><i class="fas fa-comment-alt"></i> Pasajeros a bordo</h3>
+        </div>
+        <!-- Contenedores de Mensajes -->
         <div class="tcpDirections message-box2"></div>
     </div>
+
+    <!-- Scripts -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="scripts/map.js"></script>
+    <script>
+        // Funciones para abrir/cerrar sidebars
+        function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar.style.width === '280px') {
+            sidebar.style.width = '0';
+            sidebar.classList.remove('open');
+        } else {
+            sidebar.style.width = '280px';
+            sidebar.classList.add('open');
+        }
+    }
+    
+    // Mantén las funciones para el sidebar de mensajes
+    function openMessages() {
+        document.getElementById("messageSidebar").style.width = "300px";
+    }
+    
+    function closeMessages() {
+        document.getElementById("messageSidebar").style.width = "0";
+    }
+    </script>
 </body>
 </html>
-

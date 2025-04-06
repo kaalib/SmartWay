@@ -2,16 +2,18 @@ const jsonUrl = 'https://smartway.ddns.net/messages'; // Cambiar por la IP de tu
 const tcpDirectionsList = document.querySelectorAll('.tcpDirections');
 const socket = io("https://smartway.ddns.net"); // Conectar a WebSocket
 
-
 document.addEventListener("DOMContentLoaded", () => {
     const role = localStorage.getItem("userRole");
 
     if (role === "Empleado") {
         ocultarElementos(["button-container", "message-container", "message-toggle"]);
+        ocultarEnlacesAdmin();
     } else if (role === "Administrador") {
-       // ocultarElementos(["button-container"]);
+        ocultarElementos(["button-container"]);
+        // Los administradores ven todos los enlaces
     } else if (role === "Conductor") {
-        // No ocultamos nada, el conductor tiene todos los permisos
+        // El conductor no ve los enlaces de administrador
+        ocultarEnlacesAdmin();
     } else {
         //window.location.href = "login.html"; // Redirigir si no hay rol válido
     }
@@ -26,6 +28,25 @@ function ocultarElementos(ids) {
         const elem = document.getElementById(id) || document.querySelector(`.${id}`);
         if (elem) elem.remove();
     });
+}
+
+// 🔹 Función para ocultar enlaces de administrador
+function ocultarEnlacesAdmin() {
+    // Seleccionar todos los elementos con la clase admin-link
+    const enlacesAdmin = document.querySelectorAll('.admin-link');
+    
+    // Eliminar cada uno de los enlaces de administrador
+    enlacesAdmin.forEach(enlace => {
+        enlace.remove();
+    });
+}
+
+// 🔹 Declarar la función configurarBarrasLaterales (asumiendo que está definida en otro archivo y necesita ser importada o definida aquí)
+function configurarBarrasLaterales() {
+    // Implementación de la función o importación desde otro archivo
+    // Por ejemplo:
+    // import { configurarBarrasLaterales } from './sidebar.js';
+    console.log("configurarBarrasLaterales llamada");
 }
 
 // 🔹 Función para configurar las barras laterales

@@ -1,0 +1,573 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Signika:wght@300;400;500;600;700&display=swap');
+
+/* Estilo general */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    background-color: #f8f9fa;
+    color: #333;
+    line-height: 1.6;
+    min-height: 100vh;
+    width: 100%;
+    overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Signika', sans-serif;
+    color: #0059FF;
+    margin-bottom: 1rem;
+}
+
+/* Barra de navegación más compacta */
+.nav-container {
+    width: 100%;
+    background: #ffffff;
+    padding: 8px 0; /* Reducido de 15px a 8px */
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    height: 60px; /* Altura fija más pequeña */
+}
+
+nav {
+    width: 95%; /* Aumentado de 90% a 95% */
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+}
+
+.logo {
+    font-family: 'Signika', sans-serif;
+    font-size: 1.6rem; /* Reducido de 1.8rem */
+    font-weight: 700;
+    text-decoration: none;
+    color: #0059FF;
+    display: inline-block;
+    white-space: nowrap;
+}
+
+.smart-text, .way-text {
+    display: inline-block;
+}
+
+.smart-text {
+    color: #0059FF;
+}
+
+.way-text {
+    color: #333;
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+}
+
+.admin-link {
+    color: #333;
+    text-decoration: none;
+    padding: 8px 15px; /* Reducido de 10px a 8px */
+    transition: 0.3s;
+    font-weight: 500;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.admin-link i {
+    margin-right: 6px;
+    color: #0059FF;
+}
+
+.admin-link:hover {
+    color: #0059FF;
+}
+
+/* Contenedor principal */
+.container {
+    width: 100%;
+    height: calc(100vh - 60px); /* Ajustado a la nueva altura de la barra */
+    margin-top: 60px; /* Ajustado a la nueva altura de la barra */
+    padding: 10px; /* Reducido de 20px a 10px */
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Contenedor del mapa y mensajes */
+.map-and-messages {
+    display: flex;
+    width: 100%;
+    max-width: 1600px;
+    height: calc(100% - 70px);
+    gap: 10px; /* Reducido de 20px a 10px */
+}
+
+.map-container {
+    flex: 5; /* Aumentado de 3 a 5 para dar más espacio al mapa */
+    height: 100%;
+    border-radius: 10px; /* Reducido de 15px a 10px */
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e0e0e0;
+}
+
+.message-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e0e0e0;
+    background: white;
+    max-width: 300px; /* Limitar el ancho máximo */
+}
+
+.message-header {
+    background: #0059FF;
+    color: white;
+    padding: 10px; /* Reducido de 15px a 10px */
+    display: flex;
+    align-items: center;
+}
+
+.message-header h3 {
+    color: white;
+    margin: 0;
+    font-size: 1rem; /* Reducido de 1.1rem */
+}
+
+.message-header i {
+    margin-right: 8px;
+}
+
+.message-box2 {
+    flex: 1;
+    padding: 10px; /* Reducido de 15px a 10px */
+    overflow-y: auto;
+    background: #f8f9fa;
+    font-size: 13px; /* Reducido de 14px a 13px */
+    color: #333;
+}
+
+/* Barra lateral de mensajes */
+.message-sidebar {
+    height: 100%;
+    width: 0;
+    position: fixed;
+    top: 0;
+    right: 0;
+    background-color: white;
+    overflow-x: hidden;
+    transition: 0.5s;
+    padding-top: 60px;
+    z-index: 1200;
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Sobrescribir los estilos de admin-link dentro del sidebar */
+.sidebar .admin-link {
+    color: white;
+}
+
+.sidebar .admin-link:hover {
+    color: white;
+    background-color: #003ecb;
+}
+
+.sidebar .admin-link i {
+    color: white;
+    margin-right: 10px;
+}
+
+/* Asegurar que todos los iconos dentro del sidebar sean blancos */
+.sidebar a i {
+    color: white;
+}
+
+.message-sidebar .close-btn {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    cursor: pointer;
+    font-size: 24px;
+    color: #0059FF;
+}
+
+.sidebar-header {
+    padding: 0 20px 15px;
+    border-bottom: 1px solid #e0e0e0;
+    margin-bottom: 15px;
+}
+
+.sidebar-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+/* Botón de mensajes solo visible en móvil - Con animación hover */
+.message-toggle {
+    display: none; /* Oculto por defecto, se muestra solo en móvil */
+    cursor: pointer;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1100;
+    background: linear-gradient(135deg, #0059FF 0%, #003ecb 100%);
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 8px rgba(0, 89, 255, 0.3);
+    transition: all 0.3s ease;
+}
+
+.message-toggle:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 12px rgba(0, 89, 255, 0.4);
+}
+
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #ff3333;
+    color: white;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Botones */
+.button-container {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 15px; /* Reducido de 20px a 15px */
+    width: 100%;
+    max-width: 600px;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px; /* Reducido de 12px 25px */
+    font-size: 0.95rem; /* Reducido de 1rem */
+    font-weight: 600;
+    border-radius: 30px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: 0.3s ease;
+    border: none;
+}
+
+.btn i {
+    margin-right: 8px;
+}
+
+.primary-btn {
+    background-color: #0059FF;
+    color: white;
+}
+
+.primary-btn:hover:not(:disabled) {
+    background-color: #003ecb;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 89, 255, 0.3);
+}
+
+.danger-btn {
+    background-color: #ff3333;
+    color: white;
+}
+
+.danger-btn:hover:not(:disabled) {
+    background-color: #e60000;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 51, 51, 0.3);
+}
+
+.secondary-btn {
+    background-color: #f8f9fa;
+    color: #333;
+    border: 1px solid #ddd;
+}
+
+.secondary-btn:hover:not(:disabled) {
+    background-color: #e9ecef;
+    transform: translateY(-2px);
+}
+
+.btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    opacity: 0.7;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Modales */
+.modal-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out, visibility 0s linear 0.3s;
+    z-index: 2000;
+}
+
+.modal-content {
+    background: white;
+    padding: 25px; /* Reducido de 30px a 25px */
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    width: 400px;
+    max-width: 90%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.modal-title {
+    color: #0059FF;
+    margin: 0;
+    font-size: 1.4rem; /* Reducido de 1.5rem */
+}
+
+#modalText, #ubicacionText, #rutaText, #confirmText {
+    font-size: 1rem;
+    margin: 0;
+    color: #555;
+}
+
+/* Opciones de ubicación y ruta */
+.ubicacion-options, .ruta-options {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+}
+
+.ubicacion-label, .ruta-label {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    border-radius: 10px;
+    background: #f8f9fa;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid #e0e0e0;
+    position: relative;
+}
+
+.ubicacion-label:hover, .ruta-label:hover {
+    background: #e9ecef;
+    border-color: #0059FF;
+}
+
+.ubicacion-label input, .ruta-label input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.radio-custom {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid #0059FF;
+    display: inline-block;
+    position: relative;
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.ubicacion-label input:checked ~ .radio-custom::after,
+.ruta-label input:checked ~ .radio-custom::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #0059FF;
+}
+
+.ubicacion-label input:checked ~ .radio-custom,
+.ruta-label input:checked ~ .radio-custom {
+    border-color: #0059FF;
+}
+
+.option-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.option-text strong {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 3px;
+}
+
+.option-text span {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+/* Loader */
+.loader {
+    width: 60px;
+    height: 15px;
+    background: radial-gradient(circle closest-side, #0059FF 90%, transparent) 0/calc(100%/3) 100% space;
+    clip-path: inset(0 100% 0 0);
+    animation: l1 1s steps(4) infinite;
+}
+
+@keyframes l1 {
+    to { clip-path: inset(0 -34% 0 0); }
+}
+
+/* Botones del modal */
+.modal-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    width: 100%;
+}
+
+
+
+@media (max-width: 768px) {
+    .nav-container {
+        display: none;
+    }
+    
+    .container {
+        margin-top: 0;
+        height: 100vh;
+        padding: 10px;
+    }
+    
+    .button-container {
+        position: center;
+        bottom: 20px;
+        padding: 0 20px;
+        z-index: 900;
+    }
+    
+    .btn {
+        
+        flex: 1;
+        padding: 12px 15px;
+        font-size: 0.9rem;
+    }
+    
+    .btn i {
+        margin-right: 5px;
+    }
+    
+    .modal-content {
+        padding: 20px;
+    }
+
+    .map-and-messages {
+        flex-direction: column;
+    }
+    
+    .message-container {
+        display: none;
+    }
+    
+    .map-container {
+        height: calc(100% - 20px);
+    }
+    
+    .message-toggle {
+        display: flex; /* Mostrar solo en móvil */
+    }
+}
+
+@media (max-width: 480px) {
+    /* Hacer que el contenedor ocupe toda la pantalla sin padding */
+    .container {
+        padding: 0;
+        margin: 0;
+        height: 100vh;
+        width: 100vw;
+    }
+    
+    /* Hacer que el mapa ocupe todo el espacio disponible */
+    .map-and-messages {
+        height: 100%;
+        gap: 0;
+    }
+    
+    .map-container {
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
+        height: 100%;
+        width: 100%;
+    }
+    
+    /* Posicionar los botones encima del mapa */
+    .button-container {
+        position: fixed;
+        bottom: 20px;
+        left: 0;
+        right: 0;
+        padding: 0 20px;
+        z-index: 950;
+        gap: 8px;
+        background: transparent;
+    }
+    
+    .btn {
+        padding: 10px;
+        font-size: 0.8rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    .btn i {
+        margin-right: 3px;
+    }
+    
+    .modal-title {
+        font-size: 1.3rem;
+    }
+    
+    #modalText, #ubicacionText, #rutaText, #confirmText {
+        font-size: 0.9rem;
+    }
+}
