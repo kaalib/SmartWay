@@ -1,29 +1,9 @@
-// Gestión de ubicación
+
 import CONFIG from '../config.js';
-import { actualizarMarcadorBus } from './map-markers.js';
-import { socket } from './socket.js';
 
-
-// Geocodificar dirección
-export function geocodificarDireccion(direccion) {
+async function obtenerDireccion(lat, lng) {
     return new Promise((resolve) => {
-        if (!direccion) return resolve(null);
-        window.geocoder.geocode({ address: direccion }, (results, status) => {
-            if (status === "OK" && results[0]) {
-                resolve(results[0].geometry.location);
-            } else {
-                console.warn(`⚠️ No se pudo geocodificar: ${direccion}`);
-                resolve(null);
-            }
-        });
-    });
-}
-
-// Obtener dirección a partir de lat/lng
-export async function obtenerDireccion(lat, lng) {
-    return new Promise((resolve, reject) => {
         const latLng = { lat: parseFloat(lat), lng: parseFloat(lng) };
-
         window.geocoder.geocode({ location: latLng }, (results, status) => {
             if (status === "OK" && results[0]) {
                 resolve(results[0].formatted_address);
@@ -35,8 +15,7 @@ export async function obtenerDireccion(lat, lng) {
     });
 }
 
-// Gestionar ubicación y enviarla al servidor
-export async function gestionarUbicacion() {
+async function gestionarUbicacion() {
     return new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
             Swal.fire({
@@ -54,40 +33,28 @@ export async function gestionarUbicacion() {
                 console.log("📌 Ubicación obtenida:", { latitude, longitude, timestamp });
 
                 try {
-                    let direccion = null;
-
-                    // Solo la primera vez convertimos la lat/lng a dirección
-                    if (window.primeraVez) {
-                        direccion = await obtenerDireccion(latitude, longitude);
-                        console.log("📍 Dirección obtenida:", direccion);
-                    }
-
-                    // Enviar datos al servidor
-                    const response = await fetch(`${CONFIG.API_URL}/actualizar-ubicacion-bus`, {
+                    let direccion = window.primeraVez ? await obtenerDireccion(latitude, longitude) : null;
+                    const response = await fetch(`${CONFIG.SERVER_URL}/actualizar-ubicacion-bus`, {
                         method: 'POST',
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
                             lat: latitude,
                             lng: longitude,
-                            direccion: direccion // Solo la primera vez tiene valor
+                            direccion,
+                            ultimaParada: window.primeraVez ? window.ultimaParada : null // Solo en la primera vez
                         })
                     });
 
-                    if (!response.ok) {
-                        throw new Error(`Error en la respuesta del servidor: ${response.status}`);
-                    }
-
+                    if (!response.ok) throw new Error(`Error: ${response.status}`);
                     const result = await response.json();
                     console.log("📡 Respuesta del servidor:", result);
 
-                    // Marcar que ya se envió la dirección
-                    if (window.primeraVez) {
-                        window.primeraVez = false;
-                    }
+                    actualizarMarcadorBus({ lat: latitude, lng: longitude }); // Actualizar marcador inmediatamente
 
-                    resolve(); // Resuelve la promesa cuando todo ha terminado correctamente
+                    if (window.primeraVez) window.primeraVez = false;
+                    resolve();
                 } catch (error) {
-                    console.error("❌ Error enviando ubicación al servidor:", error);
+                    console.error("❌ Error enviando ubicación:", error);
                     reject(error);
                 }
             },
@@ -96,8 +63,8 @@ export async function gestionarUbicacion() {
                 if (error.code === error.PERMISSION_DENIED) {
                     Swal.fire({
                         icon: "warning",
-                        title: "Permiso de ubicación denegado",
-                        text: "Activa la ubicación para actualizar la ruta en tiempo real."
+                        title: "Permiso denegado",
+                        text: "Activa la ubicación para continuar."
                     });
                 }
                 reject(error);
@@ -106,44 +73,9 @@ export async function gestionarUbicacion() {
     });
 }
 
-// Agregar punto final al seleccionar ubicación
-export async function agregarPuntoFinal(opcion) {
+async function dibujarUbicacionBus() {
     try {
-        // Si es la primera opción, ya se agregó la ubicación actual como primer elemento
-        if (opcion === "1") {
-            console.log("📍 Usando ubicación actual como punto final");
-            return true;
-        } 
-        // Si es la segunda opción, agregar punto final personalizado
-        else if (opcion === "2") {
-            const response = await fetch(`${CONFIG.API_URL}/agregar-punto-final`, {
-                method: 'POST',
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    nombre: "punto final",
-                    direccion: window.ultimaParada || "Punto final de ruta"
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error(`Error al agregar punto final: ${response.status}`);
-            }
-
-            const result = await response.json();
-            console.log("✅ Punto final agregado:", result);
-            return true;
-        }
-        return false;
-    } catch (error) {
-        console.error("❌ Error al agregar punto final:", error);
-        return false;
-    }
-}
-
-// Dibujar ubicación del bus
-export async function dibujarUbicacionBus() {
-    try {
-        const response = await fetch(`${CONFIG.API_URL}/messages`);
+        const response = await fetch(`${CONFIG.SERVER_URL}/messages`);
         if (!response.ok) throw new Error("Error obteniendo datos de /messages");
 
         const data = await response.json();
@@ -152,7 +84,6 @@ export async function dibujarUbicacionBus() {
             return;
         }
 
-        // Obtener la última ubicación
         const ultimaUbicacion = data.bus[data.bus.length - 1].direccion;
         if (!ultimaUbicacion || !ultimaUbicacion.lat || !ultimaUbicacion.lng) {
             console.warn("⚠️ No se encontró una ubicación válida para el bus:", data);
@@ -164,3 +95,31 @@ export async function dibujarUbicacionBus() {
         console.error("❌ Error obteniendo la ubicación del bus:", error);
     }
 }
+
+
+function actualizarMarcadorBus(ubicacion) {
+    if (window.ultimaUbicacionBus &&
+        ubicacion.lat === window.ultimaUbicacionBus.lat &&
+        ubicacion.lng === window.ultimaUbicacionBus.lng) {
+        console.log("🔄 La ubicación del bus no ha cambiado.");
+        return;
+    }
+
+    if (window.marcadorBus) window.marcadorBus.setMap(null);
+
+    window.marcadorBus = new google.maps.marker.AdvancedMarkerElement({
+        position: new google.maps.LatLng(ubicacion.lat, ubicacion.lng),
+        map: window.map,
+        title: "Ubicación actual del Bus",
+        content: document.createElement("img")
+    });
+
+    window.marcadorBus.content.src = "media/iconobus.svg";
+    window.marcadorBus.content.style.width = "40px";
+    window.marcadorBus.content.style.height = "40px";
+    window.ultimaUbicacionBus = ubicacion;
+
+    console.log("✅ Marcador del bus actualizado:", ubicacion);
+}
+
+export { obtenerDireccion, gestionarUbicacion, dibujarUbicacionBus, actualizarMarcadorBus };

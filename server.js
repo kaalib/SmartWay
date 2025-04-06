@@ -81,6 +81,7 @@ function emitirActualizacionRutas() {
 // 🔄 Control de emisión
 let emitirRutas = false;
 let intervaloRutas = null;
+let rutaSeleccionada = null; // Variable para rastrear la ruta seleccionada
 
 // ✅ Iniciar emisión de rutasIA
 function iniciarEmisionRutas() {
@@ -111,47 +112,33 @@ let flaskIntervalId = null;
 app.post("/iniciar-emision", (req, res) => {
     iniciarEmisionRutas();
     
-    // Iniciar actualización periódica a Flask si no está activa
-    if (!flaskIntervalId) {
-        flaskIntervalId = setInterval(async () => {
-            try {
-                if (messages.tcp && messages.tcp.length > 0) {
-                    const direcciones = messages.tcp.map(msg => msg.direccion);
-                    console.log("📤 Actualizando rutas con Flask (cada 20s):", direcciones);
-                    
-                    const respuestaFlask = await axios.post("http://smartway.ddns.net:5000/api/process", { direcciones });
-                    messages.rutasIA = respuestaFlask.data.rutasIA || [];
-                    
-                    // Guardar en el archivo JSON
-                    fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
-                        if (err) console.error("❌ Error guardando rutasIA:", err);
-                    });
-                    
-                    // Emitir la actualización a todos los clientes conectados
-                    emitirActualizacionRutas();
-                }
-            } catch (error) {
-                console.error("❌ Error en actualización periódica a Flask:", error.message);
-            }
-        }, 20000); // 20 segundos
-        
-        console.log("✅ Actualización periódica a Flask ACTIVADA (cada 20s)");
+    // Enviar a Flask una sola vez al iniciar
+    if (messages.tcp && messages.tcp.length > 0) {
+        const direcciones = messages.tcp.map(msg => msg.direccion);
+        console.log("📤 Enviando a Flask (única vez al iniciar):", direcciones);
+        axios.post("http://smartway.ddns.net:5000/api/process", { direcciones })
+            .then(respuestaFlask => {
+                messages.rutasIA = respuestaFlask.data.rutasIA || [];
+                fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
+                    if (err) console.error("❌ Error guardando rutasIA:", err);
+                });
+                emitirActualizacionRutas();
+            })
+            .catch(error => console.error("❌ Error enviando a Flask al iniciar:", error.message));
     }
-    
+
     res.json({ estado: emitirRutas, message: "Emisión iniciada" });
 });
 
 // Modificar el endpoint de detener-emision para detener también la actualización a Flask
 app.post("/detener-emision", (req, res) => {
     detenerEmisionRutas();
-    
-    // Detener actualización periódica a Flask
     if (flaskIntervalId) {
         clearInterval(flaskIntervalId);
         flaskIntervalId = null;
         console.log("🛑 Actualización periódica a Flask DETENIDA");
     }
-    
+    rutaSeleccionada = null; // Reiniciar la ruta seleccionada
     res.json({ estado: emitirRutas, message: "Emisión detenida" });
 });
 
@@ -166,22 +153,13 @@ app.post("/enviar-direcciones", async (req, res) => {
         console.log("📤 Enviando direcciones a Flask:", direcciones);
 
         const respuestaFlask = await axios.post("http://smartway.ddns.net:5000/api/process", { direcciones });
-
         messages.rutasIA = respuestaFlask.data.rutasIA || [];
-        
-        // Guardar en el archivo JSON
+
         fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
-            if (err) {
-                console.error("❌ Error guardando rutasIA:", err);
-                return res.status(500).json({ success: false, message: "Error al guardar rutasIA" });
-            }
-            console.log("✅ Rutas guardadas en messages.json");
+            if (err) console.error("❌ Error guardando rutasIA:", err);
         });
 
-        // Emitir la actualización a todos los clientes conectados
         emitirActualizacionRutas();
-
-        console.log("✅ Rutas actualizadas:", messages.rutasIA);
         res.json({ success: true, rutasIA: messages.rutasIA });
     } catch (error) {
         console.error("❌ Error al comunicarse con Flask:", error.message);
@@ -189,6 +167,34 @@ app.post("/enviar-direcciones", async (req, res) => {
     }
 });
 
+// Nuevo endpoint para manejar la selección de ruta
+app.post("/seleccionar-ruta", (req, res) => {
+    rutaSeleccionada = req.body.ruta; // Guardar la ruta seleccionada
+    console.log("✅ Ruta seleccionada en el servidor:", rutaSeleccionada);
+
+    if (!flaskIntervalId && messages.tcp.length > 0) {
+        flaskIntervalId = setInterval(async () => {
+            try {
+                const direcciones = messages.tcp.map(msg => msg.direccion);
+                console.log("📤 Actualizando rutas con Flask (cada 20s):", direcciones);
+                
+                const respuestaFlask = await axios.post("http://smartway.ddns.net:5000/api/process", { direcciones });
+                messages.rutasIA = respuestaFlask.data.rutasIA || [];
+                
+                fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
+                    if (err) console.error("❌ Error guardando rutasIA:", err);
+                });
+                
+                emitirActualizacionRutas(); // Emitir a todos los clientes conectados
+            } catch (error) {
+                console.error("❌ Error en actualización periódica a Flask:", error.message);
+            }
+        }, 20000); // Cada 20 segundos
+        console.log("✅ Actualización periódica a Flask ACTIVADA (cada 20s)");
+    }
+
+    res.json({ success: true, message: "Ruta seleccionada y actualización iniciada" });
+});
 
 // --- Redirige tráfico HTTP a HTTPS ---
 const httpServer = http.createServer((req, res) => {
@@ -410,12 +416,12 @@ app.post('/messages', async (req, res) => {
 });
 
 app.post("/actualizar-ubicacion-bus", (req, res) => {
-    const { lat, lng, direccion } = req.body;
+    const { lat, lng, direccion, ultimaParada } = req.body; // Añadimos ultimaParada
     if (!lat || !lng) {
         return res.status(400).json({ error: "Faltan datos: lat o lng" });
     }
 
-    // 🛑 Actualizar `/messages/bus` con la ubicación del bus (siempre)
+    // Actualizar messages.bus con la ubicación actual
     messages.bus = [{
         id: "bus",
         direccion: { lat, lng },
@@ -424,19 +430,47 @@ app.post("/actualizar-ubicacion-bus", (req, res) => {
 
     console.log("✅ Ubicación del bus actualizada:", messages.bus);
 
-    // 🚀 Si `direccion` está presente, significa que es el primer envío
+    // Si es la primera vez (direccion está presente), añadir el bus como primer dato en TCP
     if (direccion) {
-        // 🛑 Eliminar cualquier entrada previa del bus en TCP
         messages.tcp = messages.tcp.filter(m => m.id !== "bus");
-
-        // 📌 Insertar la dirección del bus en TCP como primer dato
         const busData = {
             id: "bus",
+            nombre: "Bus",
+            apellido: "",
             direccion: direccion,
         };
-
         messages.tcp.unshift(busData);
-        console.log("📌 messages.tcp actualizado:", messages.tcp);
+        console.log("📌 messages.tcp actualizado con bus:", messages.tcp);
+    }
+
+    // Añadir la última parada al final de messages.tcp según la selección
+    if (ultimaParada) {
+        let puntoFinal;
+        if (ultimaParada === "actual") {
+            // Copiar la primera dirección (bus)
+            puntoFinal = {
+                id: "punto_final",
+                nombre: "Punto Final",
+                apellido: "",
+                direccion: messages.tcp[0].direccion // Copia la dirección del bus
+            };
+        } else if (ultimaParada === "parqueadero") {
+            // Dirección fija del parqueadero
+            puntoFinal = {
+                id: "punto_final",
+                nombre: "Punto Final",
+                apellido: "",
+                direccion: "Carrera 15 #27A-40"
+            };
+        }
+
+        if (puntoFinal) {
+            messages.tcp.push(puntoFinal);
+            console.log("✅ Punto final añadido a messages.tcp:", puntoFinal);
+            fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
+                if (err) console.error("❌ Error guardando punto final:", err);
+            });
+        }
     }
 
     res.json({ success: true });

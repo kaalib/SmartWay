@@ -1,72 +1,129 @@
-// Gestión de marcadores
-import CONFIG from '../config.js';
+// scripts/modules/map-markers.js
+async function actualizarMapa(rutasIA) {
+    if (!rutasIA) return;
 
-// Agregar marcador
-export function agregarMarcador(location, title, bounds, label, color) {
+    window.marcadores.forEach(marcador => marcador.map = null);
+    window.marcadores = [];
+    window.rutasDibujadas.forEach(ruta => ruta.setMap(null));
+    window.rutasDibujadas = [];
+
+    const bounds = new google.maps.LatLngBounds();
+
+    if (window.rutaSeleccionada) {
+        const ruta = rutasIA[window.rutaSeleccionada];
+        const color = window.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900'; // Verde y naranja de tu versión
+        await procesarRuta(ruta, color, bounds);
+    } else {
+        await Promise.all([
+            procesarRuta(rutasIA.mejor_ruta_distancia, '#00CC66', bounds),
+            procesarRuta(rutasIA.mejor_ruta_trafico, '#FF9900', bounds)
+        ]);
+    }
+
+    if (!bounds.isEmpty()) {
+        window.map.fitBounds(bounds);
+    }
+}
+
+async function procesarRuta(direcciones, color, bounds) {
+    if (!direcciones || direcciones.length === 0) return;
+
+    const locations = await Promise.all(direcciones.map(geocodificarDireccion));
+    
+    locations.forEach((location, index) => {
+        if (location) {
+            agregarMarcador(location, `Parada ${index + 1}`, bounds, index + 1);
+        }
+    });
+
+    if (locations.length > 1) {
+        const renderer = dibujarRutaConductor(locations, color);
+        return { locations, renderer };
+    }
+    return null;
+}
+
+function geocodificarDireccion(direccion) {
+    return new Promise((resolve) => {
+        if (!direccion) return resolve(null);
+        window.geocoder.geocode({ address: direccion }, (results, status) => {
+            if (status === "OK" && results[0]) {
+                resolve(results[0].geometry.location);
+            } else {
+                console.warn(`⚠️ No se pudo geocodificar: ${direccion}`);
+                resolve(null);
+            }
+        });
+    });
+}
+
+function agregarMarcador(location, title, bounds, label) {
     const marcador = new google.maps.marker.AdvancedMarkerElement({
         position: location,
         map: window.map,
         title: title,
-        content: crearMarcadorCircular(label, color)
+        content: crearMarcadorCirculo(label)
     });
     window.marcadores.push(marcador);
     bounds.extend(location);
 }
 
-// Crear marcador circular con número
-export function crearMarcadorCircular(label, color) {
+function dibujarRutaConductor(locations, color) {
+    if (locations.length < 2) return null;
+
+    const directionsService = new google.maps.DirectionsService();
+    const directionsRenderer = new google.maps.DirectionsRenderer({
+        map: window.map,
+        suppressMarkers: true,
+        polylineOptions: {
+            strokeColor: color,
+            strokeOpacity: 0.8,
+            strokeWeight: 5,
+            icons: [{
+                icon: {
+                    path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+                    scale: 4,
+                    strokeColor: color,
+                    strokeWeight: 2,
+                    fillOpacity: 1
+                },
+                offset: "0%",
+                repeat: "100px"
+            }]
+        }
+    });
+
+    directionsService.route({
+        origin: locations[0],
+        destination: locations[locations.length - 1],
+        waypoints: locations.slice(1, -1).map(loc => ({ location: loc, stopover: true })),
+        travelMode: google.maps.TravelMode.DRIVING
+    }, (result, status) => {
+        if (status === google.maps.DirectionsStatus.OK) {
+            directionsRenderer.setDirections(result);
+            window.rutasDibujadas.push(directionsRenderer);
+        } else {
+            console.error("❌ Error al calcular ruta:", status);
+        }
+    });
+
+    return directionsRenderer;
+}
+
+function crearMarcadorCirculo(label) {
     const div = document.createElement("div");
-    div.style.position = "relative";
-    div.style.width = "30px";
-    div.style.height = "30px";
+    div.style.width = "24px";
+    div.style.height = "24px";
+    div.style.backgroundColor = "#0000FF";
     div.style.borderRadius = "50%";
-    div.style.backgroundColor = color;
     div.style.display = "flex";
     div.style.alignItems = "center";
     div.style.justifyContent = "center";
-    div.style.boxShadow = "0 2px 6px rgba(0,0,0,0.3)";
-    div.style.border = "2px solid white";
-
-    const span = document.createElement("span");
-    span.textContent = label;
-    span.style.color = "white";
-    span.style.fontWeight = "bold";
-    span.style.fontSize = "14px";
-
-    div.appendChild(span);
+    div.style.color = "white";
+    div.style.fontSize = "12px";
+    div.style.fontWeight = "bold";
+    div.textContent = label.toString();
     return div;
 }
 
-// Actualizar marcador del bus
-export function actualizarMarcadorBus(ubicacion) {
-    // Evitar redibujar si la ubicación no ha cambiado
-    if (window.ultimaUbicacionBus &&
-        ubicacion.lat === window.ultimaUbicacionBus.lat &&
-        ubicacion.lng === window.ultimaUbicacionBus.lng) {
-        console.log("🔄 La ubicación del bus no ha cambiado.");
-        return;
-    }
-
-    // Limpiar marcador anterior
-    if (window.marcadorBus) {
-        window.marcadorBus.setMap(null);
-    }
-
-    // Crear nuevo marcador con ícono personalizado
-    window.marcadorBus = new google.maps.marker.AdvancedMarkerElement({
-        position: new google.maps.LatLng(ubicacion.lat, ubicacion.lng),
-        map: window.map,
-        title: "Ubicación actual del Bus",
-        content: document.createElement("img"),
-    });
-
-    // Configurar la imagen personalizada
-    window.marcadorBus.content.src = "media/iconobus.svg";
-    window.marcadorBus.content.style.width = "40px";
-    window.marcadorBus.content.style.height = "40px";
-
-    // Guardar última ubicación
-    window.ultimaUbicacionBus = ubicacion;
-
-    console.log("✅ Marcador del bus actualizado:", ubicacion);
-}
+export { actualizarMapa, procesarRuta, geocodificarDireccion, agregarMarcador, dibujarRutaConductor };

@@ -1,12 +1,11 @@
-// Comunicación con el servidor
+// scripts/modules/api.js
 import CONFIG from '../config.js';
-import { actualizarMapa } from './map-routes.js';
+import { actualizarMapa } from './map-markers.js';
 import { gestionarUbicacion } from './location.js';
 
-// Obtener mensajes TCP y mostrarlos en la lista
-export async function mostrarMensajesTCP() {
+async function mostrarMensajesTCP() {
     try {
-        const response = await fetch(`${CONFIG.API_URL}/messages`);
+        const response = await fetch(`${CONFIG.SERVER_URL}/messages`);
         if (!response.ok) throw new Error("Error al obtener los mensajes TCP");
 
         const data = await response.json();
@@ -19,16 +18,13 @@ export async function mostrarMensajesTCP() {
             return;
         }
 
-        // Crear lista excluyendo el primer mensaje
         const listaMensajes = mensajes.slice(1).map((msg, index) => 
             `<p>${index + 1}. ${msg.nombre} ${msg.apellido} - ${msg.direccion}</p>`
         ).join("");
 
-        // Insertar en todos los elementos con la clase `tcpDirections`
         document.querySelectorAll('.tcpDirections').forEach(el => {
             el.innerHTML = listaMensajes;
         });
-
     } catch (error) {
         console.error("❌ Error obteniendo mensajes TCP:", error);
         document.querySelectorAll('.tcpDirections').forEach(el => {
@@ -37,11 +33,10 @@ export async function mostrarMensajesTCP() {
     }
 }
 
-// Solicitar actualización de rutas
-export async function solicitarActualizacionRutas() {
+async function solicitarActualizacionRutas() {
     try {
         console.log("📡 Solicitando actualización de rutas...");
-        const response = await fetch(`${CONFIG.API_URL}/enviar-direcciones`, { method: "POST" });
+        const response = await fetch(`${CONFIG.SERVER_URL}/enviar-direcciones`, { method: "POST" });
         const data = await response.json();
 
         if (data.success) {
@@ -55,30 +50,24 @@ export async function solicitarActualizacionRutas() {
     }
 }
 
-// Solicitar reorganización de rutas
-export async function solicitarReorganizacionRutas() {
+async function solicitarReorganizacionRutas() {
     try {
-        console.log("📡 Solicitando reorganización de rutas a Node.js...");
-
-        const response = await fetch(`${CONFIG.API_URL}/enviar-direcciones`, {
+        console.log("📡 Solicitando reorganización de rutas...");
+        const response = await fetch(`${CONFIG.SERVER_URL}/enviar-direcciones`, {
             method: "POST",
             headers: { "Content-Type": "application/json" }
         });
 
         if (!response.ok) throw new Error("Error al solicitar reorganización de rutas");
-
         const data = await response.json();
         console.log("✅ Rutas reorganizadas recibidas:", data.rutasIA);
-
-        // Actualizar el mapa con las nuevas rutas
         actualizarMapa(data.rutasIA);
     } catch (error) {
         console.error("❌ Error en `solicitarReorganizacionRutas()`:", error);
     }
 }
 
-// Ejecutar proceso en orden
-export async function ejecutarProcesoenorden() {
+async function ejecutarProcesoenorden() {
     try {
         await gestionarUbicacion();
         await solicitarActualizacionRutas();
@@ -87,10 +76,9 @@ export async function ejecutarProcesoenorden() {
     }
 }
 
-// Iniciar emisión de ubicación
-export async function iniciarEnvioActualizacion() {
+async function iniciarEnvioActualizacion() {
     try {
-        const response = await fetch(`${CONFIG.API_URL}/iniciar-emision`, { method: "POST" });
+        const response = await fetch(`${CONFIG.SERVER_URL}/iniciar-emision`, { method: "POST" });
         const data = await response.json();
         console.log("✅ Emisión activada:", data);
     } catch (error) {
@@ -98,10 +86,9 @@ export async function iniciarEnvioActualizacion() {
     }
 }
 
-// Detener emisión de ubicación
-export async function detenerEnvioActualizacion() {
+async function detenerEnvioActualizacion() {
     try {
-        const response = await fetch(`${CONFIG.API_URL}/detener-emision`, { method: "POST" });
+        const response = await fetch(`${CONFIG.SERVER_URL}/detener-emision`, { method: "POST" });
         const data = await response.json();
         console.log("🛑 Emisión detenida:", data);
     } catch (error) {
@@ -109,51 +96,4 @@ export async function detenerEnvioActualizacion() {
     }
 }
 
-// Limpiar mapa y datos
-export function limpiarMapa() {
-    // Eliminar todos los marcadores del mapa
-    window.marcadores.forEach(marcador => marcador.setMap(null));
-    window.marcadores = [];
-
-    // Vaciar la lista de direcciones
-    window.direccionesTCP = [];
-
-    // Eliminar marcador del bus si existe
-    if (window.marcadorBus) {
-        window.marcadorBus.setMap(null);
-        window.marcadorBus = null;
-    }
-
-    // Eliminar todas las polilíneas dibujadas
-    window.rutasDibujadas.forEach(ruta => ruta.setMap(null));
-    window.rutasDibujadas = [];
-
-    // Limpiar contenido de los elementos HTML
-    document.querySelectorAll(".tcpInput").forEach(el => {
-        if (el.tagName === "INPUT") {
-            el.value = "";
-        } else {
-            el.innerHTML = "";
-        }
-    });
-
-    document.querySelectorAll(".tcpDirections").forEach(el => {
-        if (el.tagName === "INPUT") {
-            el.value = "";
-        } else {
-            el.innerHTML = "";
-        }
-    });
-
-    // Enviar solicitud DELETE para limpiar mensajes en el servidor
-    fetch('/messages', { method: 'DELETE' })
-        .then(response => response.json())
-        .then(data => console.log(data.message))
-        .catch(error => console.error('Error al limpiar mensajes:', error));
-
-    // Enviar solicitud PUT para actualizar la columna bus en la BD
-    fetch('/updateBus', { method: 'PUT' })
-        .then(response => response.json())
-        .then(data => console.log(data.message))
-        .catch(error => console.error('Error al actualizar bus:', error));
-}
+export { mostrarMensajesTCP, solicitarActualizacionRutas, solicitarReorganizacionRutas, ejecutarProcesoenorden, iniciarEnvioActualizacion, detenerEnvioActualizacion };
