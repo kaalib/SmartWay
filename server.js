@@ -106,13 +106,52 @@ function detenerEmisionRutas() {
 }
 
 // 🔘 Endpoints para activar/desactivar desde el frontend
+let flaskIntervalId = null;
+
 app.post("/iniciar-emision", (req, res) => {
     iniciarEmisionRutas();
+    
+    // Iniciar actualización periódica a Flask si no está activa
+    if (!flaskIntervalId) {
+        flaskIntervalId = setInterval(async () => {
+            try {
+                if (messages.tcp && messages.tcp.length > 0) {
+                    const direcciones = messages.tcp.map(msg => msg.direccion);
+                    console.log("📤 Actualizando rutas con Flask (cada 20s):", direcciones);
+                    
+                    const respuestaFlask = await axios.post("http://smartway.ddns.net:5000/api/process", { direcciones });
+                    messages.rutasIA = respuestaFlask.data.rutasIA || [];
+                    
+                    // Guardar en el archivo JSON
+                    fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
+                        if (err) console.error("❌ Error guardando rutasIA:", err);
+                    });
+                    
+                    // Emitir la actualización a todos los clientes conectados
+                    emitirActualizacionRutas();
+                }
+            } catch (error) {
+                console.error("❌ Error en actualización periódica a Flask:", error.message);
+            }
+        }, 20000); // 20 segundos
+        
+        console.log("✅ Actualización periódica a Flask ACTIVADA (cada 20s)");
+    }
+    
     res.json({ estado: emitirRutas, message: "Emisión iniciada" });
 });
 
+// Modificar el endpoint de detener-emision para detener también la actualización a Flask
 app.post("/detener-emision", (req, res) => {
     detenerEmisionRutas();
+    
+    // Detener actualización periódica a Flask
+    if (flaskIntervalId) {
+        clearInterval(flaskIntervalId);
+        flaskIntervalId = null;
+        console.log("🛑 Actualización periódica a Flask DETENIDA");
+    }
+    
     res.json({ estado: emitirRutas, message: "Emisión detenida" });
 });
 
@@ -403,3 +442,32 @@ app.post("/actualizar-ubicacion-bus", (req, res) => {
     res.json({ success: true });
 });
 
+// Agregar este nuevo endpoint para manejar el punto final
+app.post("/agregar-punto-final", (req, res) => {
+    const { nombre, direccion } = req.body;
+    
+    if (!nombre || !direccion) {
+        return res.status(400).json({ success: false, message: "Faltan datos requeridos" });
+    }
+    
+    // Crear objeto para el punto final
+    const puntoFinal = {
+        id: "punto_final",
+        nombre: nombre,
+        apellido: "",
+        direccion: direccion
+    };
+    
+    // Agregar al final del array TCP
+    messages.tcp.push(puntoFinal);
+    
+    // Guardar en el archivo JSON
+    fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
+        if (err) {
+            console.error("❌ Error guardando punto final:", err);
+            return res.status(500).json({ success: false, message: "Error al guardar punto final" });
+        }
+        console.log("✅ Punto final guardado en messages.json");
+        res.json({ success: true, message: "Punto final agregado correctamente" });
+    });
+});
