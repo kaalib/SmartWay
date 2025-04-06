@@ -124,16 +124,7 @@ function setupUIEvents() {
         });
     });
 
-    document.getElementById("btnSeleccionarUbicacion").addEventListener("click", () => {
-        const opcionSeleccionada = document.querySelector('input[name="ubicacion"]:checked').value;
-        console.log("📍 Ubicación seleccionada:", opcionSeleccionada);
-        window.ultimaParada = opcionSeleccionada;
-        cerrarUbicacionModal();
-        mostrarLoader();
-    });
-
-    document.getElementById('btnInicio').addEventListener("click", async () => {
-        await abrirUbicacionModal();
+    document.getElementById("btnSeleccionarUbicacion").addEventListener("click", async () => {
         await mostrarMensajesTCP();
         await ejecutarProcesoenorden();
         await iniciarEnvioActualizacion();
@@ -143,7 +134,17 @@ function setupUIEvents() {
         }
         window.intervalID = setInterval(gestionarUbicacion, 10000); // Actualiza ubicación y marcador cada 10s
         console.log("✅ Envío de ubicación activado.");
+        const opcionSeleccionada = document.querySelector('input[name="ubicacion"]:checked').value;
+        console.log("📍 Ubicación seleccionada:", opcionSeleccionada);
+        window.ultimaParada = opcionSeleccionada;
+        await cerrarUbicacionModal();
+        await mostrarLoader();
     });
+
+    document.getElementById('btnInicio').addEventListener("click", () => {
+        abrirUbicacionModal();
+    });
+
 
     document.getElementById("btnSeleccionRuta").addEventListener("click", () => {
         mostrarOpcionesRuta();
