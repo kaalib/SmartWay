@@ -1,8 +1,17 @@
-// Gestión de roles y permisos
-import { ocultarElementos } from '../utils/helpers.js';
+// scripts/modules/auth.js
+function ocultarElementos(ids) {
+    ids.forEach(id => {
+        const elem = document.getElementById(id) || document.querySelector(`.${id}`);
+        if (elem) elem.remove();
+    });
+}
 
-// Verificar el rol del usuario y configurar permisos
-export function checkUserRole() {
+function ocultarEnlacesAdmin() {
+    const enlacesAdmin = document.querySelectorAll('.admin-link');
+    enlacesAdmin.forEach(enlace => enlace.remove());
+}
+
+function checkUserRole() {
     const role = localStorage.getItem("userRole");
 
     if (role === "Empleado") {
@@ -10,22 +19,11 @@ export function checkUserRole() {
         ocultarEnlacesAdmin();
     } else if (role === "Administrador") {
         ocultarElementos(["button-container"]);
-        // Los administradores ven todos los enlaces
     } else if (role === "Conductor") {
-        // El conductor no ve los enlaces de administrador
         ocultarEnlacesAdmin();
     } else {
-        //window.location.href = "login.html"; // Redirigir si no hay rol válido
+        // window.location.href = "login.html"; // Descomentar si necesitas redirección
     }
 }
 
-// Ocultar enlaces de administrador
-export function ocultarEnlacesAdmin() {
-    // Seleccionar todos los elementos con la clase admin-link
-    const enlacesAdmin = document.querySelectorAll('.admin-link');
-    
-    // Eliminar cada uno de los enlaces de administrador
-    enlacesAdmin.forEach(enlace => {
-        enlace.remove();
-    });
-}
+export { checkUserRole, ocultarElementos, ocultarEnlacesAdmin };

@@ -1,10 +1,8 @@
-// Configuración global y constantes
+// scripts/config.js
 const CONFIG = {
-    API_URL: 'https://smartway.ddns.net',
-    SOCKET_URL: 'https://smartway.ddns.net',
-    UPDATE_INTERVAL: 10000, // 10 segundos
-    MAX_WAIT_TIME: 120000,  // 2 minutos
+    SERVER_URL: 'https://smartway.ddns.net',
+    WEBSOCKET_URL: 'https://smartway.ddns.net',
+    GOOGLE_MAPS_API_KEY: null // Se obtiene dinámicamente en map-init.js
 };
 
-// Exportar la configuración
 export default CONFIG;
