@@ -14,49 +14,47 @@ async function mostrarLoader() {
     modal.style.visibility = "visible";
     modal.style.opacity = "1";
     loader.classList.remove("hidden");
-    modalText.textContent = "Calculando ruta";
+    modalText.textContent = "Calculando ruta (simulación local)";
 
-    let dataLoaded = false;
-    let elapsedTime = 0;
-    const maxWaitTime = 60000; // 60 segundos
+    // Simulación de carga para pruebas locales
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Simula 2 segundos de "carga"
 
-    while (!dataLoaded && elapsedTime < maxWaitTime) {
-        try {
-            const response = await fetch("/messages");
-            const data = await response.json();
+    // Datos simulados
+    const rutasSimuladas = {
+        mejor_ruta_distancia: [
+            "Calle 123, Barranquilla",
+            "Avenida 456, Barranquilla",
+            "Carrera 789, Barranquilla"
+        ],
+        mejor_ruta_trafico: [
+            "Calle 101, Barranquilla",
+            "Avenida 202, Barranquilla",
+            "Carrera 303, Barranquilla"
+        ],
+        distancia_total_km: 15,
+        tiempo_total_min: 25
+    };
 
-            if (data.rutasIA && data.rutasIA.mejor_ruta_distancia && data.rutasIA.mejor_ruta_trafico) {
-                window.rutaDistancia = data.rutasIA.mejor_ruta_distancia;
-                window.rutaTrafico = data.rutasIA.mejor_ruta_trafico;
-                window.distanciaTotalKm = data.rutasIA.distancia_total_km;
-                window.tiempoTotalMin = data.rutasIA.tiempo_total_min;
-                dataLoaded = true;
-            }
-        } catch (error) {
-            console.error("Error al obtener datos:", error);
-        }
+    // Asignar datos simulados a las variables globales
+    window.rutaDistancia = rutasSimuladas.mejor_ruta_distancia;
+    window.rutaTrafico = rutasSimuladas.mejor_ruta_trafico;
+    window.distanciaTotalKm = rutasSimuladas.distancia_total_km;
+    window.tiempoTotalMin = rutasSimuladas.tiempo_total_min;
 
-        if (!dataLoaded) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            elapsedTime += 1000;
-            console.log(`Tiempo transcurrido: ${elapsedTime / 1000} segundos`);
-        }
-    }
+    // Actualizar la interfaz
+    loader.classList.add("hidden");
+    modalText.textContent = "Datos simulados cargados. Escoja la mejor ruta.";
+    btnInicio.disabled = true;
+    btnSeleccionRuta.disabled = false;
 
-    if (dataLoaded) {
-        loader.classList.add("hidden");
-        modalText.textContent = "Datos cargados. Escoja la mejor ruta según la información brindada.";
-        btnInicio.disabled = true;
-        btnSeleccionRuta.disabled = false;
-        setTimeout(cerrarLoader, 2000);
-        await actualizarMapa({ mejor_ruta_distancia: window.rutaDistancia, mejor_ruta_trafico: window.rutaTrafico });
-    } else {
-        loader.classList.add("hidden");
-        modalText.textContent = "Falla en el servidor. Por favor, intente nuevamente la solicitud.";
-        btnInicio.disabled = false;
-        btnSeleccionRuta.disabled = true;
-        setTimeout(cerrarLoader, 3000);
-    }
+    // Dibujar el mapa con las rutas simuladas
+    await actualizarMapa({
+        mejor_ruta_distancia: window.rutaDistancia,
+        mejor_ruta_trafico: window.rutaTrafico
+    });
+
+    // Cerrar el modal después de 2 segundos
+    setTimeout(cerrarLoader, 2000);
 }
 
 function cerrarLoader() {
@@ -124,16 +122,7 @@ function setupUIEvents() {
         });
     });
 
-    document.getElementById("btnSeleccionarUbicacion").addEventListener("click", () => {
-        const opcionSeleccionada = document.querySelector('input[name="ubicacion"]:checked').value;
-        console.log("📍 Ubicación seleccionada:", opcionSeleccionada);
-        window.ultimaParada = opcionSeleccionada;
-        cerrarUbicacionModal();
-        mostrarLoader();
-    });
-
-    document.getElementById('btnInicio').addEventListener("click", async () => {
-        await abrirUbicacionModal();
+    document.getElementById("btnSeleccionarUbicacion").addEventListener("click", async () => {
         await mostrarMensajesTCP();
         await ejecutarProcesoenorden();
         await iniciarEnvioActualizacion();
@@ -143,7 +132,17 @@ function setupUIEvents() {
         }
         window.intervalID = setInterval(gestionarUbicacion, 10000); // Actualiza ubicación y marcador cada 10s
         console.log("✅ Envío de ubicación activado.");
+        const opcionSeleccionada = document.querySelector('input[name="ubicacion"]:checked').value;
+        console.log("📍 Ubicación seleccionada:", opcionSeleccionada);
+        window.ultimaParada = opcionSeleccionada;
+        await cerrarUbicacionModal();
+        await mostrarLoader();
     });
+
+    document.getElementById('btnInicio').addEventListener("click", () => {
+        abrirUbicacionModal();
+    });
+
 
     document.getElementById("btnSeleccionRuta").addEventListener("click", () => {
         mostrarOpcionesRuta();

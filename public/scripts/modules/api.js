@@ -13,7 +13,7 @@ async function mostrarMensajesTCP() {
 
         if (mensajes.length <= 1) {
             document.querySelectorAll('.tcpDirections').forEach(el => {
-                el.innerHTML = "<p>No hay suficientes mensajes TCP.</p>";
+                el.innerHTML = "<p>No hay pasajeros dentro del sistema aún.</p>";
             });
             return;
         }
