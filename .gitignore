@@ -4,7 +4,7 @@ hardware/fingerprint_TPC_UDP/var_config.h
 hardware/interfaz_gui/var_config.h
 *.ini
 *.env
-
+scripts/env.js
 # Ignorar archivos compilados de Arduino
 *.elf
 *.bin

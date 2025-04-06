@@ -24,49 +24,32 @@ window.ultimaParada = null;
 async function inicializarAplicacion() {
     console.log("🚀 Inicializando aplicación SmartWay...");
 
-    // Verificar rol del usuario
-    try {
-        checkUserRole();
-    } catch (error) {
+    try { checkUserRole(); } catch (error) {
         console.error("⚠️ Error verificando rol del usuario:", error);
     }
 
-    // Configurar barras laterales
-    try {
-        configurarBarrasLaterales();
-    } catch (error) {
+    try { configurarBarrasLaterales(); } catch (error) {
         console.error("⚠️ Error configurando barras laterales:", error);
     }
 
-    // Cargar e inicializar Google Maps
     try {
-        await loadGoogleMapsApi(CONFIG.GOOGLE_MAPS_API_KEY);
-        initMap();
+        await loadGoogleMapsApi(); // Espera a que la API se cargue
+        initMap(); // Luego inicializa el mapa
     } catch (error) {
         console.error("⚠️ Error cargando o inicializando Google Maps:", error);
-        // Continuar incluso si falla, para pruebas locales
-        window.map = null; // Asegurar que map esté definido aunque sea null
+        window.map = null;
         window.geocoder = null;
     }
 
-    // Inicializar WebSocket
-    try {
-        setupSocket();
-    } catch (error) {
+    try { setupSocket(); } catch (error) {
         console.error("⚠️ Error inicializando WebSocket:", error);
     }
 
-    // Cargar mensajes TCP
-    try {
-        await mostrarMensajesTCP();
-    } catch (error) {
+    try { await mostrarMensajesTCP(); } catch (error) {
         console.error("⚠️ Error cargando mensajes TCP:", error);
     }
 
-    // Configurar eventos de UI
-    try {
-        setupUIEvents();
-    } catch (error) {
+    try { setupUIEvents(); } catch (error) {
         console.error("⚠️ Error configurando eventos de UI:", error);
     }
 
