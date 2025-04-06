@@ -717,7 +717,7 @@ async function mostrarLoader() {
 
     let dataLoaded = false;
     let elapsedTime = 0;
-    const maxWaitTime = 5000;
+    const maxWaitTime = 120000; // 2 minutos en milisegundos (120 segundos)
 
     while (!dataLoaded && elapsedTime < maxWaitTime) {
         try {
@@ -736,8 +736,9 @@ async function mostrarLoader() {
         }
 
         if (!dataLoaded) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Revisar cada 1 segundo
             elapsedTime += 1000;
+            console.log(`Tiempo transcurrido: ${elapsedTime / 1000} segundos`);
         }
     }
 
@@ -746,17 +747,19 @@ async function mostrarLoader() {
         modalText.textContent = "Datos cargados. Escoja la mejor ruta según la información brindada.";
         btnInicio.disabled = true;
         btnSeleccionRuta.disabled = false;
-        setTimeout(cerrarLoader, 2000);
+        setTimeout(cerrarLoader, 2000); // Cierra el modal tras 2 segundos para dar tiempo a leer el mensaje
         await actualizarMapa({ mejor_ruta_distancia: window.rutaDistancia, mejor_ruta_trafico: window.rutaTrafico });
     } else {
-        modalText.textContent = "Error al cargar datos";
-        btnInicio.disabled = true;
-        btnSeleccionRuta.disabled = false;
-        setTimeout(cerrarLoader, 2000);
+        // Si han pasado 4 minutos sin datos
+        loader.classList.add("hidden");
+        modalText.textContent = "Falla en el servidor. Por favor, intente nuevamente la solicitud.";
+        btnInicio.disabled = false; // Permitir reintentar
+        btnSeleccionRuta.disabled = true; // Deshabilitar selección hasta nuevo intento
+        setTimeout(cerrarLoader, 3000); // Cierra el modal tras 2 segundos para dar tiempo a leer el mensaje
     }
 }
 
-// Cerrar loader
+// Cerrar loader manualmente (puede llamarse desde otro botón o evento si deseas)
 function cerrarLoader() {
     const modal = document.getElementById("loaderContainer");
     modal.style.visibility = "hidden";
