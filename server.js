@@ -59,9 +59,16 @@ const io = socketIo(httpsServer, {
     }
 });
 
+// Dentro de io.on("connection", (socket) => { ... })
 io.on("connection", (socket) => {
     console.log("✅ Cliente conectado a Socket.io");
 
+    // Manejar la selección y actualización de ruta desde el cliente
+    socket.on("actualizar_ruta_seleccionada", (data) => {
+        console.log("📡 Ruta seleccionada recibida del cliente:", data);
+        // Retransmitir a todos los clientes conectados
+        io.emit("ruta_seleccionada_actualizada", data);
+    });
 
     socket.on("disconnect", () => {
         console.log("❌ Cliente desconectado");
