@@ -6,6 +6,7 @@ import { loadGoogleMapsApi, initMap } from './modules/map-init.js';
 import { setupSocket } from './modules/socket.js';
 import { mostrarMensajesTCP } from './modules/api.js';
 import { setupUIEvents } from './modules/ui.js';
+import { iniciarNavegacionConductor, detenerNavegacionConductor } from './modules/navigation.js';
 
 // Variables globales
 window.map = null;
