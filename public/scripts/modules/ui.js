@@ -1,7 +1,7 @@
 // scripts/modules/ui.js
 import { actualizarMapa } from './map-markers.js';
-import { iniciarActualizacionRuta, detenerActualizacionRuta, actualizarRutaSeleccionada, setupSocket } from './socket.js';
-import { mostrarMensajesTCP, ejecutarProcesoenorden, iniciarEnvioActualizacion, detenerEnvioActualizacion, limpiarMapa } from './api.js';
+import { iniciarActualizacionRuta, detenerActualizacionRuta, actualizarRutaSeleccionada, setupSocket, mostrarMensajesTCP } from './socket.js';
+import { ejecutarProcesoenorden, iniciarEnvioActualizacion, detenerEnvioActualizacion, limpiarMapa } from './api.js';
 import { gestionarUbicacion, dibujarUbicacionBus } from './location.js';
 import { iniciarNavegacionConductor, detenerNavegacionConductor } from './navigation.js'; 
 async function mostrarLoader() {
@@ -165,7 +165,6 @@ function setupUIEvents() {
 
     document.getElementById("btnSeleccionarUbicacion").addEventListener("click", async () => {
         await cerrarUbicacionModal();
-        await mostrarLoader();
         await ejecutarProcesoenorden();
         await iniciarEnvioActualizacion();
         if (window.intervalID) {
@@ -177,7 +176,10 @@ function setupUIEvents() {
         const opcionSeleccionada = document.querySelector('input[name="ubicacion"]:checked').value;
         console.log("📍 Ubicación seleccionada:", opcionSeleccionada);
         window.ultimaParada = opcionSeleccionada;
-        await mostrarMensajesTCP();
+        await mostrarLoader();
+        // Solicitar mensajes TCP al servidor
+        socket.emit("solicitar_mensajes_tcp");
+        console.log("📡 Solicitando mensajes TCP al servidor...");
     });
 
     document.getElementById('btnInicio').addEventListener("click", () => {
@@ -207,6 +209,7 @@ function setupUIEvents() {
         }
         window.primeraVez = true;
         window.rutaSeleccionada = null;
+        window.primeraActualizacionMapa = true; // Reiniciar la bandera
 
         const btnInicio = document.getElementById("btnInicio");
         btnInicio.disabled = false;
@@ -243,7 +246,8 @@ function setupUIEvents() {
         document.getElementById("btnSeleccionRuta").disabled = true;
         document.getElementById("btnFin").disabled = false;
         iniciarActualizacionRuta(socket);
-    
+
+        
         fetch(`${CONFIG.SERVER_URL}/seleccionar-ruta`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },

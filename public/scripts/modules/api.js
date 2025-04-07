@@ -3,35 +3,6 @@ import CONFIG from '../config.js';
 import { actualizarMapa } from './map-markers.js';
 import { gestionarUbicacion } from './location.js';
 
-async function mostrarMensajesTCP() {
-    try {
-        const response = await fetch(`${CONFIG.SERVER_URL}/messages`);
-        if (!response.ok) throw new Error("Error al obtener los mensajes TCP");
-
-        const data = await response.json();
-        let mensajes = data.tcp || [];
-
-        if (mensajes.length <= 1) {
-            document.querySelectorAll('.tcpDirections').forEach(el => {
-                el.innerHTML = "<p>No hay pasajeros dentro del sistema aún.</p>";
-            });
-            return;
-        }
-
-        const listaMensajes = mensajes.slice(1).map((msg, index) => 
-            `<p>${index + 1}. ${msg.nombre} ${msg.apellido} - ${msg.direccion}</p>`
-        ).join("");
-
-        document.querySelectorAll('.tcpDirections').forEach(el => {
-            el.innerHTML = listaMensajes;
-        });
-    } catch (error) {
-        console.error("❌ Error obteniendo mensajes TCP:", error);
-        document.querySelectorAll('.tcpDirections').forEach(el => {
-            el.innerHTML = "<p>Error al cargar mensajes.</p>";
-        });
-    }
-}
 
 async function solicitarActualizacionRutas() {
     try {
@@ -130,4 +101,4 @@ async function limpiarMapa() {
 
 
 
-export { mostrarMensajesTCP, solicitarActualizacionRutas, solicitarReorganizacionRutas, ejecutarProcesoenorden, iniciarEnvioActualizacion, detenerEnvioActualizacion, limpiarMapa };
+export { solicitarActualizacionRutas, solicitarReorganizacionRutas, ejecutarProcesoenorden, iniciarEnvioActualizacion, detenerEnvioActualizacion, limpiarMapa };

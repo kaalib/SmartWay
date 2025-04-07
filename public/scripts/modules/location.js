@@ -1,5 +1,8 @@
-
+// scripts/modules/location.js
 import CONFIG from '../config.js';
+import { setupSocket } from './socket.js';
+
+const socket = setupSocket(); // Instancia única del socket
 
 async function obtenerDireccion(lat, lng) {
     return new Promise((resolve) => {
@@ -32,6 +35,9 @@ async function gestionarUbicacion() {
                 const timestamp = new Date(position.timestamp).toISOString();
                 console.log("📌 Ubicación obtenida:", { latitude, longitude, timestamp });
 
+                // Actualizar la ubicación global
+                window.ultimaUbicacionBus = { lat: latitude, lng: longitude };
+
                 try {
                     let direccion = window.primeraVez ? await obtenerDireccion(latitude, longitude) : null;
                     const response = await fetch(`${CONFIG.SERVER_URL}/actualizar-ubicacion-bus`, {
@@ -41,7 +47,7 @@ async function gestionarUbicacion() {
                             lat: latitude,
                             lng: longitude,
                             direccion,
-                            ultimaParada: window.primeraVez ? window.ultimaParada : null // Solo en la primera vez
+                            ultimaParada: window.primeraVez ? window.ultimaParada : null
                         })
                     });
 
@@ -49,7 +55,12 @@ async function gestionarUbicacion() {
                     const result = await response.json();
                     console.log("📡 Respuesta del servidor:", result);
 
-                    actualizarMarcadorBus({ lat: latitude, lng: longitude }); // Actualizar marcador inmediatamente
+                    // Actualizar el marcador localmente
+                    actualizarMarcadorBus(window.ultimaUbicacionBus);
+
+                    // Emitir la ubicación del bus a todos los clientes WebSocket
+                    socket.emit("actualizar_ubicacion_bus", window.ultimaUbicacionBus);
+                    console.log("📡 Emitiendo ubicación del bus a WebSocket:", window.ultimaUbicacionBus);
 
                     if (window.primeraVez) window.primeraVez = false;
                     resolve();
@@ -95,7 +106,6 @@ async function dibujarUbicacionBus() {
         console.error("❌ Error obteniendo la ubicación del bus:", error);
     }
 }
-
 
 function actualizarMarcadorBus(ubicacion) {
     if (window.ultimaUbicacionBus &&

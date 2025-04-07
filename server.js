@@ -70,10 +70,28 @@ io.on("connection", (socket) => {
         io.emit("ruta_seleccionada_actualizada", data);
     });
 
+    // Nuevo evento para solicitar y emitir mensajes TCP
+    socket.on("solicitar_mensajes_tcp", () => {
+        console.log("📡 Cliente solicitó mensajes TCP");
+        io.emit("actualizar_tcp_mensajes", { tcp: messages.tcp }); // Emitir a todos los clientes
+    });
+
+    // Nuevo evento para la ubicación del bus
+    socket.on("actualizar_ubicacion_bus", (ubicacion) => {
+        console.log("📡 Ubicación del bus recibida del cliente:", ubicacion);
+        io.emit("actualizarUbicacionBus", ubicacion); // Retransmitir a todos
+    });
+
     socket.on("disconnect", () => {
         console.log("❌ Cliente desconectado");
     });
 });
+
+// Nuevo intervalo para emitir mensajes TCP cada 60 segundos
+setInterval(() => {
+    console.log("📡 Emitiendo actualización periódica de mensajes TCP a todos los clientes...");
+    io.emit("actualizar_tcp_mensajes", { tcp: messages.tcp });
+}, 30000); // 30 segundos
 
 // 📡 Emitir actualización de rutasIA
 function emitirActualizacionRutas() {

@@ -7,7 +7,6 @@ import { solicitarReorganizacionRutas } from './api.js';
 function setupSocket() {
     const socket = io(CONFIG.WEBSOCKET_URL);
 
-    // Escuchar actualizaciones de rutas desde Flask
     socket.on("actualizar_rutas", (data) => {
         if (window.rutaSeleccionada && data.rutasIA[window.rutaSeleccionada]) {
             console.log("📡 WebSocket actualiza la ruta:", window.rutaSeleccionada);
@@ -15,34 +14,34 @@ function setupSocket() {
         }
     });
 
-    // Escuchar la ubicación del bus
     socket.on("actualizarUbicacionBus", (ubicacion) => {
         if (!ubicacion || !ubicacion.lat || !ubicacion.lng) return;
         console.log("🛑 Ubicación del bus recibida por WebSocket:", ubicacion);
         actualizarMarcadorBus(ubicacion);
     });
 
-    // Escuchar la ruta seleccionada y actualizada desde cualquier cliente
     socket.on("ruta_seleccionada_actualizada", (data) => {
         console.log("📡 Ruta seleccionada actualizada desde otro cliente:", data);
         if (data.ruta && data.locations) {
-            window.rutaSeleccionada = data.ruta; // Sincronizar la ruta seleccionada
+            window.rutaSeleccionada = data.ruta;
             const color = data.ruta === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
-
-            // Limpiar marcadores y rutas existentes
             window.marcadores.forEach(marcador => marcador.map = null);
             window.marcadores = [];
             window.rutasDibujadas.forEach(ruta => ruta.setMap(null));
             window.rutasDibujadas = [];
-
-            // Actualizar el mapa con las ubicaciones procesadas
             const bounds = new google.maps.LatLngBounds();
             procesarRuta(data.locations, color, bounds).then(() => {
-                if (!bounds.isEmpty()) {
+                if (window.primeraActualizacionMapa && !bounds.isEmpty()) {
                     window.map.fitBounds(bounds);
+                    window.primeraActualizacionMapa = false;
                 }
             });
         }
+    });
+
+    socket.on("actualizar_tcp_mensajes", (data) => {
+        console.log("📡 Mensajes TCP recibidos por WebSocket:", data.tcp);
+        mostrarMensajesTCP(data.tcp);
     });
 
     return socket;
@@ -54,7 +53,6 @@ async function actualizarRutaSeleccionada(socket) {
     const rutaData = window.rutaSeleccionada === "mejor_ruta_distancia" ? window.rutaDistancia : window.rutaTrafico;
     const color = window.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
 
-    // Limpiar marcadores y rutas existentes
     window.marcadores.forEach(marcador => marcador.map = null);
     window.marcadores = [];
     window.rutasDibujadas.forEach(ruta => ruta.setMap(null));
@@ -63,11 +61,11 @@ async function actualizarRutaSeleccionada(socket) {
     const bounds = new google.maps.LatLngBounds();
     const processedRuta = await procesarRuta(rutaData, color, bounds);
 
-    if (!bounds.isEmpty()) {
+    if (window.primeraActualizacionMapa && !bounds.isEmpty()) {
         window.map.fitBounds(bounds);
+        window.primeraActualizacionMapa = false;
     }
 
-    // Emitir la ruta seleccionada al servidor para sincronizar con todos los clientes
     socket.emit("actualizar_ruta_seleccionada", {
         ruta: window.rutaSeleccionada,
         locations: processedRuta ? processedRuta.locations : []
@@ -77,16 +75,15 @@ async function actualizarRutaSeleccionada(socket) {
 function iniciarActualizacionRuta(socket) {
     if (window.intervalID) clearInterval(window.intervalID);
     
-    // Solicitar actualización inmediata
     solicitarReorganizacionRutas();
-    
-    // Configurar intervalo para solicitar actualizaciones cada 20 segundos
+    actualizarRutaSeleccionada(socket);
+
     window.intervalID = setInterval(() => {
         solicitarReorganizacionRutas();
-        actualizarRutaSeleccionada(socket); // Esto emitirá la actualización a todos los clientes
-    }, 20000); // 20 segundos
-    
-    console.log("✅ Actualización de ruta iniciada cada 20 segundos.");
+        actualizarRutaSeleccionada(socket);
+    }, 10000);
+
+    console.log("✅ Actualización de ruta iniciada cada 10 segundos.");
 }
 
 function detenerActualizacionRuta() {
@@ -97,4 +94,22 @@ function detenerActualizacionRuta() {
     }
 }
 
-export { setupSocket, actualizarRutaSeleccionada, iniciarActualizacionRuta, detenerActualizacionRuta };
+function mostrarMensajesTCP(mensajes) {
+    let mensajesArray = mensajes || [];
+    if (mensajesArray.length <= 1) {
+        document.querySelectorAll('.tcpDirections').forEach(el => {
+            el.innerHTML = "<p>No hay pasajeros dentro del sistema aún.</p>";
+        });
+        return;
+    }
+
+    const listaMensajes = mensajesArray.slice(1).map((msg, index) => 
+        `<p>${index + 1}. ${msg.nombre} ${msg.apellido} - ${msg.direccion}</p>`
+    ).join("");
+
+    document.querySelectorAll('.tcpDirections').forEach(el => {
+        el.innerHTML = listaMensajes;
+    });
+}
+
+export { setupSocket, actualizarRutaSeleccionada, iniciarActualizacionRuta, detenerActualizacionRuta, mostrarMensajesTCP };
