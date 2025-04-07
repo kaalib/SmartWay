@@ -4,7 +4,6 @@ import { checkUserRole } from './modules/auth.js';
 import { configurarBarrasLaterales } from './modules/sidebar.js';
 import { loadGoogleMapsApi, initMap } from './modules/map-init.js';
 import { setupSocket } from './modules/socket.js';
-import { mostrarMensajesTCP } from './modules/api.js';
 import { setupUIEvents } from './modules/ui.js';
 import { iniciarNavegacionConductor, detenerNavegacionConductor } from './modules/navigation.js';
 
