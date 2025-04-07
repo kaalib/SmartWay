@@ -21,6 +21,7 @@ window.ultimaUbicacionBus = null;
 window.intervalID = null;
 window.primeraVez = true;
 window.ultimaParada = null;
+window.primeraActualizacionMapa = true; 
 
 async function inicializarAplicacion() {
     console.log("🚀 Inicializando aplicación SmartWay...");
@@ -44,10 +45,6 @@ async function inicializarAplicacion() {
 
     try { setupSocket(); } catch (error) {
         console.error("⚠️ Error inicializando WebSocket:", error);
-    }
-
-    try { await mostrarMensajesTCP(); } catch (error) {
-        console.error("⚠️ Error cargando mensajes TCP:", error);
     }
 
     try { setupUIEvents(); } catch (error) {
