@@ -22,6 +22,15 @@ function setupSocket() {
     return socket;
 }
 
+function convertirADireccionLatLng(direccion) {
+    if (typeof direccion === "string") {
+        const [lat, lng] = direccion.split(",").map(Number);
+        return { lat, lng };
+    }
+    return direccion;
+}
+
+
 async function actualizarMapaConRutaSeleccionada(rutaseleccionada) {
     if (!rutaseleccionada || !window.rutaSeleccionada) return;
 
@@ -34,14 +43,17 @@ async function actualizarMapaConRutaSeleccionada(rutaseleccionada) {
     const bounds = new google.maps.LatLngBounds();
     const locations = rutaseleccionada.map(item => item.direccion);
     rutaseleccionada.forEach((item, index) => {
+        const direccionNormalizada = convertirADireccionLatLng(item.direccion);
+        
         if (item.bus === 1) {
             if (index === 0) {
-                actualizarMarcadorBus(item.direccion); // Bus como punto 1
+                actualizarMarcadorBus(direccionNormalizada); // Bus como punto 1
             } else {
-                agregarMarcador(item.direccion, `${item.nombre}`, bounds, index);
+                agregarMarcador(direccionNormalizada, `${item.nombre}`, bounds, index);
             }
         }
     });
+    
 
     if (locations.length > 1) {
         const renderer = dibujarRutaConductor(locations.filter((_, i) => rutaseleccionada[i].bus === 1), color);

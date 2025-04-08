@@ -54,14 +54,18 @@ function geocodificarDireccion(direccion) {
 }
 
 function agregarMarcador(location, title, bounds, label) {
-    // 🛠️ Verifica si es un string tipo "lat,lng"
     if (typeof location === "string") {
         const [lat, lng] = location.split(",").map(Number);
         location = { lat, lng };
+    } else if (typeof location === "object" && location.lat !== undefined && location.lng !== undefined) {
+        // ya está bien formado, no hay que hacer nada
+    } else {
+        console.warn("⚠️ Dirección inválida en el marcador:", location);
+        return; // no lo agregues si no es válido
     }
 
     const marcador = new google.maps.marker.AdvancedMarkerElement({
-        position: location, // ✅ Ahora seguro es un LatLngLiteral
+        position: location,
         map: window.map,
         title: title,
         content: crearMarcadorCirculo(label)
