@@ -11,17 +11,13 @@ async function actualizarMapa(rutasIA) {
 
     if (window.rutaSeleccionada) {
         const ruta = rutasIA[window.rutaSeleccionada];
-        const color = window.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900'; // Verde y naranja de tu versión
+        const color = window.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
         await procesarRuta(ruta, color, bounds);
     } else {
         await Promise.all([
             procesarRuta(rutasIA.mejor_ruta_distancia, '#00CC66', bounds),
             procesarRuta(rutasIA.mejor_ruta_trafico, '#FF9900', bounds)
         ]);
-    }
-
-    if (!bounds.isEmpty()) {
-        window.map.fitBounds(bounds);
     }
 }
 

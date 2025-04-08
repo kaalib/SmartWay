@@ -11,7 +11,7 @@ const app = express();
 const net = require('net');
 const axios = require('axios');
 const socketIo = require("socket.io");
-const messages = { tcp: [], rutasIA: [], bus: [] }; // Mensajes TCP, la API optimizadora de rutas
+const messages = { tcp: [], rutasIA: [], bus: [], rutaseleccionada: [] }; // Mensajes TCP, la API optimizadora de rutas
 require('dotenv').config(); // Cargar variables de entorno
 
 // Connect to MySQL database
@@ -50,6 +50,28 @@ const options = {
 
 // Configuración del servidor HTTPS con Express
 const httpsServer = https.createServer(options, app);
+
+
+// Función de geocodificación asíncrona en el backend
+async function geocodificarDireccion(direccion) {
+    try {
+        const response = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
+            params: {
+                address: direccion,
+                key: process.env.api_key1 // Usa tu clave de Google Maps desde .env
+            }
+        });
+        if (response.data.status === "OK" && response.data.results[0]) {
+            const { lat, lng } = response.data.results[0].geometry.location;
+            return { lat, lng };
+        }
+        console.warn(`⚠️ No se pudo geocodificar: ${direccion}`);
+        return null;
+    } catch (error) {
+        console.error("❌ Error en geocodificación:", error.message);
+        return null;
+    }
+}
 
 // --- Servidor WebSocket ---
 const io = socketIo(httpsServer, {
@@ -192,33 +214,36 @@ app.post("/enviar-direcciones", async (req, res) => {
     }
 });
 
-// Nuevo endpoint para manejar la selección de ruta
-app.post("/seleccionar-ruta", (req, res) => {
-    rutaSeleccionada = req.body.ruta; // Guardar la ruta seleccionada
-    console.log("✅ Ruta seleccionada en el servidor:", rutaSeleccionada);
-
-    if (!flaskIntervalId && messages.tcp.length > 0) {
-        flaskIntervalId = setInterval(async () => {
-            try {
-                const direcciones = messages.tcp.map(msg => msg.direccion);
-                console.log("📤 Actualizando rutas con Flask (cada 20s):", direcciones);
-                
-                const respuestaFlask = await axios.post("http://smartway.ddns.net:5000/api/process", { direcciones });
-                messages.rutasIA = respuestaFlask.data.rutasIA || [];
-                
-                fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
-                    if (err) console.error("❌ Error guardando rutasIA:", err);
-                });
-                
-                emitirActualizacionRutas(); // Emitir a todos los clientes conectados
-            } catch (error) {
-                console.error("❌ Error en actualización periódica a Flask:", error.message);
-            }
-        }, 20000); // Cada 20 segundos
-        console.log("✅ Actualización periódica a Flask ACTIVADA (cada 20s)");
+// Endpoint para seleccionar ruta y poblar rutaseleccionada
+app.post("/seleccionar-ruta", async (req, res) => {
+    const rutaSeleccionada = req.body.ruta;
+    if (!messages.rutasIA[rutaSeleccionada]) {
+        return res.status(400).json({ success: false, message: "Ruta no disponible" });
     }
 
-    res.json({ success: true, message: "Ruta seleccionada y actualización iniciada" });
+    // Poblar rutaseleccionada con el bus como punto 1 y paradas geocodificadas
+    const busUbicacion = messages.bus.length > 0 ? messages.bus[0].direccion : { lat: 4.60971, lng: -74.08175 };
+    messages.rutaseleccionada = [
+        { id: "bus", nombre: "Bus", direccion: busUbicacion, bus: 1 }
+    ];
+
+    const paradas = await Promise.all(messages.rutasIA[rutaSeleccionada].map(async (direccion, index) => {
+        const coords = await geocodificarDireccion(direccion);
+        return {
+            id: `parada_${index + 1}`,
+            nombre: `Pasajero ${index + 1}`,
+            direccion: coords || { lat: 0, lng: 0 },
+            bus: 1,
+            direccionTexto: direccion // Guardar texto para mostrar en frontend
+        };
+    }));
+    messages.rutaseleccionada.push(...paradas);
+
+    fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
+        if (err) console.error("❌ Error guardando rutaseleccionada:", err);
+    });
+    emitirActualizacionRutas();
+    res.json({ success: true, message: "Ruta seleccionada y rutaseleccionada poblada" });
 });
 
 // --- Redirige tráfico HTTP a HTTPS ---
@@ -440,64 +465,53 @@ app.post('/messages', async (req, res) => {
     }
 });
 
-app.post("/actualizar-ubicacion-bus", (req, res) => {
-    const { lat, lng, direccion, ultimaParada } = req.body; // Añadimos ultimaParada
+// Actualizar ubicación del bus y verificar paradas completadas
+// Actualizar ubicación del bus y verificar paradas completadas
+app.post("/actualizar-ubicacion-bus", async (req, res) => {
+    const { lat, lng, direccion, ultimaParada } = req.body;
     if (!lat || !lng) {
         return res.status(400).json({ error: "Faltan datos: lat o lng" });
     }
 
-    // Actualizar messages.bus con la ubicación actual
-    messages.bus = [{
-        id: "bus",
-        direccion: { lat, lng },
-        tiempo: new Date().toISOString()
-    }];
-
-    console.log("✅ Ubicación del bus actualizada:", messages.bus);
-
-    // Si es la primera vez (direccion está presente), añadir el bus como primer dato en TCP
-    if (direccion) {
-        messages.tcp = messages.tcp.filter(m => m.id !== "bus");
-        const busData = {
-            id: "bus",
-            nombre: "Bus",
-            apellido: "",
-            direccion: direccion,
-        };
-        messages.tcp.unshift(busData);
-        console.log("📌 messages.tcp actualizado con bus:", messages.tcp);
+    messages.bus = [{ id: "bus", direccion: { lat, lng }, tiempo: new Date().toISOString() }];
+    if (messages.rutaseleccionada.length > 0) {
+        messages.rutaseleccionada[0].direccion = { lat, lng }; // Actualizar punto 1 (bus)
     }
 
-    // Añadir la última parada al final de messages.tcp según la selección
-    if (ultimaParada) {
-        let puntoFinal;
-        if (ultimaParada === "actual") {
-            // Copiar la primera dirección (bus)
-            puntoFinal = {
-                id: "punto_final",
-                nombre: "Punto Final",
-                apellido: "",
-                direccion: messages.tcp[0].direccion // Copia la dirección del bus
-            };
-        } else if (ultimaParada === "parqueadero") {
-            // Dirección fija del parqueadero
-            puntoFinal = {
-                id: "punto_final",
-                nombre: "Punto Final",
-                apellido: "",
-                direccion: "Carrera 15 #27A-40"
-            };
-        }
-
-        if (puntoFinal) {
-            messages.tcp.push(puntoFinal);
-            console.log("✅ Punto final añadido a messages.tcp:", puntoFinal);
-            fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
-                if (err) console.error("❌ Error guardando punto final:", err);
+    // Verificar si el bus llegó a alguna parada
+    const TOLERANCIA = 0.0005; // ~50 metros
+    for (let i = 1; i < messages.rutaseleccionada.length; i++) {
+        const parada = messages.rutaseleccionada[i];
+        if (parada.bus === 1 && Math.abs(parada.direccion.lat - lat) < TOLERANCIA && Math.abs(parada.direccion.lng - lng) < TOLERANCIA) {
+            parada.bus = 0;
+            db.query("UPDATE empleados SET bus = 0 WHERE direccion = ?", [parada.direccionTexto], (err) => {
+                if (err) console.error("❌ Error actualizando estado bus:", err);
             });
+            console.log(`✅ Pasajero en ${parada.direccionTexto} bajó del bus`);
         }
     }
 
+    if (direccion) {
+        messages.tcp.unshift({ id: "bus", nombre: "Bus", apellido: "", direccion });
+    }
+    if (ultimaParada) {
+        const puntoFinalCoords = ultimaParada === "actual" ? messages.bus[0].direccion : await geocodificarDireccion("Carrera 15 #27A-40");
+        const puntoFinal = {
+            id: "punto_final",
+            nombre: "Punto Final",
+            apellido: "",
+            direccion: puntoFinalCoords,
+            bus: 1,
+            direccionTexto: ultimaParada === "actual" ? messages.tcp[0].direccion : "Carrera 15 #27A-40"
+        };
+        messages.rutaseleccionada.push(puntoFinal);
+        messages.tcp.push(puntoFinal);
+    }
+
+    fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
+        if (err) console.error("❌ Error guardando:", err);
+    });
+    io.emit("actualizarUbicacionBus", messages.rutaseleccionada);
     res.json({ success: true });
 });
 

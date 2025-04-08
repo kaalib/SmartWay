@@ -2,7 +2,7 @@
 import { actualizarMapa } from './map-markers.js';
 import { iniciarActualizacionRuta, detenerActualizacionRuta, actualizarRutaSeleccionada, setupSocket, mostrarMensajesTCP } from './socket.js';
 import { ejecutarProcesoenorden, iniciarEnvioActualizacion, detenerEnvioActualizacion, limpiarMapa } from './api.js';
-import { gestionarUbicacion, dibujarUbicacionBus } from './location.js';
+import { gestionarUbicacion} from './location.js';
 import { iniciarNavegacionConductor, detenerNavegacionConductor } from './navigation.js'; 
 async function mostrarLoader() {
     const modal = document.getElementById("loaderContainer");

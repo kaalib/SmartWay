@@ -81,7 +81,7 @@ async function iniciarNavegacionConductor(rutaSeleccionada) {
         const streetView = window.map.getStreetView();
         streetView.setPosition({ lat: origen.lat, lng: origen.lng });
         streetView.setPov({ heading: 0, pitch: 0 }); // Orientación inicial
-        streetView.setVisible(true); // Desactivado por defecto, actívalo manualmente si lo deseas
+        streetView.setVisible(fasle); // Desactivado por defecto, actívalo manualmente si lo deseas
     }
 
     // Actualizar inmediatamente la primera vez
