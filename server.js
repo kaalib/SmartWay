@@ -13,7 +13,8 @@ const axios = require('axios');
 const socketIo = require("socket.io");
 const messages = { tcp: [], rutasIA: [], bus: [], rutaseleccionada: [] }; // Mensajes TCP, la API optimizadora de rutas
 require('dotenv').config(); // Cargar variables de entorno
-
+const MAX_TCP_CONNECTIONS = 2;
+let activeTcpConnections = 0;
 // Connect to MySQL database
 const db = mysql.createConnection({
     host: process.env.db_host,
@@ -92,7 +93,7 @@ io.on("connection", (socket) => {
         messages.rutaseleccionada = data.locations.map((loc, index) => ({
             id: index === 0 ? "bus" : `parada_${index}`,
             nombre: index === 0 ? "Bus" : `Parada ${index}`,
-            direccion: `${loc.lat},${loc.lng}`, // Convertir a string para consistencia
+            direccion: { lat: loc.lat, lng: loc.lng }, // 🔥 Formato correcto
             bus: 1
         }));
         console.log("✅ rutaseleccionada actualizada desde el cliente:", messages.rutaseleccionada);
@@ -130,7 +131,7 @@ io.on("connection", (socket) => {
 setInterval(() => {
     console.log("📡 Emitiendo actualización periódica de mensajes TCP a todos los clientes...");
     io.emit("actualizar_tcp_mensajes", { tcp: messages.tcp });
-}, 30000); // 30 segundos
+}, 60000); // 60 segundos
 
 // 📡 Emitir actualización de rutasIA
 function emitirActualizacionRutas() {
@@ -158,6 +159,11 @@ function iniciarEmisionRutas() {
         }, 10000);
         console.log("✅ Emisión de rutas ACTIVADA");
     }
+}
+
+if (emitirRutas && messages.rutaseleccionada.length > 0) {
+    console.log("🔁 Ya hay una ruta activa. Ignorando nueva selección.");
+    return res.status(400).json({ success: false, message: "Ruta ya en emisión." });
 }
 
 // 🛑 Detener emisión de rutasIA
@@ -220,6 +226,12 @@ app.post("/enviar-direcciones", async (req, res) => {
 });
 
 app.post("/seleccionar-ruta", async (req, res) => {
+
+    if (emitirRutas && messages.rutaseleccionada.length > 0) {
+        console.log("🔁 Ya hay una ruta activa. Ignorando nueva selección.");
+        return res.status(400).json({ success: false, message: "Ya se está emitiendo una ruta." });
+      }
+
     const { ruta } = req.body;
     if (!ruta) {
         return res.status(400).json({ success: false, message: "Falta la ruta seleccionada" });
@@ -305,7 +317,15 @@ app.put("/updateBus", (req, res) => {
 
 // --- Servidor TCP ---
 const tcpServer = net.createServer((socket) => {
-    console.log("Cliente TCP conectado");
+    if (activeTcpConnections >= MAX_TCP_CONNECTIONS) {
+        console.log("🚫 Conexión rechazada: límite de conexiones TCP alcanzado.");
+        socket.end("Conexión rechazada: límite alcanzado.\n");
+        return;
+    }
+
+    activeTcpConnections++;
+    console.log("📡 Nueva conexión TCP. Activas:", activeTcpConnections);
+
 
     socket.on("data", (data) => {
         const idEmpleado = parseInt(data.toString().trim(), 10); // Convertir a número
@@ -351,8 +371,14 @@ const tcpServer = net.createServer((socket) => {
                     respuesta = { error: "Usuario no encontrado" };
                 }
 
-                // Guardar mensajes en JSON sin bloquear la ejecución
+                // Evitar duplicados en messages.tcp
+                const yaExiste = messages.tcp.find(m => m.id === idEmpleado);
+                if (!yaExiste) {
                 messages.tcp.push(respuesta);
+                } else {
+                console.log("⚠️ ID ya existe en messages.tcp. Ignorando duplicado:", idEmpleado);
+                }
+
                 fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
                     if (err) console.error("Error guardando mensajes en archivo:", err);
                 });
@@ -371,17 +397,23 @@ const tcpServer = net.createServer((socket) => {
     });
 
     socket.on("end", () => {
-        console.log("Cliente TCP desconectado");
+        activeTcpConnections--;
+        console.log("📴 Cliente TCP desconectado. Activas:", activeTcpConnections);
     });
 
     socket.on("error", (err) => {
         if (err.code === "ECONNRESET") {
             console.warn("⚠️ Cliente desconectado abruptamente.");
+        } else if (err.code === "EPIPE") {
+            console.warn("⚠️ Intento de escribir en un socket cerrado.");
         } else {
             console.error("❌ Error en el socket:", err);
         }
-        socket.destroy(); // Destruir el socket para evitar fugas de memoria
+    
+        activeTcpConnections = Math.max(activeTcpConnections - 1, 0); // Evita que baje de 0
+        socket.destroy();
     });
+    
     
     // Mover el manejo de errores del socket aquí
     socket.on("error", (err) => {
@@ -509,13 +541,7 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
     }
 
     if (ultimaParada && direccion) { // Solo la primera vez
-        let direccionFinal;
-        if (ultimaParada === "actual") {
-            direccionFinal = `${lat},${lng}`; // Coordenadas como string para Flask
-        } else {
-            direccionFinal = ultimaParada; // Texto directo, como "Carrera 15 #27A-40, Barranquilla"
-        }
-
+        const direccionFinal = ultimaParada; // Puede ser string o { lat, lng }
         const puntoFinal = {
             id: "punto_final",
             nombre: "Punto Final",
