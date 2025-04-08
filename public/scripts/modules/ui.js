@@ -167,23 +167,24 @@ function setupUIEvents() {
         await cerrarUbicacionModal();
         await ejecutarProcesoenorden();
         await iniciarEnvioActualizacion();
-
+    
         if (window.intervalID) {
             console.log("⚠️ El envío de ubicación ya está activo.");
         } else {
             window.intervalID = setInterval(gestionarUbicacion, 10000);
             console.log("✅ Envío de ubicación activado.");
         }
-
+    
         const opcionSeleccionada = document.querySelector('input[name="ubicacion"]:checked').value;
         console.log("📍 Ubicación seleccionada:", opcionSeleccionada);
-        window.ultimaParada = opcionSeleccionada === "parqueadero" ? "Carrera 15 #27A-40, Barranquilla, Atlántico" : "actual";
-
+        // Asignar ultimaParada según la selección
+        window.ultimaParada = opcionSeleccionada === "parqueadero" ? "Carrera 15 #27A-40, Barranquilla" : "actual";
+        console.log("📍 ultimaParada asignada:", window.ultimaParada); // Añadir este log
         // Enviar la primera ubicación con ultimaParada al backend
         await gestionarUbicacion(); // Ejecutar inmediatamente para enviar la primera ubicación
         await mostrarLoader();
-
-        const socket = setupSocket(); // Asegúrate de que el socket esté inicializado
+    
+        const socket = setupSocket();
         socket.emit("solicitar_mensajes_tcp");
         console.log("📡 Solicitando mensajes TCP al servidor...");
     });

@@ -21,6 +21,13 @@ async function gestionarUbicacion() {
                 window.ultimaUbicacionBus = { lat: latitude, lng: longitude };
 
                 try {
+                    console.log("📍 Enviando a /actualizar-ubicacion-bus:", {
+                        lat: latitude,
+                        lng: longitude,
+                        direccion: window.primeraVez ? { lat: latitude, lng: longitude } : null,
+                        ultimaParada: window.primeraVez ? window.ultimaParada : null
+                    });
+                    
                     const response = await fetch(`${CONFIG.SERVER_URL}/actualizar-ubicacion-bus`, {
                         method: 'POST',
                         headers: { "Content-Type": "application/json" },
