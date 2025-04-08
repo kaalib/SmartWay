@@ -24,24 +24,38 @@ async function actualizarMapa(rutasIA) {
 async function procesarRuta(direcciones, color, bounds) {
     if (!direcciones || direcciones.length === 0) return;
 
-    const locations = await Promise.all(direcciones.map(geocodificarDireccion));
-    
-    locations.forEach((location, index) => {
-        if (location) {
-            agregarMarcador(location, `Parada ${index + 1}`, bounds, index + 1);
-        }
+    const locations = await Promise.all(direcciones.map(async (direccion) => {
+        const location = await geocodificarDireccion(direccion);
+        return location; // Devuelve LatLng o null
+    }));
+
+    // Filtrar nulls y añadir marcadores
+    locations.filter(loc => loc).forEach((location, index) => {
+        agregarMarcador(location, `Parada ${index + 1}`, bounds, index + 1);
     });
 
     if (locations.length > 1) {
-        const renderer = dibujarRutaConductor(locations, color);
-        return { locations, renderer };
+        const renderer = dibujarRutaConductor(locations.filter(loc => loc), color);
+        return { locations: locations.filter(loc => loc), renderer };
     }
     return null;
 }
 
+// Ajustar geocodificarDireccion para manejar strings de coordenadas
 function geocodificarDireccion(direccion) {
     return new Promise((resolve) => {
         if (!direccion) return resolve(null);
+
+        // Si es un string con coordenadas (ej. "10.9903872,-74.7896832")
+        if (typeof direccion === "string" && direccion.includes(",")) {
+            const [lat, lng] = direccion.split(",").map(Number);
+            if (!isNaN(lat) && !isNaN(lng)) {
+                resolve(new google.maps.LatLng(lat, lng));
+                return;
+            }
+        }
+
+        // Si es una dirección de texto, geocodificarla
         window.geocoder.geocode({ address: direccion }, (results, status) => {
             if (status === "OK" && results[0]) {
                 resolve(results[0].geometry.location);
@@ -51,28 +65,6 @@ function geocodificarDireccion(direccion) {
             }
         });
     });
-}
-
-function agregarMarcador(location, title, bounds, label) {
-    if (typeof location === "string") {
-        const [lat, lng] = location.split(",").map(Number);
-        location = { lat, lng };
-    } else if (typeof location === "object" && location.lat !== undefined && location.lng !== undefined) {
-        // ya está bien formado, no hay que hacer nada
-    } else {
-        console.warn("⚠️ Dirección inválida en el marcador:", location);
-        return; // no lo agregues si no es válido
-    }
-
-    const marcador = new google.maps.marker.AdvancedMarkerElement({
-        position: location,
-        map: window.map,
-        title: title,
-        content: crearMarcadorCirculo(label)
-    });
-
-    window.marcadores.push(marcador);
-    bounds.extend(location);
 }
 
 function dibujarRutaConductor(locations, color) {
@@ -101,8 +93,8 @@ function dibujarRutaConductor(locations, color) {
     });
 
     directionsService.route({
-        origin: locations[0],
-        destination: locations[locations.length - 1],
+        origin: locations[0], // Ya es LatLng
+        destination: locations[locations.length - 1], // Ya es LatLng
         waypoints: locations.slice(1, -1).map(loc => ({ location: loc, stopover: true })),
         travelMode: google.maps.TravelMode.DRIVING
     }, (result, status) => {
@@ -115,6 +107,17 @@ function dibujarRutaConductor(locations, color) {
     });
 
     return directionsRenderer;
+}
+
+function agregarMarcador(location, title, bounds, label) {
+    const marcador = new google.maps.marker.AdvancedMarkerElement({
+        position: location,
+        map: window.map,
+        title: title,
+        content: crearMarcadorCirculo(label)
+    });
+    window.marcadores.push(marcador);
+    bounds.extend(location);
 }
 
 function crearMarcadorCirculo(label) {
