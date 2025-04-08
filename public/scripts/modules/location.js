@@ -62,7 +62,7 @@ async function gestionarUbicacion() {
     });
 }
 
-function actualizarMarcadorBus(ubicacion) {
+async function actualizarMarcadorBus(ubicacion) {
     if (!window.map) {
         console.error("❌ El mapa no está inicializado en actualizarMarcadorBus");
         return;
@@ -77,6 +77,20 @@ function actualizarMarcadorBus(ubicacion) {
         return;
     }
 
+    // Crear el ícono SVG como PinElement
+    const pinSvg = new google.maps.marker.PinElement({
+        glyph: "", // Sin texto dentro del pin
+        scale: 1.5,
+        background: "transparent",
+        borderColor: "transparent"
+    });
+
+    // Cargar el SVG como contenido personalizado
+    const svgImg = document.createElement("img");
+    svgImg.src = "/media/iconobus.svg"; // Usa ruta absoluta desde la raíz del servidor
+    svgImg.style.width = "40px";
+    svgImg.style.height = "40px";
+
     if (window.marcadorBus) {
         window.marcadorBus.position = new google.maps.LatLng(ubicacion.lat, ubicacion.lng);
     } else {
@@ -84,11 +98,8 @@ function actualizarMarcadorBus(ubicacion) {
             position: new google.maps.LatLng(ubicacion.lat, ubicacion.lng),
             map: window.map,
             title: "Ubicación actual del Bus",
-            content: document.createElement("img")
+            content: svgImg // Asignar directamente el SVG
         });
-        window.marcadorBus.content.src = "media/iconobus.svg";
-        window.marcadorBus.content.style.width = "40px";
-        window.marcadorBus.content.style.height = "40px";
     }
 
     window.ultimaUbicacionBus = ubicacion;

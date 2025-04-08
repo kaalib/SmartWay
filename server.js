@@ -81,29 +81,46 @@ const io = socketIo(httpsServer, {
     }
 });
 
-// Dentro de io.on("connection", (socket) => { ... })
 io.on("connection", (socket) => {
     console.log("✅ Cliente conectado a Socket.io");
 
     // Manejar la selección y actualización de ruta desde el cliente
     socket.on("actualizar_ruta_seleccionada", (data) => {
         console.log("📡 Ruta seleccionada recibida del cliente:", data);
-        // Retransmitir a todos los clientes conectados
+
+        // Actualizar messages.rutaseleccionada con las ubicaciones procesadas (coordenadas)
+        messages.rutaseleccionada = data.locations.map((loc, index) => ({
+            id: index === 0 ? "bus" : `parada_${index}`,
+            nombre: index === 0 ? "Bus" : `Parada ${index}`,
+            direccion: `${loc.lat},${loc.lng}`, // Convertir a string para consistencia
+            bus: 1
+        }));
+        console.log("✅ rutaseleccionada actualizada desde el cliente:", messages.rutaseleccionada);
+
+        // Guardar en messages.json
+        fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
+            if (err) console.error("❌ Error guardando rutaseleccionada:", err);
+        });
+
+        // Emitir a todos los clientes conectados
+        io.emit("rutaSeleccionada", { ruta: data.ruta, locations: messages.rutaseleccionada });
+        // También retransmitir el evento original para compatibilidad con tu código anterior
         io.emit("ruta_seleccionada_actualizada", data);
     });
 
-    // Nuevo evento para solicitar y emitir mensajes TCP
+    // Solicitar y emitir mensajes TCP
     socket.on("solicitar_mensajes_tcp", () => {
         console.log("📡 Cliente solicitó mensajes TCP");
-        io.emit("actualizar_tcp_mensajes", { tcp: messages.tcp }); // Emitir a todos los clientes
+        io.emit("actualizar_tcp_mensajes", { tcp: messages.tcp });
     });
 
-    // Nuevo evento para la ubicación del bus
+    // Actualizar ubicación del bus
     socket.on("actualizar_ubicacion_bus", (ubicacion) => {
         console.log("📡 Ubicación del bus recibida del cliente:", ubicacion);
-        io.emit("actualizarUbicacionBus", ubicacion); // Retransmitir a todos
+        io.emit("actualizarUbicacionBus", ubicacion);
     });
 
+    // Manejar desconexión
     socket.on("disconnect", () => {
         console.log("❌ Cliente desconectado");
     });
@@ -202,36 +219,38 @@ app.post("/enviar-direcciones", async (req, res) => {
     }
 });
 
-// Endpoint para seleccionar ruta y poblar rutaseleccionada
 app.post("/seleccionar-ruta", async (req, res) => {
-    const rutaSeleccionada = req.body.ruta;
-    if (!messages.rutasIA[rutaSeleccionada]) {
-        return res.status(400).json({ success: false, message: "Ruta no disponible" });
+    const { ruta } = req.body;
+    if (!ruta) {
+        return res.status(400).json({ success: false, message: "Falta la ruta seleccionada" });
     }
 
-    // Poblar rutaseleccionada con el bus como punto 1 y paradas geocodificadas
-    const busUbicacion = messages.bus.length > 0 ? messages.bus[0].direccion : { lat: 4.60971, lng: -74.08175 };
+    if (!messages.rutasIA || !messages.rutasIA[ruta]) {
+        console.error("❌ No se encontró la ruta en rutasIA:", ruta);
+        return res.status(400).json({ success: false, message: "Ruta no válida" });
+    }
+
+    const busUbicacion = messages.bus.length > 0 ? `${messages.bus[0].direccion.lat},${messages.bus[0].direccion.lng}` : messages.rutasIA[ruta][0];
     messages.rutaseleccionada = [
         { id: "bus", nombre: "Bus", direccion: busUbicacion, bus: 1 }
     ];
 
-    const paradas = await Promise.all(messages.rutasIA[rutaSeleccionada].map(async (direccion, index) => {
-        const coords = await geocodificarDireccion(direccion);
-        return {
-            id: `parada_${index + 1}`,
-            nombre: `Pasajero ${index + 1}`,
-            direccion: coords || { lat: 0, lng: 0 },
-            bus: 1,
-            direccionTexto: direccion // Guardar texto para mostrar en frontend
-        };
+    const paradas = messages.rutasIA[ruta].slice(1).map((direccion, index) => ({
+        id: `parada_${index + 1}`,
+        nombre: `Parada ${index + 1}`,
+        direccion: direccion,
+        bus: 1
     }));
     messages.rutaseleccionada.push(...paradas);
+
+    console.log("✅ Ruta seleccionada guardada en rutaseleccionada (POST):", messages.rutaseleccionada);
 
     fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
         if (err) console.error("❌ Error guardando rutaseleccionada:", err);
     });
-    emitirActualizacionRutas();
-    res.json({ success: true, message: "Ruta seleccionada y rutaseleccionada poblada" });
+
+    io.emit("rutaSeleccionada", { ruta, locations: messages.rutaseleccionada });
+    res.json({ success: true, message: "Ruta seleccionada guardada" });
 });
 
 // --- Redirige tráfico HTTP a HTTPS ---
