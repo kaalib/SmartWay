@@ -27,7 +27,6 @@ async function gestionarUbicacion() {
                         body: JSON.stringify({
                             lat: latitude,
                             lng: longitude,
-                            // Enviamos las coordenadas directamente la primera vez
                             direccion: window.primeraVez ? { lat: latitude, lng: longitude } : null,
                             ultimaParada: window.primeraVez ? window.ultimaParada : null
                         })

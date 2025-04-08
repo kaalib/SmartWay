@@ -54,14 +54,28 @@ def get_route_data(origin, destination):
         "X-Goog-Api-Key": API_KEY,
         "X-Goog-FieldMask": "routes.distanceMeters,routes.duration"
     }
+
+    # Detectar si el origen/destino es coordenadas ("lat,lng") o texto
+    def parse_location(loc):
+        if isinstance(loc, str) and ',' in loc:
+            try:
+                lat, lng = map(float, loc.split(','))
+                return {"location": {"latLng": {"latitude": lat, "longitude": lng}}}
+            except ValueError:
+                pass
+        return {"address": loc}
+
     body = {
-        "origin": {"address": origin},
-        "destination": {"address": destination},
+        "origin": parse_location(origin),
+        "destination": parse_location(destination),
         "travelMode": "DRIVE",
         "routingPreference": "TRAFFIC_AWARE"
     }
+
     response = requests.post(url, json=body, headers=headers)
-    
+    print(f"📡 Solicitud a Google Routes: {body}")
+    print(f"📥 Respuesta: {response.status_code} - {response.text}")
+
     if response.status_code == 200:
         json_response = response.json()
         if "routes" in json_response and json_response["routes"]:
@@ -125,13 +139,14 @@ def process_message():
     global rutasIA
     try:
         data = request.get_json()
+        print(f"📥 Datos recibidos: {data}")
         direcciones = data.get("direcciones", [])
-        if not direcciones:
-            return jsonify({"status": "error", "message": "Lista de direcciones vacía"}), 400
+        if not direcciones or len(direcciones) < 2:
+            return jsonify({"status": "error", "message": "Lista de direcciones insuficiente"}), 400
         
-        origin = direcciones[0]
-        destination = direcciones[0]
-        destinos = direcciones[1:]
+        origin = direcciones[0]  # Primer elemento: posición del bus
+        destination = direcciones[-1]  # Último elemento: punto final
+        destinos = direcciones[1:-1]  # Elementos intermedios: paradas
 
         distance_matrix = {}
         traffic_matrix = {}
@@ -141,11 +156,11 @@ def process_message():
                     distance, duration = get_route_data(direcciones[i], direcciones[j])
                     distance_matrix[(direcciones[i], direcciones[j])] = distance
                     traffic_matrix[(direcciones[i], direcciones[j])] = duration
+                    print(f"Distancia {direcciones[i]} -> {direcciones[j]}: {distance}m, Duración: {duration}s")
 
         best_route_distance = genetic_algorithm(destinos, origin, destination, distance_matrix, traffic_matrix, fitness_distance)
         best_route_traffic = genetic_algorithm(destinos, origin, destination, distance_matrix, traffic_matrix, fitness_traffic)
 
-        # Obtener el clima actual
         weather_description, temperature, is_raining = get_weather()
 
         rutasIA = {
@@ -156,15 +171,17 @@ def process_message():
             "clima": {
                 "descripcion": weather_description,
                 "temperatura": temperature,
-                "lluvia": is_raining  # 0: despejado, 1: lloviendo
+                "lluvia": is_raining
             }
         }
 
+        print(f"✅ Rutas calculadas: {rutasIA}")
         socketio.emit("actualizar_rutas", {"rutasIA": rutasIA})
         return jsonify({"status": "success", "rutasIA": rutasIA}), 200
 
     except Exception as e:
+        print(f"❌ Error en /api/process: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
-
+    
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)

@@ -181,14 +181,15 @@ app.post("/enviar-direcciones", async (req, res) => {
 
     const direcciones = messages.tcp.map(msg => {
         if (typeof msg.direccion === "object" && msg.direccion.lat && msg.direccion.lng) {
-            return `${msg.direccion.lat},${msg.direccion.lng}`; // Convertir a formato "lat,lng" para Flask
+            return `${msg.direccion.lat},${msg.direccion.lng}`;
         }
-        return msg.direccion; // Mantener direcciones de texto
+        return msg.direccion;
     });
     console.log("📤 Enviando direcciones a Flask:", direcciones);
 
     try {
         const respuestaFlask = await axios.post("http://smartway.ddns.net:5000/api/process", { direcciones });
+        console.log("📥 Respuesta de Flask:", respuestaFlask.data);
         messages.rutasIA = respuestaFlask.data.rutasIA || [];
         fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
             if (err) console.error("❌ Error guardando rutasIA:", err);
@@ -196,7 +197,7 @@ app.post("/enviar-direcciones", async (req, res) => {
         emitirActualizacionRutas();
         res.json({ success: true, rutasIA: messages.rutasIA });
     } catch (error) {
-        console.error("❌ Error al comunicarse con Flask:", error.message);
+        console.error("❌ Error al comunicarse con Flask:", error.response ? error.response.data : error.message);
         res.status(500).json({ success: false, message: "Error en Flask" });
     }
 });
@@ -462,11 +463,10 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
 
     messages.bus = [{ id: "bus", direccion: { lat, lng }, tiempo: new Date().toISOString() }];
     if (messages.rutaseleccionada.length > 0) {
-        messages.rutaseleccionada[0].direccion = { lat, lng }; // Actualizar punto 1 (bus)
+        messages.rutaseleccionada[0].direccion = { lat, lng };
     }
 
-    // Verificar si el bus llegó a alguna parada
-    const TOLERANCIA = 0.0005; // ~50 metros
+    const TOLERANCIA = 0.0005;
     for (let i = 1; i < messages.rutaseleccionada.length; i++) {
         const parada = messages.rutaseleccionada[i];
         if (parada.bus === 1 && Math.abs(parada.direccion.lat - lat) < TOLERANCIA && Math.abs(parada.direccion.lng - lng) < TOLERANCIA) {
@@ -478,30 +478,33 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
         }
     }
 
-    // Actualizar o añadir la posición del bus en tcp
     if (direccion) {
-        messages.tcp = messages.tcp.filter(msg => msg.id !== "bus"); // Eliminar bus anterior
+        messages.tcp = messages.tcp.filter(msg => msg.id !== "bus");
         messages.tcp.unshift({
             id: "bus",
             nombre: "Bus",
             apellido: "",
-            direccion: { lat, lng } // Usar coordenadas directamente
+            direccion: { lat, lng }
         });
         console.log("✅ messages.tcp actualizado con coordenadas del bus:", messages.tcp[0]);
     }
 
-    if (ultimaParada) {
-        const puntoFinalCoords = ultimaParada === "actual" ? { lat, lng } : await geocodificarDireccion("Carrera 15 #27A-40");
+    if (ultimaParada && direccion) { // Solo la primera vez
+        let direccionFinal;
+        if (ultimaParada === "actual") {
+            direccionFinal = `${lat},${lng}`; // Formato "lat,lng" para Flask
+        } else {
+            direccionFinal = ultimaParada; // Texto directo, como "Carrera 15 #27A-40, Barranquilla"
+        }
+
         const puntoFinal = {
             id: "punto_final",
             nombre: "Punto Final",
             apellido: "",
-            direccion: puntoFinalCoords,
-            bus: 1,
-            direccionTexto: ultimaParada === "actual" ? `${lat}, ${lng}` : "Carrera 15 #27A-40"
+            direccion: direccionFinal // Guardar directamente el string que Flask usará
         };
-        messages.rutaseleccionada.push(puntoFinal);
         messages.tcp.push(puntoFinal);
+        console.log("✅ Punto final añadido a messages.tcp:", puntoFinal);
     }
 
     fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
@@ -509,34 +512,4 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
     });
     io.emit("actualizarUbicacionBus", messages.rutaseleccionada);
     res.json({ success: true });
-});
-
-// Agregar este nuevo endpoint para manejar el punto final
-app.post("/agregar-punto-final", (req, res) => {
-    const { nombre, direccion } = req.body;
-    
-    if (!nombre || !direccion) {
-        return res.status(400).json({ success: false, message: "Faltan datos requeridos" });
-    }
-    
-    // Crear objeto para el punto final
-    const puntoFinal = {
-        id: "punto_final",
-        nombre: nombre,
-        apellido: "",
-        direccion: direccion
-    };
-    
-    // Agregar al final del array TCP
-    messages.tcp.push(puntoFinal);
-    
-    // Guardar en el archivo JSON
-    fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
-        if (err) {
-            console.error("❌ Error guardando punto final:", err);
-            return res.status(500).json({ success: false, message: "Error al guardar punto final" });
-        }
-        console.log("✅ Punto final guardado en messages.json");
-        res.json({ success: true, message: "Punto final agregado correctamente" });
-    });
 });
