@@ -1,6 +1,6 @@
 // scripts/modules/socket.js
 import CONFIG from '../config.js';
-import { procesarRuta } from './map-markers.js';
+import { procesarRuta,  agregarMarcador, geocodificarDireccion} from './map-markers.js';
 import { actualizarMarcadorBus, gestionarUbicacion } from './location.js';
 import { solicitarReorganizacionRutas} from './api.js';
 
