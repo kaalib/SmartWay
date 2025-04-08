@@ -158,22 +158,6 @@ let flaskIntervalId = null;
 
 app.post("/iniciar-emision", (req, res) => {
     iniciarEmisionRutas();
-    
-    // Enviar a Flask una sola vez al iniciar
-    if (messages.tcp && messages.tcp.length > 0) {
-        const direcciones = messages.tcp.map(msg => msg.direccion);
-        console.log("📤 Enviando a Flask (única vez al iniciar):", direcciones);
-        axios.post("http://smartway.ddns.net:5000/api/process", { direcciones })
-            .then(respuestaFlask => {
-                messages.rutasIA = respuestaFlask.data.rutasIA || [];
-                fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
-                    if (err) console.error("❌ Error guardando rutasIA:", err);
-                });
-                emitirActualizacionRutas();
-            })
-            .catch(error => console.error("❌ Error enviando a Flask al iniciar:", error.message));
-    }
-
     res.json({ estado: emitirRutas, message: "Emisión iniciada" });
 });
 
