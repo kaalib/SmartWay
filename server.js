@@ -492,7 +492,7 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
     if (ultimaParada && direccion) { // Solo la primera vez
         let direccionFinal;
         if (ultimaParada === "actual") {
-            direccionFinal = `${lat},${lng}`; // Formato "lat,lng" para Flask
+            direccionFinal = `${lat},${lng}`; // Coordenadas como string para Flask
         } else {
             direccionFinal = ultimaParada; // Texto directo, como "Carrera 15 #27A-40, Barranquilla"
         }
@@ -501,7 +501,7 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
             id: "punto_final",
             nombre: "Punto Final",
             apellido: "",
-            direccion: direccionFinal // Guardar directamente el string que Flask usará
+            direccion: direccionFinal
         };
         messages.tcp.push(puntoFinal);
         console.log("✅ Punto final añadido a messages.tcp:", puntoFinal);
