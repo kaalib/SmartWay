@@ -167,17 +167,23 @@ function setupUIEvents() {
         await cerrarUbicacionModal();
         await ejecutarProcesoenorden();
         await iniciarEnvioActualizacion();
+
         if (window.intervalID) {
             console.log("⚠️ El envío de ubicación ya está activo.");
-            return;
+        } else {
+            window.intervalID = setInterval(gestionarUbicacion, 10000);
+            console.log("✅ Envío de ubicación activado.");
         }
-        window.intervalID = setInterval(gestionarUbicacion, 10000); // Actualiza ubicación y marcador cada 10s
-        console.log("✅ Envío de ubicación activado.");
+
         const opcionSeleccionada = document.querySelector('input[name="ubicacion"]:checked').value;
         console.log("📍 Ubicación seleccionada:", opcionSeleccionada);
-        window.ultimaParada = opcionSeleccionada;
+        window.ultimaParada = opcionSeleccionada === "parqueadero" ? "Carrera 15 #27A-40, Barranquilla, Atlántico" : "actual";
+
+        // Enviar la primera ubicación con ultimaParada al backend
+        await gestionarUbicacion(); // Ejecutar inmediatamente para enviar la primera ubicación
         await mostrarLoader();
-        // Solicitar mensajes TCP al servidor
+
+        const socket = setupSocket(); // Asegúrate de que el socket esté inicializado
         socket.emit("solicitar_mensajes_tcp");
         console.log("📡 Solicitando mensajes TCP al servidor...");
     });
@@ -247,7 +253,7 @@ function setupUIEvents() {
         document.getElementById("btnFin").disabled = false;
         iniciarActualizacionRuta(socket);
 
-        
+        console.log("🗺️ Ruta seleccionada:", window.rutaSeleccionada);
         fetch(`${CONFIG.SERVER_URL}/seleccionar-ruta`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },

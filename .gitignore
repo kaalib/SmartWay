@@ -9,7 +9,7 @@ scripts/env.js
 *.elf
 *.bin
 *.hex
-
+#
 # Ignorar archivos del sistema
 .DS_Store
 Thumbs.db
