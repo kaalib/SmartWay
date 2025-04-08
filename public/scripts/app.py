@@ -73,8 +73,6 @@ def get_route_data(origin, destination):
     }
 
     response = requests.post(url, json=body, headers=headers)
-    print(f"📡 Solicitud a Google Routes: {body}")
-    print(f"📥 Respuesta: {response.status_code} - {response.text}")
 
     if response.status_code == 200:
         json_response = response.json()
@@ -156,7 +154,6 @@ def process_message():
                     distance, duration = get_route_data(direcciones[i], direcciones[j])
                     distance_matrix[(direcciones[i], direcciones[j])] = distance
                     traffic_matrix[(direcciones[i], direcciones[j])] = duration
-                    print(f"Distancia {direcciones[i]} -> {direcciones[j]}: {distance}m, Duración: {duration}s")
 
         best_route_distance = genetic_algorithm(destinos, origin, destination, distance_matrix, traffic_matrix, fitness_distance)
         best_route_traffic = genetic_algorithm(destinos, origin, destination, distance_matrix, traffic_matrix, fitness_traffic)

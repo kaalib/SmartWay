@@ -1,4 +1,5 @@
 // scripts/modules/ui.js
+import CONFIG from '../config.js';
 import { actualizarMapa } from './map-markers.js';
 import { iniciarActualizacionRuta, detenerActualizacionRuta, actualizarRutaSeleccionada, setupSocket, mostrarMensajesTCP } from './socket.js';
 import { ejecutarProcesoenorden, iniciarEnvioActualizacion, detenerEnvioActualizacion, limpiarMapa } from './api.js';
