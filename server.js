@@ -189,23 +189,26 @@ app.post("/detener-emision", (req, res) => {
     res.json({ estado: emitirRutas, message: "Emisión detenida" });
 });
 
-// 📩 Enviar direcciones a Flask
+// Ajustar el envío a Flask para manejar coordenadas
 app.post("/enviar-direcciones", async (req, res) => {
-    try {
-        if (!messages.tcp || messages.tcp.length === 0) {
-            return res.status(400).json({ success: false, message: "No hay direcciones para procesar" });
+    if (!messages.tcp || messages.tcp.length === 0) {
+        return res.status(400).json({ success: false, message: "No hay direcciones" });
+    }
+
+    const direcciones = messages.tcp.map(msg => {
+        if (typeof msg.direccion === "object" && msg.direccion.lat && msg.direccion.lng) {
+            return `${msg.direccion.lat},${msg.direccion.lng}`; // Convertir a formato "lat,lng" para Flask
         }
+        return msg.direccion; // Mantener direcciones de texto
+    });
+    console.log("📤 Enviando direcciones a Flask:", direcciones);
 
-        const direcciones = messages.tcp.map(msg => msg.direccion);
-        console.log("📤 Enviando direcciones a Flask:", direcciones);
-
+    try {
         const respuestaFlask = await axios.post("http://smartway.ddns.net:5000/api/process", { direcciones });
         messages.rutasIA = respuestaFlask.data.rutasIA || [];
-
         fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
             if (err) console.error("❌ Error guardando rutasIA:", err);
         });
-
         emitirActualizacionRutas();
         res.json({ success: true, rutasIA: messages.rutasIA });
     } catch (error) {
@@ -491,18 +494,27 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
         }
     }
 
+    // Actualizar o añadir la posición del bus en tcp
     if (direccion) {
-        messages.tcp.unshift({ id: "bus", nombre: "Bus", apellido: "", direccion });
+        messages.tcp = messages.tcp.filter(msg => msg.id !== "bus"); // Eliminar bus anterior
+        messages.tcp.unshift({
+            id: "bus",
+            nombre: "Bus",
+            apellido: "",
+            direccion: { lat, lng } // Usar coordenadas directamente
+        });
+        console.log("✅ messages.tcp actualizado con coordenadas del bus:", messages.tcp[0]);
     }
+
     if (ultimaParada) {
-        const puntoFinalCoords = ultimaParada === "actual" ? messages.bus[0].direccion : await geocodificarDireccion("Carrera 15 #27A-40");
+        const puntoFinalCoords = ultimaParada === "actual" ? { lat, lng } : await geocodificarDireccion("Carrera 15 #27A-40");
         const puntoFinal = {
             id: "punto_final",
             nombre: "Punto Final",
             apellido: "",
             direccion: puntoFinalCoords,
             bus: 1,
-            direccionTexto: ultimaParada === "actual" ? messages.tcp[0].direccion : "Carrera 15 #27A-40"
+            direccionTexto: ultimaParada === "actual" ? `${lat}, ${lng}` : "Carrera 15 #27A-40"
         };
         messages.rutaseleccionada.push(puntoFinal);
         messages.tcp.push(puntoFinal);

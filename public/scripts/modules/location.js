@@ -27,13 +27,13 @@ async function gestionarUbicacion() {
                         body: JSON.stringify({
                             lat: latitude,
                             lng: longitude,
-                            direccion: window.primeraVez ? "actual" : null, // El backend geocodifica
+                            // Enviamos las coordenadas directamente la primera vez
+                            direccion: window.primeraVez ? { lat: latitude, lng: longitude } : null,
                             ultimaParada: window.primeraVez ? window.ultimaParada : null
                         })
                     });
 
                     if (!response.ok) throw new Error(`Error: ${response.status}`);
-                    // No dibujamos aquí; socket.js lo hace con rutaseleccionada
                     if (window.primeraVez) window.primeraVez = false;
                     resolve();
                 } catch (error) {
