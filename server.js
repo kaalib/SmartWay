@@ -13,8 +13,11 @@ const axios = require('axios');
 const socketIo = require("socket.io");
 const messages = { tcp: [], rutasIA: [], bus: [], rutaseleccionada: [] }; // Mensajes TCP, la API optimizadora de rutas
 require('dotenv').config(); // Cargar variables de entorno
-const MAX_TCP_CONNECTIONS = 2;
+const MAX_TCP_CONNECTIONS = 1;
 let activeTcpConnections = 0;
+
+
+
 // Connect to MySQL database
 const db = mysql.createConnection({
     host: process.env.db_host,
@@ -292,6 +295,7 @@ app.delete('/messages', (req, res) => {
     messages.tcp = []; // Vaciar el array de mensajes TCP
     messages.rutasIA = []; // Vaciar el array de mensajes rutasIA
     messages.bus = []; // Vaciar el array de mensajes bus
+    messages.rutaseleccionada = []; // Vaciar el array de mensajes rutaseleccionada
     fs.writeFileSync("messages.json", JSON.stringify(messages, null, 2)); // Guardar cambios en el archivo
     res.json({ success: true, message: "Mensajes TCP eliminados" });
 });
@@ -316,8 +320,39 @@ app.put("/updateBus", (req, res) => {
 
 
 // --- Servidor TCP ---
+
+
+// 📦 Registrar ingreso en base de datos
+function registrarIngresoTCP(idEmpleado, ip) {
+    const timestamp = new Date();
+    const insertSql = "INSERT INTO logs_ingresos (id_empleado, ip, fecha_hora) VALUES (?, ?, ?)";
+
+    db.query(insertSql, [idEmpleado, ip, timestamp], (err) => {
+        if (err) {
+            console.error("❌ Error al registrar ingreso en la base de datos:", err);
+        } else {
+            console.log(`🟢 Ingreso registrado en BD para ID ${idEmpleado}`);
+        }
+    });
+}
+
+// 📦 Registrar rechazo en base de datos
+function registrarRechazoTCP(ip, motivo) {
+    const timestamp = new Date();
+    const insertSql = "INSERT INTO logs_rechazos (ip, motivo, fecha_hora) VALUES (?, ?, ?)";
+
+    db.query(insertSql, [ip, motivo, timestamp], (err) => {
+        if (err) {
+            console.error("❌ Error al registrar rechazo en la base de datos:", err);
+        } else {
+            console.log(`🛑 Rechazo registrado en BD. IP: ${ip}`);
+        }
+    });
+}
+
 const tcpServer = net.createServer((socket) => {
     if (activeTcpConnections >= MAX_TCP_CONNECTIONS) {
+        registrarRechazoTCP(socket.remoteAddress, "Límite de conexiones alcanzado");
         console.log("🚫 Conexión rechazada: límite de conexiones TCP alcanzado.");
         socket.end("Conexión rechazada: límite alcanzado.\n");
         return;
@@ -326,9 +361,8 @@ const tcpServer = net.createServer((socket) => {
     activeTcpConnections++;
     console.log("📡 Nueva conexión TCP. Activas:", activeTcpConnections);
 
-
     socket.on("data", (data) => {
-        const idEmpleado = parseInt(data.toString().trim(), 10); // Convertir a número
+        const idEmpleado = parseInt(data.toString().trim(), 10);
 
         if (isNaN(idEmpleado)) {
             socket.write("Error: ID inválido. Debe ser un número.\n");
@@ -336,8 +370,8 @@ const tcpServer = net.createServer((socket) => {
         }
 
         console.log(`ID recibido: ${idEmpleado}`);
+        registrarIngresoTCP(idEmpleado, socket.remoteAddress);
 
-        // Actualizar el estado de 'bus' a 1 para este ID
         const updateSql = "UPDATE empleados SET bus = 1 WHERE id = ?";
         db.query(updateSql, [idEmpleado], (updateErr) => {
             if (updateErr) {
@@ -348,7 +382,6 @@ const tcpServer = net.createServer((socket) => {
 
             console.log(`✅ Bus actualizado a 1 para ID ${idEmpleado}`);
 
-            // Obtener los datos del empleado incluyendo 'bus'
             const selectSql = "SELECT nombre, apellido, direccion, bus FROM empleados WHERE id = ?";
             db.query(selectSql, [idEmpleado], (err, results) => {
                 if (err) {
@@ -365,28 +398,25 @@ const tcpServer = net.createServer((socket) => {
                         nombre: empleado.nombre,
                         apellido: empleado.apellido,
                         direccion: empleado.direccion,
-                        bus: empleado.bus // Incluir el estado del bus en la respuesta
+                        bus: empleado.bus
                     };
                 } else {
                     respuesta = { error: "Usuario no encontrado" };
                 }
 
-                // Evitar duplicados en messages.tcp
                 const yaExiste = messages.tcp.find(m => m.id === idEmpleado);
                 if (!yaExiste) {
-                messages.tcp.push(respuesta);
+                    messages.tcp.push(respuesta);
                 } else {
-                console.log("⚠️ ID ya existe en messages.tcp. Ignorando duplicado:", idEmpleado);
+                    console.log("⚠️ ID ya existe en messages.tcp. Ignorando duplicado:", idEmpleado);
                 }
 
                 fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
                     if (err) console.error("Error guardando mensajes en archivo:", err);
                 });
 
-                // 🚀 Enviar datos a todos los clientes de Socket.io (en lugar de WebSocket puro)
                 io.emit("actualizar_tcp", { data: respuesta });
 
-                // Enviar respuesta al cliente TCP con manejo de errores en socket.write
                 try {
                     socket.write(JSON.stringify(respuesta) + "\n");
                 } catch (writeErr) {
@@ -409,23 +439,12 @@ const tcpServer = net.createServer((socket) => {
         } else {
             console.error("❌ Error en el socket:", err);
         }
-    
-        activeTcpConnections = Math.max(activeTcpConnections - 1, 0); // Evita que baje de 0
+
+        activeTcpConnections = Math.max(activeTcpConnections - 1, 0);
         socket.destroy();
     });
-    
-    
-    // Mover el manejo de errores del socket aquí
-    socket.on("error", (err) => {
-        if (err.code === 'EPIPE') {
-            console.warn('⚠️ Intento de escribir en un socket cerrado.');
-        } else {
-            console.error("❌ Error en el socket:", err);
-        }
-    });
-    
-    
 });
+
 
 
 // TCP
@@ -541,7 +560,12 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
     }
 
     if (ultimaParada && direccion) { // Solo la primera vez
-        const direccionFinal = ultimaParada; // Puede ser string o { lat, lng }
+        let direccionFinal;
+        if (ultimaParada === "actual") {
+            direccionFinal = { lat, lng };
+        } else {
+            direccionFinal = ultimaParada;
+        }
         const puntoFinal = {
             id: "punto_final",
             nombre: "Punto Final",
