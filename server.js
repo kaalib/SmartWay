@@ -88,43 +88,33 @@ const io = socketIo(httpsServer, {
 io.on("connection", (socket) => {
     console.log("✅ Cliente conectado a Socket.io");
 
-    // Manejar la selección y actualización de ruta desde el cliente
     socket.on("actualizar_ruta_seleccionada", (data) => {
         console.log("📡 Ruta seleccionada recibida del cliente:", data);
-
-        // Actualizar messages.rutaseleccionada con las ubicaciones procesadas (coordenadas)
         messages.rutaseleccionada = data.locations.map((loc, index) => ({
             id: index === 0 ? "bus" : `parada_${index}`,
             nombre: index === 0 ? "Bus" : `Parada ${index}`,
-            direccion: { lat: loc.lat, lng: loc.lng }, // 🔥 Formato correcto
+            direccion: `${loc.lat},${loc.lng}`, // String para consistencia
             bus: 1
         }));
         console.log("✅ rutaseleccionada actualizada desde el cliente:", messages.rutaseleccionada);
 
-        // Guardar en messages.json
         fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
             if (err) console.error("❌ Error guardando rutaseleccionada:", err);
         });
 
-        // Emitir a todos los clientes conectados
-        io.emit("rutaSeleccionada", { ruta: data.ruta, locations: messages.rutaseleccionada });
-        // También retransmitir el evento original para compatibilidad con tu código anterior
-        io.emit("ruta_seleccionada_actualizada", data);
+        io.emit("ruta_seleccionada_actualizada", { ruta: data.ruta, locations: messages.rutaseleccionada });
     });
 
-    // Solicitar y emitir mensajes TCP
     socket.on("solicitar_mensajes_tcp", () => {
         console.log("📡 Cliente solicitó mensajes TCP");
         io.emit("actualizar_tcp_mensajes", { tcp: messages.tcp });
     });
 
-    // Actualizar ubicación del bus
     socket.on("actualizar_ubicacion_bus", (ubicacion) => {
         console.log("📡 Ubicación del bus recibida del cliente:", ubicacion);
         io.emit("actualizarUbicacionBus", ubicacion);
     });
 
-    // Manejar desconexión
     socket.on("disconnect", () => {
         console.log("❌ Cliente desconectado");
     });
@@ -533,38 +523,39 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
 
     messages.bus = [{ id: "bus", direccion: { lat, lng }, tiempo: new Date().toISOString() }];
     if (messages.rutaseleccionada.length > 0) {
-        messages.rutaseleccionada[0].direccion = { lat, lng };
+        messages.rutaseleccionada[0].direccion = `${lat},${lng}`; // Actualizar como string
     }
 
     const TOLERANCIA = 0.0005;
     for (let i = 1; i < messages.rutaseleccionada.length; i++) {
         const parada = messages.rutaseleccionada[i];
-        if (parada.bus === 1 && Math.abs(parada.direccion.lat - lat) < TOLERANCIA && Math.abs(parada.direccion.lng - lng) < TOLERANCIA) {
+        const paradaCoords = parada.direccion.split(",").map(Number);
+        if (parada.bus === 1 && Math.abs(paradaCoords[0] - lat) < TOLERANCIA && Math.abs(paradaCoords[1] - lng) < TOLERANCIA) {
             parada.bus = 0;
-            db.query("UPDATE empleados SET bus = 0 WHERE direccion = ?", [parada.direccionTexto], (err) => {
+            db.query("UPDATE empleados SET bus = 0 WHERE direccion = ?", [parada.direccion], (err) => {
                 if (err) console.error("❌ Error actualizando estado bus:", err);
             });
-            console.log(`✅ Pasajero en ${parada.direccionTexto} bajó del bus`);
+            console.log(`✅ Pasajero en ${parada.direccion} bajó del bus`);
         }
     }
 
-    if (direccion) {
-        messages.tcp = messages.tcp.filter(msg => msg.id !== "bus");
-        messages.tcp.unshift({
-            id: "bus",
-            nombre: "Bus",
-            apellido: "",
-            direccion: { lat, lng }
-        });
-        console.log("✅ messages.tcp actualizado con coordenadas del bus:", messages.tcp[0]);
-    }
+    // Actualizar messages.tcp con la posición del bus
+    messages.tcp = messages.tcp.filter(msg => msg.id !== "bus");
+    messages.tcp.unshift({
+        id: "bus",
+        nombre: "Bus",
+        apellido: "",
+        direccion: `${lat},${lng}` // Usar string para consistencia
+    });
+    console.log("✅ messages.tcp actualizado con coordenadas del bus:", messages.tcp[0]);
 
-    if (ultimaParada && direccion) { // Solo la primera vez
+    // Añadir punto final si ultimaParada está presente (primera vez)
+    if (ultimaParada && window.primeraVez) {
         let direccionFinal;
         if (ultimaParada === "actual") {
-            direccionFinal = { lat, lng };
+            direccionFinal = `${lat},${lng}`;
         } else {
-            direccionFinal = ultimaParada;
+            direccionFinal = ultimaParada; // Texto como "Carrera 15 #27A-40, Barranquilla"
         }
         const puntoFinal = {
             id: "punto_final",
@@ -574,11 +565,13 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
         };
         messages.tcp.push(puntoFinal);
         console.log("✅ Punto final añadido a messages.tcp:", puntoFinal);
+        window.primeraVez = false; // Evitar añadirlo de nuevo
     }
 
     fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
         if (err) console.error("❌ Error guardando:", err);
     });
     io.emit("actualizarUbicacionBus", messages.rutaseleccionada);
+    io.emit("actualizar_tcp_mensajes", { tcp: messages.tcp }); // Asegurar emisión inmediata
     res.json({ success: true });
 });
