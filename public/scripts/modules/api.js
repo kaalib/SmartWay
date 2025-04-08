@@ -28,11 +28,11 @@ async function solicitarReorganizacionRutas() {
             method: "POST",
             headers: { "Content-Type": "application/json" }
         });
-
         if (!response.ok) throw new Error("Error al solicitar reorganización de rutas");
         const data = await response.json();
         console.log("✅ Rutas reorganizadas recibidas:", data.rutasIA);
-        actualizarMapa(data.rutasIA);
+        window.rutaDistancia = data.rutasIA.mejor_ruta_distancia;
+        window.rutaTrafico = data.rutasIA.mejor_ruta_trafico;
     } catch (error) {
         console.error("❌ Error en `solicitarReorganizacionRutas()`:", error);
     }

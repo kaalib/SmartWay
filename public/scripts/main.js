@@ -3,7 +3,7 @@ import CONFIG from './config.js';
 import { checkUserRole } from './modules/auth.js';
 import { configurarBarrasLaterales } from './modules/sidebar.js';
 import { loadGoogleMapsApi, initMap } from './modules/map-init.js';
-import { setupSocket } from './modules/socket.js';
+import { setupSocket, mostrarMensajesTCP } from './modules/socket.js';
 import { setupUIEvents } from './modules/ui.js';
 import { iniciarNavegacionConductor, detenerNavegacionConductor } from './modules/navigation.js';
 
@@ -48,6 +48,14 @@ async function inicializarAplicacion() {
 
     try { setupUIEvents(); } catch (error) {
         console.error("⚠️ Error configurando eventos de UI:", error);
+    }
+
+    // Mostrar texto por defecto para mensajes TCP al inicio
+    try {
+        mostrarMensajesTCP([]); // Array vacío para mostrar "No hay pasajeros..."
+        console.log("✅ Mensajes TCP inicializados con texto por defecto.");
+    } catch (error) {
+        console.error("⚠️ Error mostrando mensajes TCP iniciales:", error);
     }
 
     console.log("✅ Aplicación inicializada (posiblemente con errores parciales para pruebas locales)");
