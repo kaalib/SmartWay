@@ -4,7 +4,7 @@ import { procesarRuta,  agregarMarcador, geocodificarDireccion, dibujarRutaCondu
 import { actualizarMarcadorBus, gestionarUbicacion } from './location.js';
 import { solicitarReorganizacionRutas} from './api.js';
 
-function setupSocket() {
+async function setupSocket() {
     const socket = io(CONFIG.WEBSOCKET_URL);
 
     socket.on("actualizar_rutas", (data) => {
@@ -15,13 +15,31 @@ function setupSocket() {
     });
 
     socket.on("actualizarUbicacionBus", (rutaseleccionada) => {
-        console.log("🛑 Ruta seleccionada recibida por WebSocket:", rutaseleccionada);
+        console.log("📍 Actualización de ubicación del bus recibida:", rutaseleccionada);
         actualizarMapaConRutaSeleccionada(rutaseleccionada);
     });
 
     socket.on("actualizar_tcp_mensajes", (data) => {
         console.log("📡 Mensajes TCP recibidos por WebSocket:", data.tcp);
         mostrarMensajesTCP(data.tcp);
+    });
+
+    socket.on("ruta_seleccionada_actualizada", async (data) => {
+        console.log("🛑 Ruta seleccionada actualizada recibida por WebSocket:", data);
+        window.rutaSeleccionadaLocations = data.locations;
+        const rutaActualizada = data.locations.map(loc => loc.direccion);
+        const bounds = new google.maps.LatLngBounds();
+        const color = window.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
+
+        window.marcadores.forEach(marcador => marcador.map = null);
+        window.marcadores = [];
+        window.rutasDibujadas.forEach(ruta => ruta.setMap(null));
+        window.rutasDibujadas = [];
+
+        await procesarRuta(rutaActualizada, color, bounds);
+        if (!bounds.isEmpty()) {
+            window.map.fitBounds(bounds);
+        }
     });
 
     return socket;

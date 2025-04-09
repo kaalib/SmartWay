@@ -164,31 +164,34 @@ function setupUIEvents() {
         });
     });
 
-    document.getElementById("btnSeleccionarUbicacion").addEventListener("click", async () => {
-        await cerrarUbicacionModal();
-        await ejecutarProcesoenorden();
-        await iniciarEnvioActualizacion();
-    
-        if (window.intervalID) {
-            console.log("⚠️ El envío de ubicación ya está activo.");
-        } else {
-            window.intervalID = setInterval(gestionarUbicacion, 10000);
-            console.log("✅ Envío de ubicación activado.");
-        }
-    
-        const opcionSeleccionada = document.querySelector('input[name="ubicacion"]:checked').value;
-        console.log("📍 Ubicación seleccionada:", opcionSeleccionada);
-        // Asignar ultimaParada según la selección
-        window.ultimaParada = opcionSeleccionada === "parqueadero" ? "Carrera 15 #27A-40, Barranquilla" : "actual";
-        console.log("📍 ultimaParada asignada:", window.ultimaParada); // Añadir este log
-        // Enviar la primera ubicación con ultimaParada al backend
-        await gestionarUbicacion(); // Ejecutar inmediatamente para enviar la primera ubicación
-        await mostrarLoader();
-    
-        const socket = setupSocket();
-        socket.emit("solicitar_mensajes_tcp");
-        console.log("📡 Solicitando mensajes TCP al servidor...");
-    });
+// Inicializar window.primeraVez al cargar el módulo
+window.primeraVez = true;
+
+document.getElementById("btnSeleccionarUbicacion").addEventListener("click", async () => {
+    await cerrarUbicacionModal();
+    await ejecutarProcesoenorden();
+    await iniciarEnvioActualizacion();
+
+    if (window.intervalID) {
+        console.log("⚠️ El envío de ubicación ya está activo.");
+    } else {
+        window.intervalID = setInterval(gestionarUbicacion, 10000);
+        console.log("✅ Envío de ubicación activado.");
+    }
+
+    const opcionSeleccionada = document.querySelector('input[name="ubicacion"]:checked').value;
+    console.log("📍 Ubicación seleccionada:", opcionSeleccionada);
+    window.ultimaParada = opcionSeleccionada === "parqueadero" ? "Carrera 15 #27A-40, Barranquilla" : "actual";
+    console.log("📍 ultimaParada asignada:", window.ultimaParada);
+
+    // Enviar la primera ubicación con ultimaParada al backend
+    await gestionarUbicacion(); // Ejecutar inmediatamente
+    await mostrarLoader();
+
+    const socket = setupSocket();
+    socket.emit("solicitar_mensajes_tcp");
+    console.log("📡 Solicitando mensajes TCP al servidor...");
+});
 
     document.getElementById('btnInicio').addEventListener("click", () => {
         abrirUbicacionModal();
