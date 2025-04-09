@@ -131,6 +131,7 @@ document.getElementById("btnSeleccionarUbicacion").addEventListener("click", asy
         const socket = setupSocket();
         socket.emit("solicitar_mensajes_tcp");
         console.log("📡 Solicitando mensajes TCP al servidor...");
+        
     } catch (error) {
         console.error("❌ Error durante el proceso:", error);
         modalText.textContent = "Error procesando la solicitud o datos no disponibles. Intente de nuevo.";

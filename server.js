@@ -11,7 +11,8 @@ const app = express();
 const net = require('net');
 const axios = require('axios');
 const socketIo = require("socket.io");
-const messages = { tcp: [], rutasIA: [], bus: [], rutaseleccionada: [] }; // Mensajes TCP, la API optimizadora de rutas
+const fetch = require('node-fetch');
+const messages = { tcp: [], rutasIA: {}, bus: [], rutaseleccionada: [] }; // Mensajes TCP, la API optimizadora de rutas
 require('dotenv').config(); // Cargar variables de entorno
 const MAX_TCP_CONNECTIONS = 1;
 let activeTcpConnections = 0;
@@ -537,7 +538,7 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
         return res.status(400).json({ error: "Faltan datos: lat o lng" });
     }
 
-    messages.bus = [{ id: "bus", direccion: `${lat},${lng}`, tiempo: new Date().toISOString() }];
+    messages.bus = [{ id: "bus", direccion: { lat, lng }, tiempo: new Date().toISOString() }];
     if (messages.rutaseleccionada.length > 0) {
         messages.rutaseleccionada[0].direccion = `${lat},${lng}`;
     }
@@ -560,17 +561,11 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
         id: "bus",
         nombre: "Bus",
         apellido: "",
-        direccion: `${lat},${lng}`
+        direccion: { lat, lng }
     });
-    console.log("✅ messages.tcp actualizado con coordenadas del bus:", messages.tcp[0]);
 
     if (ultimaParada && primeraVez) {
-        let direccionFinal;
-        if (ultimaParada === "actual") {
-            direccionFinal = `${lat},${lng}`;
-        } else {
-            direccionFinal = ultimaParada;
-        }
+        let direccionFinal = ultimaParada === "actual" ? { lat, lng } : ultimaParada;
         const puntoFinal = {
             id: "punto_final",
             nombre: "Punto Final",
@@ -579,6 +574,29 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
         };
         messages.tcp.push(puntoFinal);
         console.log("✅ Punto final añadido a messages.tcp:", puntoFinal);
+
+        // Enviar direcciones a Flask
+        const direcciones = messages.tcp.map(msg => 
+            msg.direccion.lat ? `${msg.direccion.lat},${msg.direccion.lng}` : msg.direccion
+        );
+        try {
+            const flaskResponse = await fetch("http://smartway.ddns.net:5000/api/process", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ direcciones })
+            });
+            const flaskData = await flaskResponse.json();
+            if (flaskData.status === "success") {
+                messages.rutasIA = flaskData.rutasIA;
+                console.log("✅ rutasIA recibido de Flask:", messages.rutasIA);
+                emitirActualizacionRutas(); // Emitir inmediatamente
+            } else {
+                console.error("❌ Error en Flask:", flaskData.message);
+            }
+        } catch (error) {
+            console.error("❌ Error enviando a Flask:", error);
+        }
+
         primeraVez = false;
     }
 
