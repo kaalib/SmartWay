@@ -44,7 +44,7 @@ def get_weather():
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-rutasIA = []  # Almacena las rutas globalmente
+rutasIA = {}  # Almacena las rutas globalmente como objeto
 
 # Función para obtener distancia y tráfico entre dos direcciones
 def get_route_data(origin, destination):
@@ -142,9 +142,18 @@ def process_message():
         if not direcciones or len(direcciones) < 2:
             return jsonify({"status": "error", "message": "Lista de direcciones insuficiente"}), 400
         
-        origin = direcciones[0]  # Primer elemento: posición del bus
-        destination = direcciones[-1]  # Último elemento: punto final
-        destinos = direcciones[1:-1]  # Elementos intermedios: paradas
+        # Normalizar direcciones
+        def normalize_direccion(d):
+            if isinstance(d, dict) and "lat" in d and "lng" in d:
+                return f"{d['lat']},{d['lng']}"
+            return str(d)  # Convertir todo a string para consistencia
+
+        direcciones = [normalize_direccion(d) for d in direcciones]
+        origin = direcciones[0]  # Posición del bus
+        destination = direcciones[-1]  # Punto final
+        destinos = direcciones[1:-1]  # Paradas intermedias
+
+        print(f"📍 Direcciones normalizadas: {direcciones}")
 
         distance_matrix = {}
         traffic_matrix = {}
@@ -179,6 +188,6 @@ def process_message():
     except Exception as e:
         print(f"❌ Error en /api/process: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
-    
+
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)
