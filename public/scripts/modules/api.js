@@ -38,14 +38,14 @@ async function solicitarReorganizacionRutas() {
     }
 }
 
-async function ejecutarProcesoenorden() {
-    try {
-        await gestionarUbicacion();
-        await solicitarActualizacionRutas();
-    } catch (error) {
-        console.error("❌ Error en el proceso:", error);
-    }
-}
+//async function ejecutarProcesoenorden() {
+//    try {
+//        await gestionarUbicacion();
+//        await solicitarActualizacionRutas();
+//    } catch (error) {
+//        console.error("❌ Error en el proceso:", error);
+//    }
+//}
 
 async function iniciarEnvioActualizacion() {
     try {
@@ -101,4 +101,4 @@ async function limpiarMapa() {
 
 
 
-export { solicitarActualizacionRutas, solicitarReorganizacionRutas, ejecutarProcesoenorden, iniciarEnvioActualizacion, detenerEnvioActualizacion, limpiarMapa };
+export { solicitarActualizacionRutas, solicitarReorganizacionRutas, iniciarEnvioActualizacion, detenerEnvioActualizacion, limpiarMapa };

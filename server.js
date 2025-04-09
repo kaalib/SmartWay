@@ -539,7 +539,7 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
 
     messages.bus = [{ id: "bus", direccion: { lat, lng }, tiempo: new Date().toISOString() }];
     if (messages.rutaseleccionada.length > 0) {
-        messages.rutaseleccionada[0].direccion = `${lat},${lng}`; // Actualizar como string
+        messages.rutaseleccionada[0].direccion = `${lat},${lng}`;
     }
 
     const TOLERANCIA = 0.0005;
@@ -564,13 +564,12 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
     });
     console.log("✅ messages.tcp actualizado con coordenadas del bus:", messages.tcp[0]);
 
-    // Añadir punto final si ultimaParada está presente (primera vez)
     if (ultimaParada && primeraVez) {
         let direccionFinal;
         if (ultimaParada === "actual") {
             direccionFinal = `${lat},${lng}`;
         } else {
-            direccionFinal = ultimaParada; // Ej. "Carrera 15 #27A-40, Barranquilla"
+            direccionFinal = ultimaParada;
         }
         const puntoFinal = {
             id: "punto_final",
@@ -580,13 +579,18 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
         };
         messages.tcp.push(puntoFinal);
         console.log("✅ Punto final añadido a messages.tcp:", puntoFinal);
-        primeraVez = false; // Evitar añadirlo de nuevo
+        primeraVez = false;
     }
 
     fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
         if (err) console.error("❌ Error guardando:", err);
     });
-    io.emit("actualizarUbicacionBus", messages.rutaseleccionada);
+
+    // Emitir con información completa
+    io.emit("ruta_seleccionada_actualizada", {
+        ruta: messages.rutaSeleccionada || "mejor_ruta_distancia", // Valor por defecto si no está definido
+        locations: messages.rutaseleccionada
+    });
     io.emit("actualizar_tcp_mensajes", { tcp: messages.tcp });
     res.json({ success: true });
 });

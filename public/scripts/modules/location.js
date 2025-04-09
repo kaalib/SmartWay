@@ -4,7 +4,7 @@ import { setupSocket } from './socket.js';
 
 const socket = setupSocket();
 
-async function gestionarUbicacion() {
+async function gestionarUbicacion(primeraVezOverride = null) {
     return new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
             Swal.fire({
@@ -21,11 +21,12 @@ async function gestionarUbicacion() {
                 window.ultimaUbicacionBus = { lat: latitude, lng: longitude };
 
                 try {
+                    const isPrimeraVez = primeraVezOverride !== null ? primeraVezOverride : window.primeraVez;
                     const payload = {
                         lat: latitude,
                         lng: longitude,
-                        direccion: window.primeraVez ? { lat: latitude, lng: longitude } : null,
-                        ultimaParada: window.primeraVez ? window.ultimaParada : null
+                        direccion: isPrimeraVez ? { lat: latitude, lng: longitude } : null,
+                        ultimaParada: isPrimeraVez ? window.ultimaParada : null
                     };
                     console.log("📍 Enviando a /actualizar-ubicacion-bus:", payload);
 
@@ -36,7 +37,7 @@ async function gestionarUbicacion() {
                     });
 
                     if (!response.ok) throw new Error(`Error: ${response.status}`);
-                    if (window.primeraVez) window.primeraVez = false;
+                    if (isPrimeraVez) window.primeraVez = false;
                     resolve();
                 } catch (error) {
                     console.error("❌ Error enviando ubicación:", error);
