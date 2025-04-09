@@ -278,6 +278,16 @@ nav {
     box-shadow: 0 5px 15px rgba(255, 193, 7, 0.3);
 }
 
+/* Dashboard header */
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 10px 0;
+    border-bottom: 1px solid #e0e0e0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .nav-links {
@@ -299,11 +309,60 @@ nav {
     .container {
         width: 100%;
         padding: 15px;
+        margin-top: 10px; /* Espacio para el menú móvil */
     }
     
     .btn {
         padding: 8px 15px;
         font-size: 0.9rem;
+    }
+    
+    /* Centrar títulos en móvil y evitar superposición con el menú */
+    .dashboard-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding-top: 40px; /* Espacio para evitar superposición con el icono del menú */
+    }
+    
+    .dashboard-header h1 {
+        margin-bottom: 15px;
+        font-size: 1.5rem; /* Título más pequeño en móvil */
+    }
+    
+    /* Ajustar acciones del header en móvil */
+    .header-actions, 
+    .security-status {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    /* Ajustar fecha y filtros en móvil */
+    .date-filter {
+        width: 100%;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .date-filter input {
+        width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .container {
+        padding: 10px;
+    }
+    
+    .dashboard-header h1 {
+        font-size: 1.3rem;
+    }
+    
+    .btn {
+        width: 80%; /* Botones a ancho completo en móvil pequeño */
     }
 }
 

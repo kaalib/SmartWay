@@ -1,21 +1,6 @@
-/* Estilos para la página de seguridad */
+/* Estilos específicos para la página de seguridad */
 
-/* Estilos generales del dashboard */
-.dashboard-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding: 10px 0;
-    border-bottom: 1px solid #e0e0e0;
-}
-
-.dashboard-header h1 {
-    font-size: 24px;
-    color: #333;
-    margin: 0;
-}
-
+/* Estilos de estado de seguridad */
 .security-status {
     display: flex;
     align-items: center;
@@ -227,7 +212,7 @@
     color: #333;
 }
 
-/* Mapa de rutas históricas (reemplazando el mapa de IPs) */
+/* Mapa de rutas históricas */
 .route-selector {
     margin-bottom: 15px;
     display: flex;
@@ -299,7 +284,7 @@
     border: none;
     padding: 8px 12px;
     background-color: transparent;
-    width: 200px;
+    width: 100%;
 }
 
 .search-container input:focus {
@@ -522,7 +507,7 @@ table tbody tr:hover {
     .main-layout {
         grid-template-columns: 1fr;
     }
-    
+
     .security-settings {
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     }
@@ -535,10 +520,26 @@ table tbody tr:hover {
 }
 
 @media (max-width: 768px) {
-    .dashboard-header {
+    .stats-container {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+    
+    .stat-card {
         flex-direction: column;
-        align-items: flex-start;
-        gap: 15px;
+        text-align: center;
+        padding: 15px;
+    }
+    
+    .stat-icon {
+        margin-right: 0;
+        margin-bottom: 10px;
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+    }
+    
+    .stat-info p {
+        font-size: 20px;
     }
     
     .section-header {
@@ -549,13 +550,48 @@ table tbody tr:hover {
     
     .section-actions {
         width: 100%;
+        flex-direction: column;
     }
     
     .search-container {
         width: 100%;
     }
     
-    .search-container input {
+    .security-route-map {
+        height: 300px; /* Mapa más pequeño en móvil */
+    }
+    
+    .route-legend {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .table-pagination {
+        flex-direction: column;
+        gap: 10px;
+        align-items: center;
+    }
+    
+    .table-pagination .btn {
+        width: 100%;
+    }
+    
+    .route-selector {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .route-selector select {
+        width: 100%;
+    }
+    
+    .settings-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .settings-actions .btn {
         width: 100%;
     }
 }
@@ -563,11 +599,39 @@ table tbody tr:hover {
 @media (max-width: 576px) {
     .stats-container {
         grid-template-columns: 1fr;
+        gap: 10px;
     }
     
-    .route-legend {
+    .security-settings {
+        grid-template-columns: 1fr;
+    }
+    
+    .setting-card {
+        padding: 10px;
+    }
+    
+    .setting-header {
         flex-direction: column;
         align-items: flex-start;
         gap: 10px;
+    }
+    
+    .toggle-switch {
+        align-self: flex-start;
+    }
+    
+    .tcp-stat-item {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .tcp-stat-icon {
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
+    
+    .security-section h3,
+    .section-header h3 {
+        font-size: 16px;
     }
 }
