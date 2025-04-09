@@ -537,7 +537,7 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
         return res.status(400).json({ error: "Faltan datos: lat o lng" });
     }
 
-    messages.bus = [{ id: "bus", direccion: { lat, lng }, tiempo: new Date().toISOString() }];
+    messages.bus = [{ id: "bus", direccion: `${lat},${lng}`, tiempo: new Date().toISOString() }];
     if (messages.rutaseleccionada.length > 0) {
         messages.rutaseleccionada[0].direccion = `${lat},${lng}`;
     }
@@ -560,20 +560,14 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
         id: "bus",
         nombre: "Bus",
         apellido: "",
-        direccion: {
-            lat: lat,
-            lng: lng
-        }    
+        direccion: `${lat},${lng}`
     });
     console.log("✅ messages.tcp actualizado con coordenadas del bus:", messages.tcp[0]);
 
     if (ultimaParada && primeraVez) {
         let direccionFinal;
         if (ultimaParada === "actual") {
-            direccionFinal = {
-                lat: lat,
-                lng: lng
-            };
+            direccionFinal = `${lat},${lng}`;
         } else {
             direccionFinal = ultimaParada;
         }
@@ -592,9 +586,8 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
         if (err) console.error("❌ Error guardando:", err);
     });
 
-    // Emitir con información completa
     io.emit("ruta_seleccionada_actualizada", {
-        ruta: messages.rutaSeleccionada || "mejor_ruta_distancia", // Valor por defecto si no está definido
+        ruta: messages.rutaSeleccionada || "mejor_ruta_distancia",
         locations: messages.rutaseleccionada
     });
     io.emit("actualizar_tcp_mensajes", { tcp: messages.tcp });
