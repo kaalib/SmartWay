@@ -21,22 +21,18 @@ async function gestionarUbicacion() {
                 window.ultimaUbicacionBus = { lat: latitude, lng: longitude };
 
                 try {
-                    console.log("📍 Enviando a /actualizar-ubicacion-bus:", {
+                    const payload = {
                         lat: latitude,
                         lng: longitude,
                         direccion: window.primeraVez ? { lat: latitude, lng: longitude } : null,
                         ultimaParada: window.primeraVez ? window.ultimaParada : null
-                    });
-                    
+                    };
+                    console.log("📍 Enviando a /actualizar-ubicacion-bus:", payload);
+
                     const response = await fetch(`${CONFIG.SERVER_URL}/actualizar-ubicacion-bus`, {
                         method: 'POST',
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            lat: latitude,
-                            lng: longitude,
-                            direccion: window.primeraVez ? { lat: latitude, lng: longitude } : null,
-                            ultimaParada: window.primeraVez ? window.ultimaParada : null
-                        })
+                        body: JSON.stringify(payload)
                     });
 
                     if (!response.ok) throw new Error(`Error: ${response.status}`);

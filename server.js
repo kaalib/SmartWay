@@ -340,6 +340,7 @@ function registrarRechazoTCP(ip, motivo) {
     });
 }
 
+
 const tcpServer = net.createServer((socket) => {
     if (activeTcpConnections >= MAX_TCP_CONNECTIONS) {
         registrarRechazoTCP(socket.remoteAddress, "Límite de conexiones alcanzado");
@@ -372,7 +373,7 @@ const tcpServer = net.createServer((socket) => {
 
             console.log(`✅ Bus actualizado a 1 para ID ${idEmpleado}`);
 
-            const selectSql = "SELECT nombre, apellido, direccion, bus FROM empleados WHERE id = ?";
+            const selectSql = "SELECT nombre, apellido, direccion, bus, cargo FROM empleados WHERE id = ?";
             db.query(selectSql, [idEmpleado], (err, results) => {
                 if (err) {
                     console.error("❌ Error en la consulta MySQL:", err);
@@ -388,17 +389,30 @@ const tcpServer = net.createServer((socket) => {
                         nombre: empleado.nombre,
                         apellido: empleado.apellido,
                         direccion: empleado.direccion,
-                        bus: empleado.bus
+                        bus: empleado.bus,
+                        cargo: empleado.cargo // Incluir cargo en la respuesta
                     };
+
+                    // Si no es conductor, añadir a messages.tcp
+                    if (empleado.cargo !== "conductor") {
+                        const yaExiste = messages.tcp.find(m => m.id === idEmpleado);
+                        if (!yaExiste) {
+                            messages.tcp.push({
+                                id: idEmpleado,
+                                nombre: empleado.nombre,
+                                apellido: empleado.apellido,
+                                direccion: empleado.direccion,
+                                bus: empleado.bus
+                            });
+                            console.log(`✅ Empleado ${idEmpleado} (${empleado.cargo}) añadido a messages.tcp`);
+                        } else {
+                            console.log("⚠️ ID ya existe en messages.tcp. Ignorando duplicado:", idEmpleado);
+                        }
+                    } else {
+                        console.log(`🚍 Conductor ${idEmpleado} detectado. No se añade su dirección a messages.tcp, pero bus = 1`);
+                    }
                 } else {
                     respuesta = { error: "Usuario no encontrado" };
-                }
-
-                const yaExiste = messages.tcp.find(m => m.id === idEmpleado);
-                if (!yaExiste) {
-                    messages.tcp.push(respuesta);
-                } else {
-                    console.log("⚠️ ID ya existe en messages.tcp. Ignorando duplicado:", idEmpleado);
                 }
 
                 fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
@@ -515,6 +529,8 @@ app.post('/messages', async (req, res) => {
 
 // Actualizar ubicación del bus y verificar paradas completadas
 // Actualizar ubicación del bus y verificar paradas completadas
+let primeraVez = true;
+
 app.post("/actualizar-ubicacion-bus", async (req, res) => {
     const { lat, lng, direccion, ultimaParada } = req.body;
     if (!lat || !lng) {
@@ -539,23 +555,22 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
         }
     }
 
-    // Actualizar messages.tcp con la posición del bus
     messages.tcp = messages.tcp.filter(msg => msg.id !== "bus");
     messages.tcp.unshift({
         id: "bus",
         nombre: "Bus",
         apellido: "",
-        direccion: `${lat},${lng}` // Usar string para consistencia
+        direccion: `${lat},${lng}`
     });
     console.log("✅ messages.tcp actualizado con coordenadas del bus:", messages.tcp[0]);
 
     // Añadir punto final si ultimaParada está presente (primera vez)
-    if (ultimaParada && window.primeraVez) {
+    if (ultimaParada && primeraVez) {
         let direccionFinal;
         if (ultimaParada === "actual") {
             direccionFinal = `${lat},${lng}`;
         } else {
-            direccionFinal = ultimaParada; // Texto como "Carrera 15 #27A-40, Barranquilla"
+            direccionFinal = ultimaParada; // Ej. "Carrera 15 #27A-40, Barranquilla"
         }
         const puntoFinal = {
             id: "punto_final",
@@ -565,13 +580,13 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
         };
         messages.tcp.push(puntoFinal);
         console.log("✅ Punto final añadido a messages.tcp:", puntoFinal);
-        window.primeraVez = false; // Evitar añadirlo de nuevo
+        primeraVez = false; // Evitar añadirlo de nuevo
     }
 
     fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
         if (err) console.error("❌ Error guardando:", err);
     });
     io.emit("actualizarUbicacionBus", messages.rutaseleccionada);
-    io.emit("actualizar_tcp_mensajes", { tcp: messages.tcp }); // Asegurar emisión inmediata
+    io.emit("actualizar_tcp_mensajes", { tcp: messages.tcp });
     res.json({ success: true });
 });
