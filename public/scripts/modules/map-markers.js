@@ -14,10 +14,15 @@ async function actualizarMapa(rutasIA) {
         const color = window.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
         await procesarRuta(ruta, color, bounds);
     } else {
+        // Dibujar ambas rutas al inicio
         await Promise.all([
             procesarRuta(rutasIA.mejor_ruta_distancia, '#00CC66', bounds),
             procesarRuta(rutasIA.mejor_ruta_trafico, '#FF9900', bounds)
         ]);
+    }
+
+    if (!bounds.isEmpty()) {
+        window.map.fitBounds(bounds);
     }
 }
 
@@ -136,4 +141,4 @@ function crearMarcadorCirculo(label) {
     return div;
 }
 
-export { actualizarMapa, procesarRuta, geocodificarDireccion, agregarMarcador, dibujarRutaConductor };
+export { actualizarMapa, procesarRuta, geocodificarDireccion, agregarMarcador, dibujarRutaConductor, crearMarcadorCirculo };

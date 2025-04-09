@@ -1,6 +1,6 @@
 // scripts/modules/socket.js
 import CONFIG from '../config.js';
-import { procesarRuta,  agregarMarcador, geocodificarDireccion, dibujarRutaConductor} from './map-markers.js';
+import { procesarRuta,  agregarMarcador, geocodificarDireccion, dibujarRutaConductor, crearMarcadorCirculo} from './map-markers.js';
 import { actualizarMarcadorBus, gestionarUbicacion } from './location.js';
 import { solicitarReorganizacionRutas} from './api.js';
 
@@ -16,9 +16,9 @@ function setupSocket() {
 
     socket.on("ruta_seleccionada_actualizada", async (data) => {
         console.log("🛑 Ruta seleccionada actualizada recibida por WebSocket:", data);
-        window.rutaSeleccionada = data.ruta; // Sincronizar en todos los clientes
+        window.rutaSeleccionada = data.ruta;
         window.rutaSeleccionadaLocations = data.locations;
-        const color = data.ruta === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
+        const color = data.color || (data.ruta === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900');
         await actualizarMapaConRutaSeleccionada(data.locations, color);
     });
 
@@ -60,14 +60,13 @@ async function actualizarMapaConRutaSeleccionada(rutaseleccionada, color) {
                 actualizarMarcadorBus(direccionNormalizada);
                 bounds.extend(direccionNormalizada);
             } else if (index === rutaseleccionada.length - 1) {
-                // Marcador del punto final con "Fin"
                 const marcadorFin = new google.maps.marker.AdvancedMarkerElement({
                     position: direccionNormalizada,
                     map: window.map,
                     title: "Punto Final",
                     content: crearMarcadorCirculo("Fin")
                 });
-                window.marcadores.push(marcadorFin); // No se elimina
+                window.marcadores.push(marcadorFin);
                 bounds.extend(direccionNormalizada);
             } else if (item.bus === 1) {
                 agregarMarcador(direccionNormalizada, `Parada ${index}`, bounds, index);
@@ -158,7 +157,7 @@ async function iniciarActualizacionRuta(socket) {
         if (data.rutaseleccionada && window.rutaSeleccionada) {
             const color = window.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
             window.marcadores.forEach(marcador => {
-                if (marcador.title !== "Punto Final") marcador.map = null; // No eliminar "Fin"
+                if (marcador.title !== "Punto Final") marcador.map = null;
             });
             window.marcadores = window.marcadores.filter(m => m.title === "Punto Final");
             window.rutasDibujadas.forEach(ruta => ruta.setMap(null));
@@ -173,7 +172,6 @@ async function iniciarActualizacionRuta(socket) {
                     actualizarMarcadorBus(loc);
                     bounds.extend(loc);
                 } else if (index === data.rutaseleccionada.length - 1) {
-                    // Mantener marcador "Fin"
                     const existingFin = window.marcadores.find(m => m.title === "Punto Final");
                     if (!existingFin) {
                         const marcadorFin = new google.maps.marker.AdvancedMarkerElement({
@@ -197,6 +195,7 @@ async function iniciarActualizacionRuta(socket) {
                 window.primeraActualizacionMapa = false;
             }
         }
+        // No limpiar rutas iniciales si no hay selección aún
     }, 10000);
 }
 
