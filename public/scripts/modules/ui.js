@@ -87,7 +87,7 @@ window.primeraVez = true;
 
 document.getElementById("btnSeleccionarUbicacion").addEventListener("click", async () => {
     await cerrarUbicacionModal();
-    await mostrarLoader(); // Mostrar el loader al inicio
+    await mostrarLoader(); // Muestra "Calculando ruta" y el spinner
 
     const btnInicio = document.getElementById("btnInicio");
     const btnSeleccionRuta = document.getElementById("btnSeleccionRuta");
@@ -112,7 +112,7 @@ document.getElementById("btnSeleccionarUbicacion").addEventListener("click", asy
         // Lógica de espera de datos desde /messages
         let dataLoaded = false;
         let elapsedTime = 0;
-        const maxWaitTime = 30000; // 30 segundos
+        const maxWaitTime = 10000; // 10 segundos
 
         while (!dataLoaded && elapsedTime < maxWaitTime) {
             try {
@@ -162,7 +162,7 @@ document.getElementById("btnSeleccionarUbicacion").addEventListener("click", asy
         return;
     }
 
-    await cerrarLoader(); // Cerrar el loader al final
+    await cerrarLoader(); // Cierra el loader cuando todo termina
 });
 
 
