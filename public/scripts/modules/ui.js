@@ -98,7 +98,6 @@ document.getElementById("btnSeleccionarUbicacion").addEventListener("click", asy
         const opcionSeleccionada = document.querySelector('input[name="ubicacion"]:checked').value;
         console.log("📍 Ubicación seleccionada:", opcionSeleccionada);
         window.ultimaParada = opcionSeleccionada === "parqueadero" ? "Carrera 15 #27A-40, Barranquilla" : "actual";
-        console.log("📍 ultimaParada asignada:", window.ultimaParada);
         await gestionarUbicacion(true);
         await iniciarEnvioActualizacion();
 
@@ -111,22 +110,15 @@ document.getElementById("btnSeleccionarUbicacion").addEventListener("click", asy
             window.distanciaTotalKm = data.rutasIA.distancia_total_km;
             window.tiempoTotalMin = data.rutasIA.tiempo_total_min;
 
+            // Dibujar ambas rutas al inicio
             await actualizarMapa({ mejor_ruta_distancia: window.rutaDistancia, mejor_ruta_trafico: window.rutaTrafico });
             modalText.textContent = "Datos cargados. Escoja la mejor ruta según la información brindada.";
             btnInicio.disabled = true;
             btnSeleccionRuta.disabled = false;
             btnFin.disabled = true;
 
-            if (window.intervalID) {
-                console.log("⚠️ El envío de ubicación ya está activo.");
-            } else {
-                window.intervalID = setInterval(() => gestionarUbicacion(false), 10000);
-                console.log("✅ Envío de ubicación activado.");
-            }
-
             const socket = setupSocket();
             socket.emit("solicitar_mensajes_tcp");
-            console.log("📡 Solicitando mensajes TCP al servidor...");
         } else {
             throw new Error("Datos de rutasIA no disponibles o incompletos");
         }
@@ -242,7 +234,7 @@ document.getElementById('btnInicio').addEventListener("click", async () => {
         document.getElementById("btnSeleccionRuta").disabled = true;
         document.getElementById("btnFin").disabled = false;
         iniciarActualizacionRuta(socket);
-
+    
         console.log("🗺️ Ruta seleccionada:", window.rutaSeleccionada);
         fetch(`${CONFIG.SERVER_URL}/seleccionar-ruta`, {
             method: "POST",
@@ -253,11 +245,10 @@ document.getElementById('btnInicio').addEventListener("click", async () => {
         .then(data => console.log("✅ Ruta seleccionada enviada al servidor:", data))
         .catch(err => console.error("❌ Error enviando selección de ruta:", err));
     
-        // Iniciar navegación después de 10 segundos
-        setTimeout(() => {
-            iniciarNavegacionConductor(window.rutaSeleccionada);
-            console.log("🚗 Vista de navegación del conductor iniciada.");
-        }, 10000); // 10 segundos
+        //setTimeout(() => {
+        //    iniciarNavegacionConductor(window.rutaSeleccionada);
+        //    console.log(" Vista de navegación del conductor iniciada.");
+        //}, 10000);
     });
 }
 

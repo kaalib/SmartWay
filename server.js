@@ -225,11 +225,10 @@ app.post("/enviar-direcciones", async (req, res) => {
 });
 
 app.post("/seleccionar-ruta", async (req, res) => {
-
     if (emitirRutas && messages.rutaseleccionada.length > 0) {
         console.log("🔁 Ya hay una ruta activa. Ignorando nueva selección.");
         return res.status(400).json({ success: false, message: "Ya se está emitiendo una ruta." });
-      }
+    }
 
     const { ruta } = req.body;
     if (!ruta) {
@@ -260,7 +259,13 @@ app.post("/seleccionar-ruta", async (req, res) => {
         if (err) console.error("❌ Error guardando rutaseleccionada:", err);
     });
 
-    io.emit("rutaSeleccionada", { ruta, locations: messages.rutaseleccionada });
+    const color = ruta === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
+    io.emit("ruta_seleccionada_actualizada", {
+        ruta: ruta,
+        locations: messages.rutaseleccionada,
+        color // Añadir el color al evento para sincronizar polilíneas
+    });
+
     res.json({ success: true, message: "Ruta seleccionada guardada" });
 });
 
