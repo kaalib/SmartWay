@@ -2,7 +2,7 @@
 import CONFIG from '../config.js';
 import { actualizarMapa } from './map-markers.js';
 import { iniciarActualizacionRuta, detenerActualizacionRuta, actualizarRutaSeleccionada, setupSocket, mostrarMensajesTCP } from './socket.js';
-import { iniciarEnvioActualizacion, detenerEnvioActualizacion, limpiarMapa } from './api.js';
+import { iniciarEnvioActualizacion, detenerEnvioActualizacion, limpiarMapa, solicitarActualizacionRutas } from './api.js';
 import { gestionarUbicacion} from './location.js';
 import { iniciarNavegacionConductor, detenerNavegacionConductor } from './navigation.js'; 
 
