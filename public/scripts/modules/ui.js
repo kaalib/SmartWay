@@ -89,13 +89,17 @@ document.getElementById("btnSeleccionarUbicacion").addEventListener("click", asy
     await cerrarUbicacionModal();
     await mostrarLoader(); // Mostrar el loader al inicio
 
+    const btnInicio = document.getElementById("btnInicio");
+    const btnSeleccionRuta = document.getElementById("btnSeleccionRuta");
+    const btnFin = document.getElementById("btnFin");
+    const modalText = document.getElementById("modalText");
+
     try {
-        await gestionarUbicacion(true);
-        //await ejecutarProcesoenorden(); // Descomentarlo si lo necesitas
         const opcionSeleccionada = document.querySelector('input[name="ubicacion"]:checked').value;
         console.log("📍 Ubicación seleccionada:", opcionSeleccionada);
         window.ultimaParada = opcionSeleccionada === "parqueadero" ? "Carrera 15 #27A-40, Barranquilla" : "actual";
         console.log("📍 ultimaParada asignada:", window.ultimaParada);
+        await gestionarUbicacion(true);
         await iniciarEnvioActualizacion();
 
         if (window.intervalID) {
@@ -105,15 +109,56 @@ document.getElementById("btnSeleccionarUbicacion").addEventListener("click", asy
             console.log("✅ Envío de ubicación activado.");
         }
 
-        await solicitarActualizacionRutas()
+        // Lógica de espera de datos desde /messages
+        let dataLoaded = false;
+        let elapsedTime = 0;
+        const maxWaitTime = 30000; // 30 segundos
+
+        while (!dataLoaded && elapsedTime < maxWaitTime) {
+            try {
+                const response = await fetch("/messages");
+                const data = await response.json();
+
+                if (data.rutasIA && data.rutasIA.mejor_ruta_distancia && data.rutasIA.mejor_ruta_trafico) {
+                    window.rutaDistancia = data.rutasIA.mejor_ruta_distancia;
+                    window.rutaTrafico = data.rutasIA.mejor_ruta_trafico;
+                    window.distanciaTotalKm = data.rutasIA.distancia_total_km;
+                    window.tiempoTotalMin = data.rutasIA.tiempo_total_min;
+                    dataLoaded = true;
+                }
+            } catch (error) {
+                console.error("Error al obtener datos:", error);
+            }
+
+            if (!dataLoaded) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                elapsedTime += 1000;
+                console.log(`Tiempo transcurrido: ${elapsedTime / 1000} segundos`);
+            }
+        }
+
+        if (dataLoaded) {
+            await actualizarMapa({ mejor_ruta_distancia: window.rutaDistancia, mejor_ruta_trafico: window.rutaTrafico });
+            modalText.textContent = "Datos cargados. Escoja la mejor ruta según la información brindada.";
+            btnInicio.disabled = true;
+            btnSeleccionRuta.disabled = false;
+            btnFin.disabled = true;
+        } else {
+            modalText.textContent = "Falla en el servidor. Por favor, intente nuevamente la solicitud.";
+            btnInicio.disabled = false;
+            btnSeleccionRuta.disabled = true;
+            btnFin.disabled = true;
+            setTimeout(cerrarLoader, 2000);
+            return;
+        }
+
         const socket = setupSocket();
         socket.emit("solicitar_mensajes_tcp");
         console.log("📡 Solicitando mensajes TCP al servidor...");
     } catch (error) {
         console.error("❌ Error durante el proceso:", error);
-        const modalText = document.getElementById("modalText");
         modalText.textContent = "Error procesando la solicitud. Intente de nuevo.";
-        setTimeout(cerrarLoader, 2000); // Cerrar después de mostrar el error
+        setTimeout(cerrarLoader, 2000);
         return;
     }
 

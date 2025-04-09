@@ -560,14 +560,20 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
         id: "bus",
         nombre: "Bus",
         apellido: "",
-        direccion: `${lat},${lng}`
+        direccion: {
+            lat: lat,
+            lng: lng
+        }    
     });
     console.log("✅ messages.tcp actualizado con coordenadas del bus:", messages.tcp[0]);
 
     if (ultimaParada && primeraVez) {
         let direccionFinal;
         if (ultimaParada === "actual") {
-            direccionFinal = `${lat},${lng}`;
+            direccionFinal = {
+                lat: lat,
+                lng: lng
+            };
         } else {
             direccionFinal = ultimaParada;
         }
