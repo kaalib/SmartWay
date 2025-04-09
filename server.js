@@ -178,7 +178,7 @@ app.post("/iniciar-emision", (req, res) => {
     res.json({ estado: emitirRutas, message: "Emisión iniciada" });
 });
 
-// Modificar el endpoint de detener-emision para detener también la actualización a Flask
+// Reiniciar rutasIA al finalizar la ruta
 app.post("/detener-emision", (req, res) => {
     detenerEmisionRutas();
     if (flaskIntervalId) {
@@ -186,7 +186,12 @@ app.post("/detener-emision", (req, res) => {
         flaskIntervalId = null;
         console.log("🛑 Actualización periódica a Flask DETENIDA");
     }
-    rutaSeleccionada = null; // Reiniciar la ruta seleccionada
+    messages.rutasIA = {}; // Reiniciar rutasIA
+    messages.rutaseleccionada = []; // Reiniciar ruta seleccionada
+    rutaSeleccionada = null;
+    fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
+        if (err) console.error("❌ Error guardando messages.json:", err);
+    });
     res.json({ estado: emitirRutas, message: "Emisión detenida" });
 });
 
@@ -564,7 +569,8 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
         direccion: { lat, lng }
     });
 
-    if (ultimaParada && primeraVez) {
+    // Enviar a Flask siempre que haya un punto final nuevo o sea el primer envío
+    if (ultimaParada) {
         let direccionFinal = ultimaParada === "actual" ? { lat, lng } : ultimaParada;
         const puntoFinal = {
             id: "punto_final",
@@ -572,10 +578,12 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
             apellido: "",
             direccion: direccionFinal
         };
-        messages.tcp.push(puntoFinal);
-        console.log("✅ Punto final añadido a messages.tcp:", puntoFinal);
+        // Evitar duplicar el punto final si ya existe
+        if (!messages.tcp.some(msg => msg.id === "punto_final")) {
+            messages.tcp.push(puntoFinal);
+            console.log("✅ Punto final añadido a messages.tcp:", puntoFinal);
+        }
 
-        // Enviar direcciones a Flask
         const direcciones = messages.tcp.map(msg => 
             msg.direccion.lat ? `${msg.direccion.lat},${msg.direccion.lng}` : msg.direccion
         );
@@ -592,12 +600,16 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
                 emitirActualizacionRutas(); // Emitir inmediatamente
             } else {
                 console.error("❌ Error en Flask:", flaskData.message);
+                messages.rutasIA = {}; // Reiniciar si hay error
+                io.emit("actualizar_rutas", { rutasIA: {} }); // Notificar error al frontend
+                return res.status(500).json({ error: "Error procesando rutas en Flask" });
             }
         } catch (error) {
             console.error("❌ Error enviando a Flask:", error);
+            messages.rutasIA = {}; // Reiniciar si hay error
+            io.emit("actualizar_rutas", { rutasIA: {} });
+            return res.status(500).json({ error: "Error conectando con Flask" });
         }
-
-        primeraVez = false;
     }
 
     fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {

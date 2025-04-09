@@ -87,7 +87,7 @@ window.primeraVez = true;
 
 document.getElementById("btnSeleccionarUbicacion").addEventListener("click", async () => {
     await cerrarUbicacionModal();
-    await mostrarLoader(); // Muestra "Calculando ruta" y el spinner
+    await mostrarLoader();
 
     const btnInicio = document.getElementById("btnInicio");
     const btnSeleccionRuta = document.getElementById("btnSeleccionRuta");
@@ -102,14 +102,6 @@ document.getElementById("btnSeleccionarUbicacion").addEventListener("click", asy
         await gestionarUbicacion(true);
         await iniciarEnvioActualizacion();
 
-        if (window.intervalID) {
-            console.log("⚠️ El envío de ubicación ya está activo.");
-        } else {
-            window.intervalID = setInterval(() => gestionarUbicacion(false), 10000);
-            console.log("✅ Envío de ubicación activado.");
-        }
-
-        // Hacer una sola petición a /messages
         const response = await fetch("/messages");
         const data = await response.json();
 
@@ -124,14 +116,20 @@ document.getElementById("btnSeleccionarUbicacion").addEventListener("click", asy
             btnInicio.disabled = true;
             btnSeleccionRuta.disabled = false;
             btnFin.disabled = true;
-        } else {
-            throw new Error("Datos incompletos en /messages");
-        }
 
-        const socket = setupSocket();
-        socket.emit("solicitar_mensajes_tcp");
-        console.log("📡 Solicitando mensajes TCP al servidor...");
-        
+            if (window.intervalID) {
+                console.log("⚠️ El envío de ubicación ya está activo.");
+            } else {
+                window.intervalID = setInterval(() => gestionarUbicacion(false), 10000);
+                console.log("✅ Envío de ubicación activado.");
+            }
+
+            const socket = setupSocket();
+            socket.emit("solicitar_mensajes_tcp");
+            console.log("📡 Solicitando mensajes TCP al servidor...");
+        } else {
+            throw new Error("Datos de rutasIA no disponibles o incompletos");
+        }
     } catch (error) {
         console.error("❌ Error durante el proceso:", error);
         modalText.textContent = "Error procesando la solicitud o datos no disponibles. Intente de nuevo.";
@@ -142,9 +140,8 @@ document.getElementById("btnSeleccionarUbicacion").addEventListener("click", asy
         return;
     }
 
-    await cerrarLoader(); // Cierra el loader cuando todo termina
+    await cerrarLoader();
 });
-
 
 document.getElementById('btnInicio').addEventListener("click", async () => {
     try {
@@ -206,12 +203,6 @@ document.getElementById('btnInicio').addEventListener("click", async () => {
         limpiarMapa();
         detenerEnvioActualizacion();
         detenerActualizacionRuta();
-        detenerNavegacionConductor(); // Detener la navegación
-        if (window.intervalID) {
-            clearInterval(window.intervalID);
-            window.intervalID = null;
-            console.log("🚫 Envío de ubicación detenido.");
-        }
         window.primeraVez = true;
         window.rutaSeleccionada = null;
         window.primeraActualizacionMapa = true; // Reiniciar la bandera

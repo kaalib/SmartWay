@@ -55,18 +55,28 @@ async function actualizarMapaConRutaSeleccionada(rutaseleccionada, color) {
 
     rutaseleccionada.forEach((item, index) => {
         const direccionNormalizada = locations[index];
-        if (item.bus === 1 && direccionNormalizada) {
+        if (direccionNormalizada) {
             if (index === 0) {
                 actualizarMarcadorBus(direccionNormalizada);
                 bounds.extend(direccionNormalizada);
-            } else {
-                agregarMarcador(direccionNormalizada, `${item.nombre}`, bounds, index);
+            } else if (index === rutaseleccionada.length - 1) {
+                // Marcador del punto final con "Fin"
+                const marcadorFin = new google.maps.marker.AdvancedMarkerElement({
+                    position: direccionNormalizada,
+                    map: window.map,
+                    title: "Punto Final",
+                    content: crearMarcadorCirculo("Fin")
+                });
+                window.marcadores.push(marcadorFin); // No se elimina
+                bounds.extend(direccionNormalizada);
+            } else if (item.bus === 1) {
+                agregarMarcador(direccionNormalizada, `Parada ${index}`, bounds, index);
             }
         }
     });
 
     if (locations.length > 1) {
-        const renderer = dibujarRutaConductor(locations.filter((_, i) => rutaseleccionada[i].bus === 1), color);
+        const renderer = dibujarRutaConductor(locations.filter((_, i) => rutaseleccionada[i].bus === 1 || i === rutaseleccionada.length - 1), color);
         if (renderer) window.rutasDibujadas.push(renderer);
     }
 
@@ -142,29 +152,46 @@ async function iniciarActualizacionRuta(socket) {
     actualizarRutaSeleccionada(socket);
 
     window.intervalID = setInterval(async () => {
-        await gestionarUbicacion(); // Actualizar ubicación del bus
+        await gestionarUbicacion();
         const response = await fetch(`${CONFIG.SERVER_URL}/messages`);
         const data = await response.json();
         if (data.rutaseleccionada && window.rutaSeleccionada) {
             const color = window.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
-            window.marcadores.forEach(marcador => marcador.map = null);
-            window.marcadores = [];
+            window.marcadores.forEach(marcador => {
+                if (marcador.title !== "Punto Final") marcador.map = null; // No eliminar "Fin"
+            });
+            window.marcadores = window.marcadores.filter(m => m.title === "Punto Final");
             window.rutasDibujadas.forEach(ruta => ruta.setMap(null));
             window.rutasDibujadas = [];
+
             const bounds = new google.maps.LatLngBounds();
             const locations = await Promise.all(data.rutaseleccionada.map(item => 
                 item.direccion.lat ? Promise.resolve(item.direccion) : geocodificarDireccion(item.direccion)
             ));
             locations.forEach((loc, index) => {
-                if (data.rutaseleccionada[index].bus === 1) {
-                    if (index === 0) {
-                        actualizarMarcadorBus(loc); // Bus como punto 1
-                    } else {
-                        agregarMarcador(loc, `Parada ${index}`, bounds, index);
+                if (index === 0) {
+                    actualizarMarcadorBus(loc);
+                    bounds.extend(loc);
+                } else if (index === data.rutaseleccionada.length - 1) {
+                    // Mantener marcador "Fin"
+                    const existingFin = window.marcadores.find(m => m.title === "Punto Final");
+                    if (!existingFin) {
+                        const marcadorFin = new google.maps.marker.AdvancedMarkerElement({
+                            position: loc,
+                            map: window.map,
+                            title: "Punto Final",
+                            content: crearMarcadorCirculo("Fin")
+                        });
+                        window.marcadores.push(marcadorFin);
                     }
+                    bounds.extend(loc);
+                } else if (data.rutaseleccionada[index].bus === 1) {
+                    agregarMarcador(loc, `Parada ${index}`, bounds, index);
                 }
             });
-            if (locations.length > 1) dibujarRutaConductor(locations.filter((_, i) => data.rutaseleccionada[i].bus === 1), color);
+            if (locations.length > 1) {
+                dibujarRutaConductor(locations.filter((_, i) => data.rutaseleccionada[i].bus === 1 || i === data.rutaseleccionada.length - 1), color);
+            }
             if (window.primeraActualizacionMapa && !bounds.isEmpty()) {
                 window.map.fitBounds(bounds);
                 window.primeraActualizacionMapa = false;
@@ -187,9 +214,21 @@ function mostrarMensajesTCP(mensajes) {
         document.querySelectorAll('.tcpDirections').forEach(el => el.innerHTML = "<p>No hay pasajeros dentro del sistema aún.</p>");
         return;
     }
-    const listaMensajes = mensajesArray.slice(1).map((msg, index) => 
-        `<p>${index + 1}. ${msg.nombre} ${msg.apellido} - ${msg.direccion} (${msg.bus === 1 ? "En el bus" : "Llegó"})</p>`
-    ).join("");
+    const listaMensajes = mensajesArray.slice(1).map((msg, index) => {
+        let direccion = msg.direccion.lat ? `${msg.direccion.lat},${msg.direccion.lng}` : msg.direccion;
+        const esUltimo = index === mensajesArray.slice(1).length - 1;
+        const estado = esUltimo ? "" : ` (${msg.bus === 1 ? "En el bus" : "Llegó"})`;
+
+        // Si es el punto final y tiene coordenadas, cambiar a mensaje personalizado
+        if (esUltimo && (typeof direccion === "string" && direccion.includes(","))) {
+            const [lat, lng] = direccion.split(",").map(Number);
+            if (!isNaN(lat) && !isNaN(lng)) {
+                direccion = "Retorne a donde inició el viaje";
+            }
+        }
+
+        return `<p>${index + 1}. ${msg.nombre} ${msg.apellido} - ${direccion}${estado}</p>`;
+    }).join("");
     document.querySelectorAll('.tcpDirections').forEach(el => el.innerHTML = listaMensajes);
 }
 
