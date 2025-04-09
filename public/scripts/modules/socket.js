@@ -4,42 +4,27 @@ import { procesarRuta,  agregarMarcador, geocodificarDireccion, dibujarRutaCondu
 import { actualizarMarcadorBus, gestionarUbicacion } from './location.js';
 import { solicitarReorganizacionRutas} from './api.js';
 
-async function setupSocket() {
+function setupSocket() {
     const socket = io(CONFIG.WEBSOCKET_URL);
 
     socket.on("actualizar_rutas", (data) => {
-        if (window.rutaSeleccionada && data.rutaseleccionada) {
+        if (data.rutaseleccionada) {
             console.log("📡 WebSocket actualiza la ruta seleccionada:", data.rutaseleccionada);
             actualizarMapaConRutaSeleccionada(data.rutaseleccionada);
         }
     });
 
-    socket.on("actualizarUbicacionBus", (rutaseleccionada) => {
-        console.log("📍 Actualización de ubicación del bus recibida:", rutaseleccionada);
-        actualizarMapaConRutaSeleccionada(rutaseleccionada);
+    socket.on("ruta_seleccionada_actualizada", async (data) => {
+        console.log("🛑 Ruta seleccionada actualizada recibida por WebSocket:", data);
+        window.rutaSeleccionada = data.ruta; // Sincronizar en todos los clientes
+        window.rutaSeleccionadaLocations = data.locations;
+        const color = data.ruta === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
+        await actualizarMapaConRutaSeleccionada(data.locations, color);
     });
 
     socket.on("actualizar_tcp_mensajes", (data) => {
         console.log("📡 Mensajes TCP recibidos por WebSocket:", data.tcp);
         mostrarMensajesTCP(data.tcp);
-    });
-
-    socket.on("ruta_seleccionada_actualizada", async (data) => {
-        console.log("🛑 Ruta seleccionada actualizada recibida por WebSocket:", data);
-        window.rutaSeleccionadaLocations = data.locations;
-        const rutaActualizada = data.locations.map(loc => loc.direccion);
-        const bounds = new google.maps.LatLngBounds();
-        const color = window.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
-
-        window.marcadores.forEach(marcador => marcador.map = null);
-        window.marcadores = [];
-        window.rutasDibujadas.forEach(ruta => ruta.setMap(null));
-        window.rutasDibujadas = [];
-
-        await procesarRuta(rutaActualizada, color, bounds);
-        if (!bounds.isEmpty()) {
-            window.map.fitBounds(bounds);
-        }
     });
 
     return socket;
@@ -54,10 +39,9 @@ function convertirADireccionLatLng(direccion) {
     return direccion; // Si ya es { lat, lng }, lo dejamos como está
 }
 
-async function actualizarMapaConRutaSeleccionada(rutaseleccionada) {
-    if (!rutaseleccionada || !window.rutaSeleccionada) return;
+async function actualizarMapaConRutaSeleccionada(rutaseleccionada, color) {
+    if (!rutaseleccionada) return;
 
-    const color = window.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
     window.marcadores.forEach(marcador => marcador.map = null);
     window.marcadores = [];
     window.rutasDibujadas.forEach(ruta => ruta.setMap(null));
@@ -73,7 +57,7 @@ async function actualizarMapaConRutaSeleccionada(rutaseleccionada) {
         const direccionNormalizada = locations[index];
         if (item.bus === 1 && direccionNormalizada) {
             if (index === 0) {
-                actualizarMarcadorBus(direccionNormalizada); // Bus como LatLng
+                actualizarMarcadorBus(direccionNormalizada);
                 bounds.extend(direccionNormalizada);
             } else {
                 agregarMarcador(direccionNormalizada, `${item.nombre}`, bounds, index);
