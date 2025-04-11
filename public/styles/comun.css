@@ -39,7 +39,7 @@ h1, h2, h3, h4, h5, h6 {
 
 nav {
     width: 95%;
-    max-width: 1400px;
+    max-width: 1600px; /* Aumentado para alinearse con el contenedor principal */
     margin: 0 auto;
     display: flex;
     align-items: center;
@@ -55,6 +55,7 @@ nav {
     color: #0059FF;
     display: inline-block;
     white-space: nowrap;
+    margin-left: 20px; /* Espacio desde el borde izquierdo */
 }
 
 .smart-text, .way-text {
@@ -72,6 +73,9 @@ nav {
 .nav-links {
     display: flex;
     align-items: center;
+    justify-content: flex-end; /* Alinear a la derecha */
+    flex: 1; /* Tomar el espacio disponible */
+    margin-left: 20px; /* Espacio desde el logo */
 }
 
 .admin-link {
@@ -107,7 +111,7 @@ nav {
 /* Contenedor principal */
 .container {
     width: 95%;
-    max-width: 1400px;
+    max-width: 1600px; /* Aumentado para alinearse con la barra de navegación */
     margin: 0 auto;
     padding: 20px;
 }
@@ -286,6 +290,12 @@ nav {
     margin-bottom: 20px;
     padding: 10px 0;
     border-bottom: 1px solid #e0e0e0;
+    flex-wrap: wrap; /* Permite que los elementos se envuelvan en pantallas pequeñas */
+}
+
+.dashboard-header h1 {
+    margin-bottom: 0;
+    margin-right: 15px;
 }
 
 /* Responsive */
@@ -328,6 +338,7 @@ nav {
     .dashboard-header h1 {
         margin-bottom: 15px;
         font-size: 1.5rem; /* Título más pequeño en móvil */
+        margin-right: 0;
     }
     
     /* Ajustar acciones del header en móvil */
@@ -362,7 +373,7 @@ nav {
     }
     
     .btn {
-        width: 80%; /* Botones a ancho completo en móvil pequeño */
+        width: 100%; /* Botones a ancho completo en móvil pequeño */
     }
 }
 

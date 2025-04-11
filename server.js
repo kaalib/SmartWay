@@ -71,19 +71,33 @@ io.on("connection", (socket) => {
 
     socket.on("actualizar_ruta_seleccionada", (data) => {
         console.log("📡 Ruta seleccionada recibida del cliente:", data);
-        messages.rutaseleccionada = data.locations.map((loc, index) => ({
-            id: index === 0 ? "bus" : `parada_${index}`,
-            nombre: index === 0 ? "Bus" : `Parada ${index}`,
-            direccion: `${loc.lat},${loc.lng}`, // String para consistencia
-            bus: 1
-        }));
+    
+        if (messages.rutaseleccionada.length === 0) {
+            console.error("❌ No hay ruta seleccionada previa para actualizar");
+            return;
+        }
+    
+        messages.rutaseleccionada = data.locations.map((loc, index) => {
+            const existingStop = messages.rutaseleccionada[index] || {};
+            return {
+                id: index === 0 ? "bus" : `parada_${index}`,
+                nombre: existingStop.nombre || (index === 0 ? "Bus" : `Parada ${index}`),
+                direccion: `${loc.lat},${loc.lng}`,
+                bus: existingStop.bus !== undefined ? existingStop.bus : 1
+            };
+        });
+    
         console.log("✅ rutaseleccionada actualizada desde el cliente:", messages.rutaseleccionada);
-
+    
         fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
             if (err) console.error("❌ Error guardando rutaseleccionada:", err);
         });
-
-        io.emit("ruta_seleccionada_actualizada", { ruta: data.ruta, locations: messages.rutaseleccionada });
+    
+        io.emit("ruta_seleccionada_actualizada", {
+            ruta: data.ruta,
+            locations: messages.rutaseleccionada,
+            color: (data.ruta || messages.rutaSeleccionada) === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900'
+        });
     });
 
     socket.on("solicitar_mensajes_tcp", () => {
@@ -529,7 +543,7 @@ app.post('/messages', async (req, res) => {
     }
 });
 
-// Actualizar ubicación del bus y verificar paradas completadas
+
 // Actualizar ubicación del bus y verificar paradas completadas
 let primeraVez = true;
 

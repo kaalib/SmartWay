@@ -96,13 +96,13 @@ async function actualizarMapaConRutaSeleccionada(rutaseleccionada, color) {
                 const marcadorFin = new google.maps.marker.AdvancedMarkerElement({
                     position: direccionNormalizada,
                     map: window.map,
-                    title: "Punto Final",
+                    title: item.nombre || "Punto Final", // Usar nombre del servidor
                     content: crearMarcadorCirculo("Fin")
                 });
                 window.marcadores.push(marcadorFin);
                 bounds.extend(direccionNormalizada);
             } else if (item.bus === 1) {
-                agregarMarcador(direccionNormalizada, `Parada ${index}`, bounds, index);
+                agregarMarcador(direccionNormalizada, item.nombre, bounds, index); // Usar nombre del servidor
             }
         }
     });
@@ -128,51 +128,44 @@ async function actualizarRutaSeleccionada(socket) {
         return;
     }
 
-    // Dibujar la primera vez
+    // Primera actualización: Usar datos del servidor en lugar de procesar localmente
     if (window.primeraActualizacionMapa) {
-        window.marcadores.forEach(marcador => marcador.map = null);
-        window.marcadores = [];
-        window.rutasDibujadas.forEach(ruta => ruta.setMap(null));
-        window.rutasDibujadas = [];
+        // Hacer una solicitud inicial al servidor para obtener la ruta seleccionada con nombres
+        try {
+            const response = await fetch(`${CONFIG.SERVER_URL}/seleccionar-ruta`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ruta: window.rutaSeleccionada })
+            });
+            const data = await response.json();
+            if (!data.success) throw new Error(data.message);
 
-        const bounds = new google.maps.LatLngBounds();
-        const processedRuta = await procesarRuta(rutaData, color, bounds);
-
-        if (!bounds.isEmpty()) {
-            console.log("🔍 Aplicando fitBounds en la primera actualización del emisor");
-            window.map.fitBounds(bounds);
+            console.log("✅ Ruta inicial obtenida del servidor:", data);
+            await actualizarMapaConRutaSeleccionada(data.locations, color); // Dibujar con nombres del servidor
             window.primeraActualizacionMapa = false;
-        }
 
-        socket.emit("actualizar_ruta_seleccionada", {
-            ruta: window.rutaSeleccionada,
-            locations: processedRuta ? processedRuta.locations : []
-        });
-        console.log("📡 Enviando ruta seleccionada al servidor:", window.rutaSeleccionada);
+            // Emitir al servidor (aunque /seleccionar-ruta ya lo hace, opcional aquí)
+            socket.emit("actualizar_ruta_seleccionada", {
+                ruta: window.rutaSeleccionada,
+                locations: data.locations // Incluye nombres
+            });
+            console.log("📡 Enviando ruta seleccionada al servidor:", window.rutaSeleccionada);
+        } catch (error) {
+            console.error("❌ Error al obtener ruta inicial:", error);
+        }
     }
 
     // Escuchar actualizaciones continuas del servidor
     socket.on("ruta_seleccionada_actualizada", async (data) => {
         console.log("🛑 Ruta seleccionada actualizada recibida por WebSocket:", data);
         window.rutaSeleccionadaLocations = data.locations;
-        const rutaActualizada = data.locations.map(loc => loc.direccion);
-        const bounds = new google.maps.LatLngBounds();
-
-        window.marcadores.forEach(marcador => marcador.map = null);
-        window.marcadores = [];
-        window.rutasDibujadas.forEach(ruta => ruta.setMap(null));
-        window.rutasDibujadas = [];
-
-        const processedRuta = await procesarRuta(rutaActualizada, color, bounds);
-        if (!bounds.isEmpty()) {
-            window.map.fitBounds(bounds);
-        }
+        await actualizarMapaConRutaSeleccionada(data.locations, data.color); // Usar datos completos del servidor
     });
 
-    // Escuchar actualizaciones de ubicación del bus
-    socket.on("actualizarUbicacionBus", (rutaseleccionada) => {
-        console.log("📍 Actualización de ubicación del bus recibida:", rutaseleccionada);
-        actualizarMapaConRutaSeleccionada(rutaseleccionada);
+    // Corregir evento para coincidir con /actualizar-ubicacion-bus
+    socket.on("actualizar_tcp_mensajes", (data) => {
+        console.log("📍 Actualización de TCP y ruta seleccionada recibida:", data);
+        actualizarMapaConRutaSeleccionada(data.rutaseleccionada, color); // Usar rutaseleccionada del servidor
     });
 }
 
