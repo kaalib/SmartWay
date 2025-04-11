@@ -14,20 +14,14 @@ function ocultarEnlacesAdmin() {
 function checkUserRole() {
     const role = localStorage.getItem("userRole");
     const currentPage = window.location.pathname.split("/").pop() || "index.html";
-    const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 
-    // Excepción para localhost: permitir acceso completo sin restricciones
-    if (isLocalhost) {
-        return; // No aplicar reglas de roles ni redirecciones
-    }
-
-    // Si no hay rol, redirigir a login (solo en no-localhost)
+    // Si no hay rol, redirigir a login
     if (!role) {
         window.location.href = "login.html";
         return;
     }
 
-    // Reglas por página (solo en no-localhost)
+    // Reglas por página
     if (currentPage === "map.html") {
         if (role === "Empleado") {
             ocultarElementos(["button-container", "message-container", "message-toggle"]);
