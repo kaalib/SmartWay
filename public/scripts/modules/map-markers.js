@@ -34,9 +34,10 @@ async function procesarRuta(direcciones, color, bounds) {
         return location; // Devuelve LatLng o null
     }));
 
-    // Filtrar nulls y añadir marcadores
+    // Usar nombres de las paradas si están disponibles, sino fallback
     locations.filter(loc => loc).forEach((location, index) => {
-        agregarMarcador(location, `Parada ${index + 1}`, bounds, index + 1);
+        const nombre = direcciones[index].nombre || `Parada ${index + 1}`;
+        agregarMarcador(location, nombre, bounds, index + 1);
     });
 
     if (locations.length > 1) {
