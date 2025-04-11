@@ -198,22 +198,35 @@ document.getElementById('btnInicio').addEventListener("click", async () => {
         window.primeraVez = true;
         window.rutaSeleccionada = null;
         window.primeraActualizacionMapa = true; // Reiniciar la bandera
-
+    
         const btnInicio = document.getElementById("btnInicio");
         btnInicio.disabled = false;
         btnInicio.classList.remove("btn-disabled");
         btnInicio.classList.add("btn-enabled");
-
+    
         const btnSeleccionRuta = document.getElementById("btnSeleccionRuta");
         btnSeleccionRuta.disabled = true;
         btnSeleccionRuta.classList.remove("btn-enabled");
         btnSeleccionRuta.classList.add("btn-disabled");
-
+    
         const btnFin = document.getElementById("btnFin");
         btnFin.disabled = true;
         btnFin.classList.remove("btn-enabled");
         btnFin.classList.add("btn-disabled");
-
+    
+        // Notificar al servidor para limpiar en todos los clientes
+        fetch(`${CONFIG.SERVER_URL}/detener-emision`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" }
+        })
+        .then(res => res.json())
+        .then(data => {
+            console.log("✅ Emisión detenida en el servidor:", data);
+            const socket = setupSocket();
+            socket.emit("ruta_finalizada"); // Emitir evento WebSocket
+        })
+        .catch(err => console.error("❌ Error deteniendo emisión:", err));
+    
         cerrarModal();
     });
 
@@ -228,12 +241,11 @@ document.getElementById('btnInicio').addEventListener("click", async () => {
     document.getElementById("btnSeleccionarRutaConfirm").addEventListener("click", () => {
         window.rutaSeleccionada = document.querySelector('input[name="ruta"]:checked').value;
         const socket = setupSocket();
-        actualizarRutaSeleccionada(socket);
         cerrarRutaModal();
         bloquearInicio();
         document.getElementById("btnSeleccionRuta").disabled = true;
         document.getElementById("btnFin").disabled = false;
-        iniciarActualizacionRuta(socket);
+        iniciarActualizacionRuta(socket); // Mantener el intervalo solo para enviar ubicación
     
         console.log("🗺️ Ruta seleccionada:", window.rutaSeleccionada);
         fetch(`${CONFIG.SERVER_URL}/seleccionar-ruta`, {
@@ -247,7 +259,7 @@ document.getElementById('btnInicio').addEventListener("click", async () => {
     
         //setTimeout(() => {
         //    iniciarNavegacionConductor(window.rutaSeleccionada);
-        //    console.log(" Vista de navegación del conductor iniciada.");
+        //    console.log("🚗 Vista de navegación del conductor iniciada.");
         //}, 10000);
     });
 }

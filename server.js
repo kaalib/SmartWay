@@ -57,26 +57,6 @@ const options = {
 const httpsServer = https.createServer(options, app);
 
 
-// Función de geocodificación asíncrona en el backend
-async function geocodificarDireccion(direccion) {
-    try {
-        const response = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
-            params: {
-                address: direccion,
-                key: process.env.api_key1 // Usa tu clave de Google Maps desde .env
-            }
-        });
-        if (response.data.status === "OK" && response.data.results[0]) {
-            const { lat, lng } = response.data.results[0].geometry.location;
-            return { lat, lng };
-        }
-        console.warn(`⚠️ No se pudo geocodificar: ${direccion}`);
-        return null;
-    } catch (error) {
-        console.error("❌ Error en geocodificación:", error.message);
-        return null;
-    }
-}
 
 // --- Servidor WebSocket ---
 const io = socketIo(httpsServer, {
@@ -114,6 +94,11 @@ io.on("connection", (socket) => {
     socket.on("actualizar_ubicacion_bus", (ubicacion) => {
         console.log("📡 Ubicación del bus recibida del cliente:", ubicacion);
         io.emit("actualizarUbicacionBus", ubicacion);
+    });
+
+    socket.on("ruta_finalizada", () => {
+        console.log("📡 Ruta finalizada recibida del conductor");
+        io.emit("limpiar_mapa_y_mostrar_mensaje"); // Emitir a todos los clientes
     });
 
     socket.on("disconnect", () => {
@@ -245,12 +230,18 @@ app.post("/seleccionar-ruta", async (req, res) => {
         { id: "bus", nombre: "Bus", direccion: busUbicacion, bus: 1 }
     ];
 
-    const paradas = messages.rutasIA[ruta].slice(1).map((direccion, index) => ({
-        id: `parada_${index + 1}`,
-        nombre: `Parada ${index + 1}`,
-        direccion: direccion,
-        bus: 1
-    }));
+    // Mapear las direcciones de rutasIA a nombres de empleados desde tcp
+    const paradas = messages.rutasIA[ruta].slice(1).map((direccion, index) => {
+        // Buscar el empleado en tcp que coincida con la dirección
+        const empleado = messages.tcp.find(msg => msg.direccion === direccion && msg.id !== "bus" && msg.id !== "punto_final");
+        const nombreCompleto = empleado ? `${empleado.nombre} ${empleado.apellido}` : `Parada ${index + 1}`; // Fallback por seguridad
+        return {
+            id: `parada_${index + 1}`,
+            nombre: nombreCompleto,
+            direccion: direccion,
+            bus: 1
+        };
+    });
     messages.rutaseleccionada.push(...paradas);
 
     console.log("✅ Ruta seleccionada guardada en rutaseleccionada (POST):", messages.rutaseleccionada);
@@ -563,6 +554,14 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
                 if (err) console.error("❌ Error actualizando estado bus:", err);
             });
             console.log(`✅ Pasajero en ${parada.direccion} bajó del bus`);
+
+            // Sincronizar el estado en messages.tcp usando el nombre
+            const nombreParada = parada.nombre;
+            const tcpPasajero = messages.tcp.find(msg => `${msg.nombre} ${msg.apellido}` === nombreParada);
+            if (tcpPasajero) {
+                tcpPasajero.bus = 0;
+                console.log(`✅ Estado bus actualizado a 0 en messages.tcp para ${nombreParada}`);
+            }
         }
     }
 
@@ -623,8 +622,12 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
 
     io.emit("ruta_seleccionada_actualizada", {
         ruta: messages.rutaSeleccionada || "mejor_ruta_distancia",
-        locations: messages.rutaseleccionada
+        locations: messages.rutaseleccionada,
+        color: messages.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900'
     });
-    io.emit("actualizar_tcp_mensajes", { tcp: messages.tcp });
+    io.emit("actualizar_tcp_mensajes", { 
+        tcp: messages.tcp, 
+        rutaseleccionada: messages.rutaseleccionada // Añadir rutaseleccionada al evento
+    });
     res.json({ success: true });
 });

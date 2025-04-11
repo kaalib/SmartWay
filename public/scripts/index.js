@@ -26,3 +26,13 @@ document.querySelectorAll('#sidebar a[href="#soluciones"], #sidebar a[href="#ben
         toggleSidebar();
     });
 });
+
+// Función para limpiar la selección de empresa y redirigir al login
+function clearLoginSelection() {
+    // Eliminar la selección de empresa guardada
+    localStorage.removeItem('selectedCompany');
+    
+    // Redirigir a la página de login
+    window.location.href = 'login.html';
+}
+

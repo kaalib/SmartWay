@@ -1,6 +1,6 @@
 // scripts/modules/socket.js
 import CONFIG from '../config.js';
-import { procesarRuta,  agregarMarcador, geocodificarDireccion, dibujarRutaConductor, crearMarcadorCirculo} from './map-markers.js';
+import { agregarMarcador, geocodificarDireccion, dibujarRutaConductor, crearMarcadorCirculo, procesarRuta} from './map-markers.js';
 import { actualizarMarcadorBus, gestionarUbicacion } from './location.js';
 import { solicitarReorganizacionRutas} from './api.js';
 
@@ -25,6 +25,39 @@ function setupSocket() {
     socket.on("actualizar_tcp_mensajes", (data) => {
         console.log("📡 Mensajes TCP recibidos por WebSocket:", data.tcp);
         mostrarMensajesTCP(data.tcp);
+    });
+
+    socket.on("limpiar_mapa_y_mostrar_mensaje", () => {
+        console.log("🧹 Limpiando mapa y mostrando mensaje en cliente WebSocket");
+        // Limpiar mapa
+        window.marcadores.forEach(marcador => marcador.map = null);
+        window.marcadores = [];
+        window.rutasDibujadas.forEach(ruta => ruta.setMap(null));
+        window.rutasDibujadas = [];
+
+        // Crear contenedor del mensaje con clases existentes
+        const mensajeContainer = document.createElement("div");
+        mensajeContainer.className = "modal-container";
+        mensajeContainer.style.visibility = "visible";
+        mensajeContainer.style.opacity = "1";
+
+        const mensajeContent = document.createElement("div");
+        mensajeContent.className = "modal-content";
+        mensajeContent.innerHTML = `
+            <h2 class="modal-title">Ruta Finalizada</h2>
+            <p id="modalText">Gracias por utilizar nuestro servicio</p>
+        `;
+
+        mensajeContainer.appendChild(mensajeContent);
+        document.body.appendChild(mensajeContainer);
+
+        // Quitar mensaje después de 3 segundos
+        setTimeout(() => {
+            mensajeContainer.style.opacity = "0";
+            setTimeout(() => {
+                mensajeContainer.remove();
+            }, 300); // Coincide con la transición de CSS
+        }, 3000);
     });
 
     return socket;
@@ -143,59 +176,15 @@ async function actualizarRutaSeleccionada(socket) {
     });
 }
 
-
 async function iniciarActualizacionRuta(socket) {
     if (window.intervalID) clearInterval(window.intervalID);
     
     solicitarReorganizacionRutas();
-    actualizarRutaSeleccionada(socket);
+    actualizarRutaSeleccionada(socket); // Dibuja la primera vez
 
     window.intervalID = setInterval(async () => {
-        await gestionarUbicacion();
-        const response = await fetch(`${CONFIG.SERVER_URL}/messages`);
-        const data = await response.json();
-        if (data.rutaseleccionada && window.rutaSeleccionada) {
-            const color = window.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
-            window.marcadores.forEach(marcador => {
-                if (marcador.title !== "Punto Final") marcador.map = null;
-            });
-            window.marcadores = window.marcadores.filter(m => m.title === "Punto Final");
-            window.rutasDibujadas.forEach(ruta => ruta.setMap(null));
-            window.rutasDibujadas = [];
-
-            const bounds = new google.maps.LatLngBounds();
-            const locations = await Promise.all(data.rutaseleccionada.map(item => 
-                item.direccion.lat ? Promise.resolve(item.direccion) : geocodificarDireccion(item.direccion)
-            ));
-            locations.forEach((loc, index) => {
-                if (index === 0) {
-                    actualizarMarcadorBus(loc);
-                    bounds.extend(loc);
-                } else if (index === data.rutaseleccionada.length - 1) {
-                    const existingFin = window.marcadores.find(m => m.title === "Punto Final");
-                    if (!existingFin) {
-                        const marcadorFin = new google.maps.marker.AdvancedMarkerElement({
-                            position: loc,
-                            map: window.map,
-                            title: "Punto Final",
-                            content: crearMarcadorCirculo("Fin")
-                        });
-                        window.marcadores.push(marcadorFin);
-                    }
-                    bounds.extend(loc);
-                } else if (data.rutaseleccionada[index].bus === 1) {
-                    agregarMarcador(loc, `Parada ${index}`, bounds, index);
-                }
-            });
-            if (locations.length > 1) {
-                dibujarRutaConductor(locations.filter((_, i) => data.rutaseleccionada[i].bus === 1 || i === data.rutaseleccionada.length - 1), color);
-            }
-            if (window.primeraActualizacionMapa && !bounds.isEmpty()) {
-                window.map.fitBounds(bounds);
-                window.primeraActualizacionMapa = false;
-            }
-        }
-        // No limpiar rutas iniciales si no hay selección aún
+        await gestionarUbicacion(); // Solo envía la ubicación al servidor
+        // No redibujar localmente, dejar que WebSocket maneje el mapa
     }, 10000);
 }
 
@@ -216,7 +205,7 @@ function mostrarMensajesTCP(mensajes) {
     const listaMensajes = mensajesArray.slice(1).map((msg, index) => {
         let direccion = msg.direccion.lat ? `${msg.direccion.lat},${msg.direccion.lng}` : msg.direccion;
         const esUltimo = index === mensajesArray.slice(1).length - 1;
-        const estado = esUltimo ? "" : ` (${msg.bus === 1 ? "En el bus" : "Llegó"})`;
+        const estado = esUltimo ? "" : ` (${msg.bus === 1 ? "En el bus" : "Descendió del bus"})`;
 
         // Si es el punto final y tiene coordenadas, cambiar a mensaje personalizado
         if (esUltimo && (typeof direccion === "string" && direccion.includes(","))) {

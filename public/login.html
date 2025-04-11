@@ -16,15 +16,68 @@
             </a>
         </div>
         
-        <div class="container">
+        <!-- Contenedor de selección de empresa -->
+        <div class="container" id="companySelector">
+            <h1>Selecciona tu Empresa</h1>
+            <span>Elige la empresa a la que perteneces para continuar</span>
+            
+            <div class="companies-grid">
+                <div class="company-card" data-company="geotaxi">
+                    <div class="company-logo">
+                        <i class="fas fa-taxi"></i>
+                    </div>
+                    <h3>Geotaxi</h3>
+                    <p>Servicio de transporte urbano</p>
+                </div>
+                
+                <div class="company-card" data-company="lieu">
+                    <div class="company-logo">
+                        <i class="fas fa-building"></i>
+                    </div>
+                    <h3>Lieu</h3>
+                    <p>Logística y transporte empresarial</p>
+                </div>
+                
+                <div class="company-card" data-company="octopus">
+                    <div class="company-logo">
+                        <i class="fas fa-bus"></i>
+                    </div>
+                    <h3>Octopus</h3>
+                    <p>Transporte escolar y turístico</p>
+                </div>
+                
+                <div class="company-card" data-company="artemis">
+                    <div class="company-logo">
+                        <i class="fas fa-shuttle-van"></i>
+                    </div>
+                    <h3>Artemis</h3>
+                    <p>Transporte ejecutivo y corporativo</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Contenedor de login (inicialmente oculto) -->
+        <div class="container" id="loginContainer" style="display: none;">
+            <div class="selected-company">
+                <button class="back-btn" id="backToCompanies">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="company-info">
+                    <div class="company-logo" id="selectedCompanyLogo">
+                        <i class="fas fa-taxi"></i>
+                    </div>
+                    <h3 id="selectedCompanyName">Geotaxi</h3>
+                </div>
+            </div>
+            
             <h1>Iniciar Sesión</h1>
-            <span>Accede a la visualización del mapa</span>
+            <span>Accede con las credenciales brindadas por tu empresa</span>
             
             <form id="loginForm">
                 <div class="form-group">
                     <div class="input-container">
                         <i class="fas fa-user"></i>
-                        <input type="text" id="username" placeholder="Usuario o correo electrónico" required>
+                        <input type="text" id="username" placeholder="Usuario" required>
                     </div>
                 </div>
                 
@@ -51,11 +104,11 @@
         </div>
     </div>
     
-    <!-- Mantenemos solo la referencia al script externo -->
+    <!-- Scripts -->
     <script src="scripts/login.js"></script>
     <!-- Personalización de SweetAlert2 -->
     <link rel="stylesheet" href="styles/sweetalert-custom.css">
-    <!-- Asegúrate de incluir SweetAlert si lo estás usando -->
+    <!-- SweetAlert -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </body>
 </html>

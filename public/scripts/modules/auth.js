@@ -13,17 +13,35 @@ function ocultarEnlacesAdmin() {
 
 function checkUserRole() {
     const role = localStorage.getItem("userRole");
+    const currentPage = window.location.pathname.split("/").pop() || "index.html";
 
-    if (role === "Empleado") {
-        ocultarElementos(["button-container", "message-container", "message-toggle"]);
-        ocultarEnlacesAdmin();
-    } else if (role === "Administrador") {
-        ocultarElementos(["button-container"]);
-    } else if (role === "Conductor") {
-        ocultarEnlacesAdmin();
+    // Si no hay rol, redirigir a login
+    if (!role) {
+        window.location.href = "login.html";
+        return;
+    }
+
+    // Reglas por página
+    if (currentPage === "map.html") {
+        if (role === "Empleado") {
+            ocultarElementos(["button-container", "message-container", "message-toggle"]);
+            ocultarEnlacesAdmin();
+        } else if (role === "Administrador") {
+            ocultarElementos(["button-container"]);
+        } else if (role === "Conductor") {
+            ocultarEnlacesAdmin();
+        } else {
+            window.location.href = "login.html";
+        }
+    } else if (currentPage === "historial.html" || currentPage === "seguridad.html") {
+        if (role !== "Administrador") {
+            window.location.href = "login.html";
+        }
+        // Si es Administrador, no hacer nada (permite acceso)
     } else {
-        // window.location.href = "login.html"; // Descomentar si necesitas redirección
+        // Para otras páginas no protegidas, no hacer nada o redirigir según tu preferencia
+        // Por ejemplo: window.location.href = "login.html";
     }
 }
 
-export { checkUserRole, ocultarElementos, ocultarEnlacesAdmin };
+export { checkUserRole };
