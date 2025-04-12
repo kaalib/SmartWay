@@ -1,7 +1,6 @@
 // scripts/modules/api.js
 import CONFIG from '../config.js';
 import { actualizarMapa } from './map-markers.js';
-import { gestionarUbicacion } from './location.js';
 
 
 async function solicitarActualizacionRutas() {
@@ -37,15 +36,6 @@ async function solicitarReorganizacionRutas() {
         console.error("❌ Error en `solicitarReorganizacionRutas()`:", error);
     }
 }
-
-//async function ejecutarProcesoenorden() {
-//    try {
-//        await gestionarUbicacion();
-//        await solicitarActualizacionRutas();
-//    } catch (error) {
-//        console.error("❌ Error en el proceso:", error);
-//    }
-//}
 
 async function iniciarEnvioActualizacion() {
     try {

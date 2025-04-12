@@ -1,9 +1,10 @@
 // scripts/modules/ui.js
 import CONFIG from '../config.js';
 import { actualizarMapa } from './map-markers.js';
-import { iniciarActualizacionRuta, detenerActualizacionRuta, actualizarRutaSeleccionada, setupSocket, mostrarMensajesTCP } from './socket.js';
+import { iniciarActualizacionRuta, detenerActualizacionRuta, actualizarRutaSeleccionada, setupSocket, actualizarMapaConRutaSeleccionada, mostrarMensajesTCP } from './socket.js';
 import { iniciarEnvioActualizacion, detenerEnvioActualizacion, limpiarMapa, solicitarActualizacionRutas } from './api.js';
 import { gestionarUbicacion} from './location.js';
+import { checkUserRole } from './auth.js';
 import { iniciarNavegacionConductor, detenerNavegacionConductor } from './navigation.js'; 
 
 async function mostrarLoader() {
@@ -296,22 +297,29 @@ function setupUIEvents() {
         detenerEnvioActualizacion();
         detenerActualizacionRuta();
         limpiarEstado();
-
+    
         const btnInicio = document.getElementById("btnInicio");
         btnInicio.disabled = false;
         btnInicio.classList.remove("btn-disabled");
         btnInicio.classList.add("btn-enabled");
-
+    
         const btnSeleccionRuta = document.getElementById("btnSeleccionRuta");
         btnSeleccionRuta.disabled = true;
         btnSeleccionRuta.classList.remove("btn-enabled");
         btnSeleccionRuta.classList.add("btn-disabled");
-
+    
         const btnFin = document.getElementById("btnFin");
         btnFin.disabled = true;
         btnFin.classList.remove("btn-enabled");
         btnFin.classList.add("btn-disabled");
-
+    
+        // Limpiar localStorage para Conductores y Empleados, pero no para Administradores
+        const userRole = localStorage.getItem("userRole");
+        if (userRole && userRole !== "Administrador") {
+            localStorage.removeItem("userRole");
+            console.log("🧹 localStorage.userRole eliminado para", userRole);
+        }
+    
         fetch(`${CONFIG.SERVER_URL}/detener-emision`, {
             method: "POST",
             headers: { "Content-Type": "application/json" }
@@ -323,8 +331,13 @@ function setupUIEvents() {
             socket.emit("ruta_finalizada");
         })
         .catch(err => console.error("❌ Error deteniendo emisión:", err));
-
+    
         cerrarModal();
+    
+        // Forzar la verificación de rol para redirigir si es necesario
+        setTimeout(() => {
+            checkUserRole();
+        }, 4000); // Esperar 4 segundos para que el mensaje se muestre antes de redirigir
     });
 
     document.getElementById("confirmNo").addEventListener("click", cerrarModal);

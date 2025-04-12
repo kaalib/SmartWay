@@ -66,8 +66,37 @@ const io = socketIo(httpsServer, {
     }
 });
 
+// Variable para el intervalo
+let tcpInterval = null;
+
+// Iniciar actualizaciones TCP
+function startTcpUpdates(io) {
+    if (!tcpInterval) {
+        console.log("▶️ Iniciando actualizaciones periódicas de mensajes TCP...");
+        tcpInterval = setInterval(() => {
+            console.log("📡 Emitiendo actualización periódica de mensajes TCP a todos los clientes...");
+            io.emit("actualizar_tcp_mensajes", { tcp: messages.tcp });
+        }, 60000); // 60 segundos
+    }
+}
+
+// Detener actualizaciones TCP
+function stopTcpUpdates() {
+    if (tcpInterval) {
+        console.log("⏹️ Deteniendo actualizaciones periódicas de mensajes TCP...");
+        clearInterval(tcpInterval);
+        tcpInterval = null;
+    }
+}
+
+// Configuración de Socket.IO
 io.on("connection", (socket) => {
     console.log("✅ Cliente conectado a Socket.io");
+
+    // Iniciar actualizaciones si es el primer cliente
+    if (io.engine.clientsCount === 1) {
+        startTcpUpdates(io);
+    }
 
     socket.on("actualizar_ruta_seleccionada", (data) => {
         console.log("📡 Ruta seleccionada recibida del cliente:", data);
@@ -117,14 +146,14 @@ io.on("connection", (socket) => {
 
     socket.on("disconnect", () => {
         console.log("❌ Cliente desconectado");
+        // Detener actualizaciones si no hay más clientes
+        if (io.engine.clientsCount === 0) {
+            stopTcpUpdates();
+        }
     });
 });
 
-// Nuevo intervalo para emitir mensajes TCP cada 60 segundos
-setInterval(() => {
-    console.log("📡 Emitiendo actualización periódica de mensajes TCP a todos los clientes...");
-    io.emit("actualizar_tcp_mensajes", { tcp: messages.tcp });
-}, 60000); // 60 segundos
+
 
 // 📡 Emitir actualización de rutasIA
 function emitirActualizacionRutas() {
