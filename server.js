@@ -257,6 +257,7 @@ app.post("/seleccionar-ruta", async (req, res) => {
         };
     });
     messages.rutaseleccionada.push(...paradas);
+    messages.rutaSeleccionada = ruta; // Asegurar que se guarde
 
     console.log("✅ Ruta seleccionada guardada en rutaseleccionada (POST):", messages.rutaseleccionada);
 
@@ -569,7 +570,6 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
             });
             console.log(`✅ Pasajero en ${parada.direccion} bajó del bus`);
 
-            // Sincronizar el estado en messages.tcp usando el nombre
             const nombreParada = parada.nombre;
             const tcpPasajero = messages.tcp.find(msg => `${msg.nombre} ${msg.apellido}` === nombreParada);
             if (tcpPasajero) {
@@ -587,7 +587,6 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
         direccion: { lat, lng }
     });
 
-    // Enviar a Flask siempre que haya un punto final nuevo o sea el primer envío
     if (ultimaParada) {
         let direccionFinal = ultimaParada === "actual" ? { lat, lng } : ultimaParada;
         const puntoFinal = {
@@ -596,7 +595,6 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
             apellido: "",
             direccion: direccionFinal
         };
-        // Evitar duplicar el punto final si ya existe
         if (!messages.tcp.some(msg => msg.id === "punto_final")) {
             messages.tcp.push(puntoFinal);
             console.log("✅ Punto final añadido a messages.tcp:", puntoFinal);
@@ -615,16 +613,16 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
             if (flaskData.status === "success") {
                 messages.rutasIA = flaskData.rutasIA;
                 console.log("✅ rutasIA recibido de Flask:", messages.rutasIA);
-                emitirActualizacionRutas(); // Emitir inmediatamente
+                emitirActualizacionRutas();
             } else {
                 console.error("❌ Error en Flask:", flaskData.message);
-                messages.rutasIA = {}; // Reiniciar si hay error
-                io.emit("actualizar_rutas", { rutasIA: {} }); // Notificar error al frontend
+                messages.rutasIA = {};
+                io.emit("actualizar_rutas", { rutasIA: {} });
                 return res.status(500).json({ error: "Error procesando rutas en Flask" });
             }
         } catch (error) {
             console.error("❌ Error enviando a Flask:", error);
-            messages.rutasIA = {}; // Reiniciar si hay error
+            messages.rutasIA = {};
             io.emit("actualizar_rutas", { rutasIA: {} });
             return res.status(500).json({ error: "Error conectando con Flask" });
         }
@@ -634,14 +632,15 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
         if (err) console.error("❌ Error guardando:", err);
     });
 
+    const color = messages.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
     io.emit("ruta_seleccionada_actualizada", {
         ruta: messages.rutaSeleccionada || "mejor_ruta_distancia",
         locations: messages.rutaseleccionada,
-        color: messages.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900'
+        color
     });
     io.emit("actualizar_tcp_mensajes", { 
         tcp: messages.tcp, 
-        rutaseleccionada: messages.rutaseleccionada // Añadir rutaseleccionada al evento
+        rutaseleccionada: messages.rutaseleccionada
     });
     res.json({ success: true });
 });

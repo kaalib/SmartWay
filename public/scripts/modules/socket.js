@@ -128,9 +128,8 @@ async function actualizarRutaSeleccionada(socket) {
         return;
     }
 
-    // Primera actualización: Usar datos del servidor en lugar de procesar localmente
+    // Primera actualización
     if (window.primeraActualizacionMapa) {
-        // Hacer una solicitud inicial al servidor para obtener la ruta seleccionada con nombres
         try {
             const response = await fetch(`${CONFIG.SERVER_URL}/seleccionar-ruta`, {
                 method: "POST",
@@ -141,13 +140,12 @@ async function actualizarRutaSeleccionada(socket) {
             if (!data.success) throw new Error(data.message);
 
             console.log("✅ Ruta inicial obtenida del servidor:", data);
-            await actualizarMapaConRutaSeleccionada(data.locations, color); // Dibujar con nombres del servidor
+            await actualizarMapaConRutaSeleccionada(data.locations, color);
             window.primeraActualizacionMapa = false;
 
-            // Emitir al servidor (aunque /seleccionar-ruta ya lo hace, opcional aquí)
             socket.emit("actualizar_ruta_seleccionada", {
                 ruta: window.rutaSeleccionada,
-                locations: data.locations // Incluye nombres
+                locations: data.locations
             });
             console.log("📡 Enviando ruta seleccionada al servidor:", window.rutaSeleccionada);
         } catch (error) {
@@ -159,13 +157,14 @@ async function actualizarRutaSeleccionada(socket) {
     socket.on("ruta_seleccionada_actualizada", async (data) => {
         console.log("🛑 Ruta seleccionada actualizada recibida por WebSocket:", data);
         window.rutaSeleccionadaLocations = data.locations;
-        await actualizarMapaConRutaSeleccionada(data.locations, data.color); // Usar datos completos del servidor
+        // Usar el color del servidor para consistencia
+        await actualizarMapaConRutaSeleccionada(data.locations, data.color || color);
     });
 
-    // Corregir evento para coincidir con /actualizar-ubicacion-bus
-    socket.on("actualizar_tcp_mensajes", (data) => {
+    socket.on("actualizar_tcp_mensajes", async (data) => {
         console.log("📍 Actualización de TCP y ruta seleccionada recibida:", data);
-        actualizarMapaConRutaSeleccionada(data.rutaseleccionada, color); // Usar rutaseleccionada del servidor
+        // Usar el color basado en window.rutaSeleccionada para evitar cambios
+        await actualizarMapaConRutaSeleccionada(data.rutaseleccionada, color);
     });
 }
 
