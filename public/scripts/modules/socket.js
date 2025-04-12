@@ -5,16 +5,44 @@ import { actualizarMarcadorBus, gestionarUbicacion } from './location.js';
 import { solicitarReorganizacionRutas} from './api.js';
 
 function setupSocket() {
-    const socket = io(CONFIG.WEBSOCKET_URL);
+    // Si ya existe una instancia conectada, reutilizarla
+    if (socketInstance && socketInstance.connected) {
+        console.log("🔄 Reutilizando conexión WebSocket existente");
+        return socketInstance;
+    }
 
-    socket.on("actualizar_rutas", (data) => {
+    // Crear nueva conexión con opciones de reconexión
+    socketInstance = io(CONFIG.WEBSOCKET_URL, {
+        reconnection: true,           // Habilitar reconexión automática
+        reconnectionAttempts: 5,     // Intentar reconectar hasta 5 veces
+        reconnectionDelay: 1000      // Esperar 1 segundo entre intentos
+    });
+
+    // Evento cuando se conecta exitosamente
+    socketInstance.on("connect", () => {
+        console.log("✅ Conectado al servidor WebSocket");
+    });
+
+    // Evento cuando hay un error de conexión
+    socketInstance.on("connect_error", (error) => {
+        console.error("❌ Error de conexión WebSocket, intentando reconectar:", error.message);
+    });
+
+    // Evento cuando se desconecta
+    socketInstance.on("disconnect", (reason) => {
+        console.log("🔌 Desconectado del servidor WebSocket, motivo:", reason);
+    });
+
+    // Evento para actualizar rutas
+    socketInstance.on("actualizar_rutas", (data) => {
         if (data.rutaseleccionada) {
             console.log("📡 WebSocket actualiza la ruta seleccionada:", data.rutaseleccionada);
             actualizarMapaConRutaSeleccionada(data.rutaseleccionada);
         }
     });
 
-    socket.on("ruta_seleccionada_actualizada", async (data) => {
+    // Evento para ruta seleccionada actualizada
+    socketInstance.on("ruta_seleccionada_actualizada", async (data) => {
         console.log("🛑 Ruta seleccionada actualizada recibida por WebSocket:", data);
         window.rutaSeleccionada = data.ruta;
         window.rutaSeleccionadaLocations = data.locations;
@@ -22,12 +50,19 @@ function setupSocket() {
         await actualizarMapaConRutaSeleccionada(data.locations, color);
     });
 
-    socket.on("actualizar_tcp_mensajes", (data) => {
+    // Evento para mensajes TCP
+    socketInstance.on("actualizar_tcp_mensajes", (data) => {
         console.log("📡 Mensajes TCP recibidos por WebSocket:", data.tcp);
         mostrarMensajesTCP(data.tcp);
+        // Actualizar mapa con rutaseleccionada si está disponible
+        if (data.rutaseleccionada && window.rutaSeleccionada) {
+            const color = window.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
+            actualizarMapaConRutaSeleccionada(data.rutaseleccionada, color);
+        }
     });
 
-    socket.on("limpiar_mapa_y_mostrar_mensaje", () => {
+    // Evento para limpiar mapa y mostrar mensaje
+    socketInstance.on("limpiar_mapa_y_mostrar_mensaje", () => {
         console.log("🧹 Limpiando mapa y mostrando mensaje en cliente WebSocket");
         // Limpiar mapa
         window.marcadores.forEach(marcador => marcador.map = null);
@@ -60,7 +95,7 @@ function setupSocket() {
         }, 3000);
     });
 
-    return socket;
+    return socketInstance;
 }
 
 
@@ -120,15 +155,41 @@ async function actualizarMapaConRutaSeleccionada(rutaseleccionada, color) {
 async function actualizarRutaSeleccionada(socket) {
     if (!window.rutaSeleccionada) return;
 
+    // Intentar cargar rutas si no están definidas
+    if (!window.rutaDistancia || !window.rutaTrafico) {
+        try {
+            const response = await fetch(`${CONFIG.SERVER_URL}/messages`);
+            const data = await response.json();
+            if (data.rutasIA && data.rutasIA.mejor_ruta_distancia && data.rutasIA.mejor_ruta_trafico) {
+                window.rutaDistancia = data.rutasIA.mejor_ruta_distancia;
+                window.rutaTrafico = data.rutasIA.mejor_ruta_trafico;
+            }
+        } catch (error) {
+            console.error("❌ Error cargando rutasIA para actualizarRutaSeleccionada:", error);
+            return;
+        }
+    }
+
     const rutaData = window.rutaSeleccionada === "mejor_ruta_distancia" ? window.rutaDistancia : window.rutaTrafico;
     const color = window.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
 
     if (!rutaData || !Array.isArray(rutaData)) {
         console.error("❌ rutaData no está definido o no es un array:", rutaData);
+        // Usar rutaseleccionada desde el servidor si está disponible
+        try {
+            const response = await fetch(`${CONFIG.SERVER_URL}/messages`);
+            const data = await response.json();
+            if (data.rutaseleccionada && data.rutaseleccionada.length > 0) {
+                await actualizarMapaConRutaSeleccionada(data.rutaseleccionada, color);
+                window.primeraActualizacionMapa = false;
+            }
+        } catch (error) {
+            console.error("❌ Error cargando rutaseleccionada:", error);
+            return;
+        }
         return;
     }
 
-    // Primera actualización
     if (window.primeraActualizacionMapa) {
         try {
             const response = await fetch(`${CONFIG.SERVER_URL}/seleccionar-ruta`, {
@@ -153,18 +214,19 @@ async function actualizarRutaSeleccionada(socket) {
         }
     }
 
-    // Escuchar actualizaciones continuas del servidor
     socket.on("ruta_seleccionada_actualizada", async (data) => {
         console.log("🛑 Ruta seleccionada actualizada recibida por WebSocket:", data);
         window.rutaSeleccionadaLocations = data.locations;
-        // Usar el color del servidor para consistencia
-        await actualizarMapaConRutaSeleccionada(data.locations, data.color || color);
+        const color = window.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
+        await actualizarMapaConRutaSeleccionada(data.locations, color);
     });
 
     socket.on("actualizar_tcp_mensajes", async (data) => {
         console.log("📍 Actualización de TCP y ruta seleccionada recibida:", data);
-        // Usar el color basado en window.rutaSeleccionada para evitar cambios
-        await actualizarMapaConRutaSeleccionada(data.rutaseleccionada, color);
+        const color = window.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
+        if (data.rutaseleccionada) {
+            await actualizarMapaConRutaSeleccionada(data.rutaseleccionada, color);
+        }
     });
 }
 
