@@ -178,7 +178,7 @@ function iniciarEmisionRutas() {
             if (emitirRutas) {
                 emitirActualizacionRutas(); // ✅ Se usa la función en lugar de repetir código
             }
-        }, 10000);
+        }, 600000); // 10 minutos
         console.log("✅ Emisión de rutas ACTIVADA");
     }
 }

@@ -98,20 +98,11 @@ async function restaurarEstado() {
     try {
         const response = await fetch(`${CONFIG.SERVER_URL}/messages`);
         const data = await response.json();
-
         const socket = setupSocket();
 
-        if (btnSeleccionRutaHabilitado && data.rutasIA && data.rutasIA.mejor_ruta_distancia && data.rutasIA.mejor_ruta_trafico) {
-            // Caso: btnSeleccionRuta activo, dibujar ambas rutas
-            window.rutaDistancia = data.rutasIA.mejor_ruta_distancia;
-            window.rutaTrafico = data.rutasIA.mejor_ruta_trafico;
-            window.distanciaTotalKm = data.rutasIA.distancia_total_km;
-            window.tiempoTotalMin = data.rutasIA.tiempo_total_min;
-
-            // Dibujar ambas rutas
-            await actualizarMapa({ mejor_ruta_distancia: window.rutaDistancia, mejor_ruta_trafico: window.rutaTrafico });
-        } else if (btnFinHabilitado && data.rutaseleccionada && data.rutaseleccionada.length > 0) {
-            // Caso: btnFin activo, dibujar rutaseleccionada
+        if (btnFinHabilitado && data.rutaseleccionada && data.rutaseleccionada.length > 0) {
+            // Caso: Ruta activa (btnFin habilitado)
+            console.log("📡 Restaurando ruta activa desde servidor:", data.rutaseleccionada);
             window.rutaSeleccionada = data.rutaSeleccionada || rutaSeleccionada || 'mejor_ruta_distancia';
             window.primeraActualizacionMapa = false;
             window.primeraVez = false;
@@ -119,32 +110,45 @@ async function restaurarEstado() {
             const color = window.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
             await actualizarMapaConRutaSeleccionada(data.rutaseleccionada, color);
 
-            // Reanudar transmisión
+            // Reactivar actualizaciones en vivo
+            await iniciarEnvioActualizacion();
+            await iniciarActualizacionRuta(socket);
             await actualizarRutaSeleccionada(socket);
-            iniciarEnvioActualizacion();
+            console.log("🔄 Actualizaciones en vivo reactivadas");
+        } else if (btnSeleccionRutaHabilitado && data.rutasIA && data.rutasIA.mejor_ruta_distancia && data.rutasIA.mejor_ruta_trafico) {
+            // Caso: Selección de ruta pendiente
+            console.log("📡 Restaurando rutas para selección:", data.rutasIA);
+            window.rutaDistancia = data.rutasIA.mejor_ruta_distancia;
+            window.rutaTrafico = data.rutasIA.mejor_ruta_trafico;
+            window.distanciaTotalKm = data.rutasIA.distancia_total_km;
+            window.tiempoTotalMin = data.rutasIA.tiempo_total_min;
+
+            await actualizarMapa({ mejor_ruta_distancia: window.rutaDistancia, mejor_ruta_trafico: window.rutaTrafico });
         } else {
-            // Caso: btnInicio activo o no hay ruta activa
+            // Caso: Sin ruta activa
+            console.log("📡 Sin ruta activa, inicializando botones");
             btnInicio.disabled = false;
+            btnInicio.classList.remove("btn-disabled");
+            btnInicio.classList.add("btn-enabled");
             btnSeleccionRuta.disabled = true;
+            btnSeleccionRuta.classList.remove("btn-enabled");
+            btnSeleccionRuta.classList.add("btn-disabled");
             btnFin.disabled = true;
+            btnFin.classList.remove("btn-enabled");
+            btnFin.classList.add("btn-disabled");
         }
     } catch (error) {
         console.error("❌ Error al sincronizar con el servidor:", error);
-        // Respaldo: usar estado de localStorage
+        // Fallback limitado: solo si no hay ruta activa
         if (btnSeleccionRutaHabilitado) {
-            // Intentar restaurar rutas desde localStorage como fallback
             window.rutaDistancia = JSON.parse(localStorage.getItem('rutaDistancia') || '[]');
             window.rutaTrafico = JSON.parse(localStorage.getItem('rutaTrafico') || '[]');
             if (window.rutaDistancia.length > 0 && window.rutaTrafico.length > 0) {
                 await actualizarMapa({ mejor_ruta_distancia: window.rutaDistancia, mejor_ruta_trafico: window.rutaTrafico });
+                console.log("🔄 Restaurando rutas desde localStorage como fallback");
             }
-        } else if (btnFinHabilitado && rutaSeleccionada) {
-            window.rutaSeleccionada = rutaSeleccionada;
-            // No tenemos rutaseleccionada local, esperar actualización del servidor
-            const socket = setupSocket();
-            await actualizarRutaSeleccionada(socket);
-            iniciarEnvioActualizacion();
         }
+        // No usar localStorage para btnFinHabilitado, confiar en el servidor
     }
 }
 
@@ -180,57 +184,108 @@ function setupUIEvents() {
     document.getElementById("btnSeleccionarUbicacion").addEventListener("click", async () => {
         await cerrarUbicacionModal();
         await mostrarLoader();
-
+    
         const btnInicio = document.getElementById("btnInicio");
         const btnSeleccionRuta = document.getElementById("btnSeleccionRuta");
         const btnFin = document.getElementById("btnFin");
         const modalText = document.getElementById("modalText");
-
+    
         try {
+            // Esperar a que el mapa esté inicializado
+            if (!window.map) {
+                console.log("⏳ Esperando inicialización del mapa...");
+                await new Promise((resolve, reject) => {
+                    const checkMap = setInterval(() => {
+                        if (window.map) {
+                            clearInterval(checkMap);
+                            console.log("🗺️ Mapa inicializado");
+                            resolve();
+                        }
+                    }, 100);
+                    setTimeout(() => {
+                        clearInterval(checkMap);
+                        reject(new Error("Mapa no inicializado tras 5 segundos"));
+                    }, 5000);
+                });
+            }
+    
             const opcionSeleccionada = document.querySelector('input[name="ubicacion"]:checked').value;
             console.log("📍 Ubicación seleccionada:", opcionSeleccionada);
             window.ultimaParada = opcionSeleccionada === "parqueadero" ? "Carrera 15 #27A-40, Barranquilla" : "actual";
             await gestionarUbicacion(true);
             await iniciarEnvioActualizacion();
-
+    
             const response = await fetch("/messages");
             const data = await response.json();
-
+    
             if (data.rutasIA && data.rutasIA.mejor_ruta_distancia && data.rutasIA.mejor_ruta_trafico) {
                 window.rutaDistancia = data.rutasIA.mejor_ruta_distancia;
                 window.rutaTrafico = data.rutasIA.mejor_ruta_trafico;
                 window.distanciaTotalKm = data.rutasIA.distancia_total_km;
                 window.tiempoTotalMin = data.rutasIA.tiempo_total_min;
-
-                // Dibujar ambas rutas al inicio
+    
+                // Guardar rutas en localStorage
+                localStorage.setItem('rutaDistancia', JSON.stringify(window.rutaDistancia));
+                localStorage.setItem('rutaTrafico', JSON.stringify(window.rutaTrafico));
+                localStorage.setItem('rutaEnProgreso', 'true');
+    
+                console.log("🗺️ Dibujando rutas:", { mejor_ruta_distancia: window.rutaDistancia, mejor_ruta_trafico: window.rutaTrafico });
+    
+                // Dibujar rutas
                 await actualizarMapa({ mejor_ruta_distancia: window.rutaDistancia, mejor_ruta_trafico: window.rutaTrafico });
+    
+                // Ajustar mapa
+                if (window.rutasDibujadas?.length > 0) {
+                    const bounds = new google.maps.LatLngBounds();
+                    window.rutasDibujadas.forEach(ruta => {
+                        ruta.getDirections()?.routes[0]?.overview_path.forEach(point => bounds.extend(point));
+                    });
+                    window.map.fitBounds(bounds);
+                    console.log("🗺️ Mapa ajustado");
+                } else {
+                    console.warn("⚠️ No se dibujaron rutas");
+                }
+    
                 modalText.textContent = "Datos cargados. Escoja la mejor ruta según la información brindada.";
                 btnInicio.disabled = true;
+                btnInicio.classList.remove("btn-enabled");
+                btnInicio.classList.add("btn-disabled");
                 btnSeleccionRuta.disabled = false;
+                btnSeleccionRuta.classList.remove("btn-disabled");
+                btnSeleccionRuta.classList.add("btn-enabled");
                 btnFin.disabled = true;
-
+                btnFin.classList.remove("btn-enabled");
+                btnFin.classList.add("btn-disabled");
+    
                 localStorage.setItem('btnInicioHabilitado', 'false');
                 localStorage.setItem('btnSeleccionRutaHabilitado', 'true');
                 localStorage.setItem('btnFinHabilitado', 'false');
-
+    
                 const socket = setupSocket();
                 socket.emit("solicitar_mensajes_tcp");
             } else {
                 throw new Error("Datos de rutasIA no disponibles o incompletos");
             }
         } catch (error) {
-            console.error("❌ Error durante el proceso:", error);
-            modalText.textContent = "Error procesando la solicitud o datos no disponibles. Intente de nuevo.";
+            console.error("❌ Error:", error);
+            modalText.textContent = "Error procesando la solicitud. Intente de nuevo.";
             btnInicio.disabled = false;
+            btnInicio.classList.remove("btn-disabled");
+            btnInicio.classList.add("btn-enabled");
             btnSeleccionRuta.disabled = true;
+            btnSeleccionRuta.classList.remove("btn-enabled");
+            btnSeleccionRuta.classList.add("btn-disabled");
             btnFin.disabled = true;
+            btnFin.classList.remove("btn-enabled");
+            btnFin.classList.add("btn-disabled");
             localStorage.setItem('btnInicioHabilitado', 'true');
             localStorage.setItem('btnSeleccionRutaHabilitado', 'false');
             localStorage.setItem('btnFinHabilitado', 'false');
+            localStorage.setItem('rutaEnProgreso', 'false');
             setTimeout(cerrarLoader, 2000);
             return;
         }
-
+    
         await cerrarLoader();
     });
 
