@@ -1,8 +1,5 @@
 // scripts/modules/location.js
 import CONFIG from '../config.js';
-import { setupSocket } from './socket.js';
-
-const socket = setupSocket();
 
 async function gestionarUbicacion(primeraVezOverride = null) {
     return new Promise((resolve, reject) => {
