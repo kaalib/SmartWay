@@ -124,11 +124,9 @@ async function restaurarEstado() {
             iniciarEnvioActualizacion();
         } else {
             // Caso: btnInicio activo o no hay ruta activa
-            limpiarEstado();
             btnInicio.disabled = false;
             btnSeleccionRuta.disabled = true;
             btnFin.disabled = true;
-            limpiarMapa();
         }
     } catch (error) {
         console.error("❌ Error al sincronizar con el servidor:", error);

@@ -12,7 +12,7 @@ const net = require('net');
 const axios = require('axios');
 const socketIo = require("socket.io");
 const fetch = require('node-fetch');
-const messages = { tcp: [], rutasIA: {}, bus: [], rutaseleccionada: [] }; // Mensajes TCP, la API optimizadora de rutas
+const messages = { tcp: [], rutasIA: {}, bus: [], rutaseleccionada: [], colorRutaSeleccionada: [] }; // Mensajes TCP, la API optimizadora de rutas
 require('dotenv').config(); // Cargar variables de entorno
 const MAX_TCP_CONNECTIONS = 1;
 let activeTcpConnections = 0;
@@ -125,7 +125,7 @@ io.on("connection", (socket) => {
         io.emit("ruta_seleccionada_actualizada", {
             ruta: data.ruta,
             locations: messages.rutaseleccionada,
-            color: (data.ruta || messages.rutaSeleccionada) === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900'
+            color: (data.ruta || messages.colorRutaSeleccionada) === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900'
         });
     });
 
@@ -168,7 +168,7 @@ function emitirActualizacionRutas() {
 // 🔄 Control de emisión
 let emitirRutas = false;
 let intervaloRutas = null;
-let rutaSeleccionada = null; // Variable para rastrear la ruta seleccionada
+let colorRutaSeleccionada = null; // Variable para rastrear la ruta seleccionada
 
 // ✅ Iniciar emisión de rutasIA
 function iniciarEmisionRutas() {
@@ -216,7 +216,7 @@ app.post("/detener-emision", (req, res) => {
     }
     messages.rutasIA = {}; // Reiniciar rutasIA
     messages.rutaseleccionada = []; // Reiniciar ruta seleccionada
-    rutaSeleccionada = null;
+    colorRutaSeleccionada = null;
     fs.writeFile("messages.json", JSON.stringify(messages, null, 2), (err) => {
         if (err) console.error("❌ Error guardando messages.json:", err);
     });
@@ -286,7 +286,7 @@ app.post("/seleccionar-ruta", async (req, res) => {
         };
     });
     messages.rutaseleccionada.push(...paradas);
-    messages.rutaSeleccionada = ruta; // Asegurar que se guarde
+    messages.colorRutaSeleccionada = ruta; // Asegurar que se guarde
 
     console.log("✅ Ruta seleccionada guardada en rutaseleccionada (POST):", messages.rutaseleccionada);
 
@@ -332,6 +332,7 @@ app.delete('/messages', (req, res) => {
     messages.rutasIA = []; // Vaciar el array de mensajes rutasIA
     messages.bus = []; // Vaciar el array de mensajes bus
     messages.rutaseleccionada = []; // Vaciar el array de mensajes rutaseleccionada
+    messages.colorRutaSeleccionada = []; // Vaciar el array de mensajes colorRutaSeleccionada
     fs.writeFileSync("messages.json", JSON.stringify(messages, null, 2)); // Guardar cambios en el archivo
     res.json({ success: true, message: "Mensajes TCP eliminados" });
 });
@@ -661,9 +662,9 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
         if (err) console.error("❌ Error guardando:", err);
     });
 
-    const color = messages.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
+    const color = messages.colorRutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
     io.emit("ruta_seleccionada_actualizada", {
-        ruta: messages.rutaSeleccionada || "mejor_ruta_distancia",
+        ruta: messages.colorRutaSeleccionada || "mejor_ruta_distancia",
         locations: messages.rutaseleccionada,
         color
     });
