@@ -4,6 +4,9 @@ import { agregarMarcador, geocodificarDireccion, dibujarRutaConductor, crearMarc
 import { actualizarMarcadorBus, gestionarUbicacion } from './location.js';
 import { solicitarReorganizacionRutas} from './api.js';
 
+// Inicializar socketInstance al inicio del módulo
+let socketInstance = null;
+
 function setupSocket() {
     // Si ya existe una instancia conectada, reutilizarla
     if (socketInstance && socketInstance.connected) {
