@@ -277,4 +277,4 @@ function mostrarMensajesTCP(mensajes) {
     document.querySelectorAll('.tcpDirections').forEach(el => el.innerHTML = listaMensajes);
 }
 
-export { setupSocket, actualizarRutaSeleccionada, iniciarActualizacionRuta, detenerActualizacionRuta, mostrarMensajesTCP };
+export { setupSocket, actualizarRutaSeleccionada, iniciarActualizacionRuta, detenerActualizacionRuta, mostrarMensajesTCP, actualizarMapaConRutaSeleccionada };
