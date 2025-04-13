@@ -623,6 +623,7 @@ async function geocodeAddress(address) {
     }
 }
 
+//loco
 // Actualizar ubicación del bus y verificar paradas completadas
 let primeraVez = true;
 
