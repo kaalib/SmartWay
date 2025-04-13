@@ -1,11 +1,12 @@
 // scripts/modules/socket.js
 import CONFIG from '../config.js';
-import { agregarMarcador, geocodificarDireccion, dibujarRutaConductor, crearMarcadorCirculo, procesarRuta} from './map-markers.js';
+import { agregarMarcador, geocodificarDireccion, dibujarRutaConductor, crearMarcadorCirculo, procesarRuta, agregarMarcadorParada, eliminarMarcadorParada, limpiarMarcadoresParadas } from './map-markers.js';
 import { actualizarMarcadorBus, gestionarUbicacion, detenerUbicacion } from './location.js';
 import { solicitarReorganizacionRutas} from './api.js';
 
 // Inicializar socketInstance al inicio del módulo
 let socketInstance = null;
+let directionsRenderer = null; // Almacenar el renderer de la polilínea
 
 function setupSocket() {
     // Si ya existe una instancia conectada, reutilizarla
@@ -64,6 +65,12 @@ function setupSocket() {
         }
     });
 
+    // Escuchar evento para eliminar marcadores cuando el bus llega a una parada
+    socketInstance.on("parada_completada", (data) => {
+        const { paradaId } = data;
+        eliminarMarcadorParada(paradaId);
+    });
+
     // Evento para limpiar mapa y mostrar mensaje
     socketInstance.on("limpiar_mapa_y_mostrar_mensaje", () => {
         console.log("🧹 Limpiando mapa y mostrando mensaje en cliente WebSocket");
@@ -113,41 +120,94 @@ function convertirADireccionLatLng(direccion) {
 async function actualizarMapaConRutaSeleccionada(rutaseleccionada, color) {
     if (!rutaseleccionada) return;
 
-    window.marcadores.forEach(marcador => marcador.map = null);
-    window.marcadores = [];
-    window.rutasDibujadas.forEach(ruta => ruta.setMap(null));
-    window.rutasDibujadas = [];
-
     const bounds = new google.maps.LatLngBounds();
+
+    // Obtener las ubicaciones geocodificadas
     const locations = await Promise.all(rutaseleccionada.map(async item => {
         const loc = convertirADireccionLatLng(item.direccion);
         return await geocodificarDireccion(loc.lat ? `${loc.lat},${loc.lng}` : item.direccion);
     }));
 
+    // Asociar las ubicaciones geocodificadas a los ítems para usarlas en agregarMarcadorParada
     rutaseleccionada.forEach((item, index) => {
-        const direccionNormalizada = locations[index];
-        if (direccionNormalizada) {
-            if (index === 0) {
-                actualizarMarcadorBus(direccionNormalizada);
-                bounds.extend(direccionNormalizada);
-            } else if (index === rutaseleccionada.length - 1) {
+        item.direccionNormalizada = locations[index];
+    });
+
+    // Actualizar el marcador del bus (índice 0)
+    if (locations[0]) {
+        actualizarMarcadorBus(locations[0]);
+        bounds.extend(locations[0]);
+    }
+
+    // Añadir o actualizar marcadores de paradas
+    rutaseleccionada.forEach((item, index) => {
+        if (index === 0) return; // Saltar el bus
+
+        if (index === rutaseleccionada.length - 1) {
+            // Punto final
+            if (item.direccionNormalizada) {
                 const marcadorFin = new google.maps.marker.AdvancedMarkerElement({
-                    position: direccionNormalizada,
+                    position: item.direccionNormalizada,
                     map: window.map,
-                    title: item.nombre || "Punto Final", // Usar nombre del servidor
+                    title: item.nombre || "Punto Final",
                     content: crearMarcadorCirculo("Fin")
                 });
                 window.marcadores.push(marcadorFin);
-                bounds.extend(direccionNormalizada);
-            } else if (item.bus === 1) {
-                agregarMarcador(direccionNormalizada, item.nombre, bounds, index); // Usar nombre del servidor
+                bounds.extend(item.direccionNormalizada);
+            }
+        } else if (item.bus === 1) {
+            // Parada activa
+            if (!paradaMarcadores.has(item.id)) {
+                agregarMarcadorParada(item, index, bounds);
+            } else {
+                // Si el marcador ya existe, solo extender los bounds
+                bounds.extend(item.direccionNormalizada);
             }
         }
     });
 
-    if (locations.length > 1) {
-        const renderer = dibujarRutaConductor(locations.filter((_, i) => rutaseleccionada[i].bus === 1 || i === rutaseleccionada.length - 1), color);
-        if (renderer) window.rutasDibujadas.push(renderer);
+    // Actualizar la polilínea sin borrarla completamente
+    const locationsFiltradas = locations.filter((loc, i) => loc && (rutaseleccionada[i].bus === 1 || i === rutaseleccionada.length - 1));
+    if (locationsFiltradas.length > 1) {
+        if (!directionsRenderer) {
+            // Crear una nueva polilínea si no existe
+            directionsRenderer = dibujarRutaConductor(locationsFiltradas, color);
+            if (directionsRenderer) window.rutasDibujadas.push(directionsRenderer);
+        } else {
+            // Actualizar la polilínea existente
+            const directionsService = new google.maps.DirectionsService();
+            directionsService.route({
+                origin: locationsFiltradas[0],
+                destination: locationsFiltradas[locationsFiltradas.length - 1],
+                waypoints: locationsFiltradas.slice(1, -1).map(loc => ({ location: loc, stopover: true })),
+                travelMode: google.maps.TravelMode.DRIVING
+            }, (result, status) => {
+                if (status === google.maps.DirectionsStatus.OK) {
+                    directionsRenderer.setDirections(result);
+                    directionsRenderer.setOptions({
+                        polylineOptions: {
+                            strokeColor: color,
+                            strokeOpacity: 0.8,
+                            strokeWeight: 5,
+                            icons: [{
+                                icon: {
+                                    path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+                                    scale: 4,
+                                    strokeColor: color,
+                                    strokeWeight: 2,
+                                    fillOpacity: 1
+                                },
+                                offset: "0%",
+                                repeat: "100px"
+                            }]
+                        }
+                    });
+                    console.log("🔄 Polilínea actualizada");
+                } else {
+                    console.error("❌ Error al actualizar ruta:", status);
+                }
+            });
+        }
     }
 
     if (!bounds.isEmpty()) {
@@ -158,7 +218,6 @@ async function actualizarMapaConRutaSeleccionada(rutaseleccionada, color) {
 async function actualizarRutaSeleccionada(socket) {
     if (!window.rutaSeleccionada) return;
 
-    // Intentar cargar rutas si no están definidas
     if (!window.rutaDistancia || !window.rutaTrafico) {
         try {
             const response = await fetch(`${CONFIG.SERVER_URL}/messages`);
@@ -178,7 +237,6 @@ async function actualizarRutaSeleccionada(socket) {
 
     if (!rutaData || !Array.isArray(rutaData)) {
         console.error("❌ rutaData no está definido o no es un array:", rutaData);
-        // Usar rutaseleccionada desde el servidor si está disponible
         try {
             const response = await fetch(`${CONFIG.SERVER_URL}/messages`);
             const data = await response.json();
@@ -234,34 +292,29 @@ async function actualizarRutaSeleccionada(socket) {
 }
 
 async function iniciarActualizacionRuta(socket) {
-    // Limpiar cualquier intervalo existente
     if (window.intervalID) {
         clearInterval(window.intervalID);
         window.intervalID = null;
     }
 
-    // Iniciar seguimiento continuo de ubicación
     try {
         console.log("📍 Iniciando seguimiento de ubicación...");
-        await gestionarUbicacion(); // Inicia watchPosition
+        await gestionarUbicacion();
     } catch (error) {
         console.error("❌ Error iniciando seguimiento de ubicación:", error);
         return;
     }
     await solicitarReorganizacionRutas();
-    // Dibujar la ruta seleccionada inicial
     await actualizarRutaSeleccionada(socket);
 }
 
 function detenerActualizacionRuta() {
-    // Detener intervalo de reorganización (si existe)
     if (window.intervalID) {
         clearInterval(window.intervalID);
         window.intervalID = null;
         console.log("🚫 Intervalo de reorganización detenido.");
     }
 
-    // Detener seguimiento de ubicación
     detenerUbicacion();
     console.log("🚫 Actualización de ruta detenida.");
 }
@@ -277,7 +330,6 @@ function mostrarMensajesTCP(mensajes) {
         const esUltimo = index === mensajesArray.slice(1).length - 1;
         const estado = esUltimo ? "" : ` (${msg.bus === 1 ? "En el bus" : "Descendió del bus"})`;
 
-        // Si es el punto final y tiene coordenadas, cambiar a mensaje personalizado
         if (esUltimo && (typeof direccion === "string" && direccion.includes(","))) {
             const [lat, lng] = direccion.split(",").map(Number);
             if (!isNaN(lat) && !isNaN(lng)) {
