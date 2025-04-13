@@ -393,6 +393,9 @@ const tcpServer = net.createServer((socket) => {
         registrarRechazoTCP(socket.remoteAddress, "Límite de conexiones alcanzado");
         console.log("🚫 Conexión rechazada: límite de conexiones TCP alcanzado.");
         socket.end("Conexión rechazada: límite alcanzado.\n");
+        if (!socket.destroyed) {
+            socket.destroy();
+        }
         return;
     }
 
@@ -478,21 +481,30 @@ const tcpServer = net.createServer((socket) => {
     });
 
     socket.on("end", () => {
-        activeTcpConnections--;
+        activeTcpConnections = Math.max(activeTcpConnections - 1, 0);
         console.log("📴 Cliente TCP desconectado. Activas:", activeTcpConnections);
+        if (!socket.destroyed) {
+            socket.destroy();
+        }
     });
 
     socket.on("error", (err) => {
         if (err.code === "ECONNRESET") {
-            console.warn("⚠️ Cliente desconectado abruptamente.");
+            console.warn("⚠️ Cliente desconectado abruptamente (ECONNRESET).");
         } else if (err.code === "EPIPE") {
-            console.warn("⚠️ Intento de escribir en un socket cerrado.");
+            console.warn("⚠️ Intento de escribir en un socket cerrado (EPIPE).");
         } else {
-            console.error("❌ Error en el socket:", err);
+            console.error("❌ Error en el socket:", err.message);
         }
-
+    
+        // Decrementar el contador de conexiones activas
         activeTcpConnections = Math.max(activeTcpConnections - 1, 0);
-        socket.destroy();
+        console.log("📴 Conexión TCP cerrada por error. Activas:", activeTcpConnections);
+    
+        // Asegurarnos de que el socket se destruya correctamente
+        if (!socket.destroyed) {
+            socket.destroy();
+        }
     });
 });
 
@@ -575,6 +587,42 @@ app.post('/messages', async (req, res) => {
 });
 
 
+app.get("/obtener-ruta-inicial", (req, res) => {
+    if (messages.rutaseleccionada && messages.rutaseleccionada.length > 0) {
+        res.json({
+            ruta: messages.colorRutaSeleccionada,
+            locations: messages.rutaseleccionada
+        });
+    } else {
+        res.json({ ruta: null, locations: [] });
+    }
+});
+
+// Cache para almacenar las coordenadas geocodificadas
+const addressCache = new Map();
+
+// Función para geocodificar una dirección
+async function geocodeAddress(address) {
+    try {
+        const response = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
+            params: {
+                address: address,
+                key: process.env.api_key1 // Usar la clave existente
+            }
+        });
+
+        if (response.data.status === 'OK') {
+            const location = response.data.results[0].geometry.location;
+            return { lat: location.lat, lng: location.lng };
+        } else {
+            throw new Error('No se pudo geocodificar la dirección');
+        }
+    } catch (error) {
+        console.error(`❌ Error geocodificando ${address}:`, error.message);
+        return null;
+    }
+}
+
 // Actualizar ubicación del bus y verificar paradas completadas
 let primeraVez = true;
 
@@ -584,21 +632,59 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
         return res.status(400).json({ error: "Faltan datos: lat o lng" });
     }
 
+    // Insertar la ubicación en la base de datos
+    const fecha = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    db.query(
+        "INSERT INTO ubicaciones_bus (bus_id, lat, lng, fecha) VALUES (?, ?, ?, ?)",
+        ["bus", lat, lng, fecha],
+        (err) => {
+            if (err) console.error("❌ Error insertando ubicación en RDS:", err);
+            else console.log("✅ Ubicación insertada en RDS:");
+        }
+    );
+
     messages.bus = [{ id: "bus", direccion: { lat, lng }, tiempo: new Date().toISOString() }];
     if (messages.rutaseleccionada.length > 0) {
         messages.rutaseleccionada[0].direccion = `${lat},${lng}`;
     }
 
     const TOLERANCIA = 0.0005;
+
+    // Geocodificar las direcciones de las paradas (si no están en caché)
     for (let i = 1; i < messages.rutaseleccionada.length; i++) {
         const parada = messages.rutaseleccionada[i];
-        const paradaCoords = parada.direccion.split(",").map(Number);
-        if (parada.bus === 1 && Math.abs(paradaCoords[0] - lat) < TOLERANCIA && Math.abs(paradaCoords[1] - lng) < TOLERANCIA) {
+        let paradaCoords;
+
+        if (addressCache.has(parada.direccion)) {
+            paradaCoords = addressCache.get(parada.direccion);
+        } else {
+            if (parada.direccion.includes(',')) {
+                paradaCoords = parada.direccion.split(",").map(Number);
+                paradaCoords = { lat: paradaCoords[0], lng: paradaCoords[1] };
+            } else {
+                paradaCoords = await geocodeAddress(parada.direccion);
+                if (paradaCoords) {
+                    addressCache.set(parada.direccion, paradaCoords);
+                }
+            }
+        }
+
+        if (!paradaCoords) {
+            console.error(`❌ No se pudieron obtener coordenadas para ${parada.direccion}`);
+            continue;
+        }
+
+        if (parada.bus === 1 &&
+            Math.abs(paradaCoords.lat - lat) < TOLERANCIA &&
+            Math.abs(paradaCoords.lng - lng) < TOLERANCIA) {
             parada.bus = 0;
             db.query("UPDATE empleados SET bus = 0 WHERE direccion = ?", [parada.direccion], (err) => {
                 if (err) console.error("❌ Error actualizando estado bus:", err);
             });
             console.log(`✅ Pasajero en ${parada.direccion} bajó del bus`);
+
+            // Emitir evento al cliente para eliminar el marcador
+            io.emit('parada_completada', { paradaId: parada.id });
 
             const nombreParada = parada.nombre;
             const tcpPasajero = messages.tcp.find(msg => `${msg.nombre} ${msg.apellido}` === nombreParada);
