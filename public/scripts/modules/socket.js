@@ -1,7 +1,7 @@
 // scripts/modules/socket.js
 import CONFIG from '../config.js';
 import { agregarMarcador, geocodificarDireccion, dibujarRutaConductor, crearMarcadorCirculo, procesarRuta} from './map-markers.js';
-import { actualizarMarcadorBus, gestionarUbicacion } from './location.js';
+import { actualizarMarcadorBus, gestionarUbicacion, detenerUbicacion } from './location.js';
 import { solicitarReorganizacionRutas} from './api.js';
 
 // Inicializar socketInstance al inicio del módulo
@@ -234,23 +234,36 @@ async function actualizarRutaSeleccionada(socket) {
 }
 
 async function iniciarActualizacionRuta(socket) {
-    if (window.intervalID) clearInterval(window.intervalID);
-    
-    solicitarReorganizacionRutas();
-    actualizarRutaSeleccionada(socket); // Dibuja la primera vez
-
-    window.intervalID = setInterval(async () => {
-        await gestionarUbicacion(); // Solo envía la ubicación al servidor
-        // No redibujar localmente, dejar que WebSocket maneje el mapa
-    }, 10000);
-}
-
-function detenerActualizacionRuta() {
+    // Limpiar cualquier intervalo existente
     if (window.intervalID) {
         clearInterval(window.intervalID);
         window.intervalID = null;
-        console.log("🚫 Actualización de ruta detenida.");
     }
+
+    // Iniciar seguimiento continuo de ubicación
+    try {
+        console.log("📍 Iniciando seguimiento de ubicación...");
+        await gestionarUbicacion(); // Inicia watchPosition
+    } catch (error) {
+        console.error("❌ Error iniciando seguimiento de ubicación:", error);
+        return;
+    }
+    await solicitarReorganizacionRutas();
+    // Dibujar la ruta seleccionada inicial
+    await actualizarRutaSeleccionada(socket);
+}
+
+function detenerActualizacionRuta() {
+    // Detener intervalo de reorganización (si existe)
+    if (window.intervalID) {
+        clearInterval(window.intervalID);
+        window.intervalID = null;
+        console.log("🚫 Intervalo de reorganización detenido.");
+    }
+
+    // Detener seguimiento de ubicación
+    detenerUbicacion();
+    console.log("🚫 Actualización de ruta detenida.");
 }
 
 function mostrarMensajesTCP(mensajes) {
