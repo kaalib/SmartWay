@@ -45,8 +45,7 @@ section {
 }
 
 nav {
-    width: 90%;
-    max-width: 1200px;
+    width: 95%;
     margin: 0 auto;
     display: flex;
     align-items: center;
@@ -160,6 +159,7 @@ nav a:hover {
 .hero-content {
     flex: 1;
     max-width: 600px;
+    text-align: center;
 }
 
 .hero h1 {
@@ -182,7 +182,7 @@ nav a:hover {
 }
 
 .hero-image img {
-    max-width: 100%;
+    max-width: 90%;
     border-radius: 10px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
@@ -192,6 +192,7 @@ nav a:hover {
     display: flex;
     gap: 15px;
     margin-top: 2rem;
+    justify-content: center;
 }
 
 .btn {

@@ -1,6 +1,8 @@
 // scripts/modules/location.js
 import CONFIG from '../config.js';
 
+let watchId = null; // Almacena el ID de watchPosition
+
 async function gestionarUbicacion(primeraVezOverride = null) {
     return new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
@@ -12,10 +14,29 @@ async function gestionarUbicacion(primeraVezOverride = null) {
             return reject("Geolocalización no disponible");
         }
 
-        navigator.geolocation.getCurrentPosition(
+        // Detener cualquier watchPosition existente
+        if (watchId !== null) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+        }
+
+        // Iniciar watchPosition
+        watchId = navigator.geolocation.watchPosition(
             async (position) => {
                 const { latitude, longitude } = position.coords;
-                window.ultimaUbicacionBus = { lat: latitude, lng: longitude };
+                const ubicacion = { lat: latitude, lng: longitude };
+
+                // Evitar enviar la misma ubicación
+                if (window.ultimaUbicacionBus &&
+                    ubicacion.lat === window.ultimaUbicacionBus.lat &&
+                    ubicacion.lng === window.ultimaUbicacionBus.lng) {
+                    console.log("🔄 Ubicación sin cambios:", ubicacion);
+                    resolve();
+                    return;
+                }
+
+                window.ultimaUbicacionBus = ubicacion;
+                console.log("📍 Nueva ubicación detectada:", ubicacion);
 
                 try {
                     const isPrimeraVez = primeraVezOverride !== null ? primeraVezOverride : window.primeraVez;
@@ -25,7 +46,7 @@ async function gestionarUbicacion(primeraVezOverride = null) {
                         direccion: isPrimeraVez ? { lat: latitude, lng: longitude } : null,
                         ultimaParada: isPrimeraVez ? window.ultimaParada : null
                     };
-                    console.log("📍 Enviando a /actualizar-ubicacion-bus:", payload);
+                    console.log("📡 Enviando a /actualizar-ubicacion-bus:", payload);
 
                     const response = await fetch(`${CONFIG.SERVER_URL}/actualizar-ubicacion-bus`, {
                         method: 'POST',
@@ -35,6 +56,7 @@ async function gestionarUbicacion(primeraVezOverride = null) {
 
                     if (!response.ok) throw new Error(`Error: ${response.status}`);
                     if (isPrimeraVez) window.primeraVez = false;
+                    console.log("✅ Ubicación enviada al servidor");
                     resolve();
                 } catch (error) {
                     console.error("❌ Error enviando ubicación:", error);
@@ -51,9 +73,22 @@ async function gestionarUbicacion(primeraVezOverride = null) {
                     });
                 }
                 reject(error);
+            },
+            {
+                enableHighAccuracy: true, // Alta precisión para el conductor
+                timeout: 5000, // 5 segundos máximo por intento
+                maximumAge: 0 // No usar caché
             }
         );
     });
+}
+
+async function detenerUbicacion() {
+    if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+        console.log("🛑 Seguimiento de ubicación detenido");
+    }
 }
 
 async function actualizarMarcadorBus(ubicacion) {
@@ -92,4 +127,4 @@ async function actualizarMarcadorBus(ubicacion) {
     console.log("✅ Marcador del bus actualizado:", ubicacion);
 }
 
-export { gestionarUbicacion, actualizarMarcadorBus };
+export { gestionarUbicacion, detenerUbicacion, actualizarMarcadorBus };

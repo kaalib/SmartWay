@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartWay - Soluciones Inteligentes de Transporte</title>
-    <link rel="icon" type="image/png" href="media/favicon.png">
+    <link rel="icon" type="image/svg+xml" href="media/favicon.svg">
+    <link rel="stylesheet" href="styles/sweetalert-custom.css">
     <link rel="stylesheet" href="styles/index.css">
     <link rel="stylesheet" href="styles/sidebar.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="manifest" href="../manifest.json">
 </head>
 <body>
     <!-- Barra de navegación -->
@@ -281,7 +283,17 @@
             <p>&copy; 2025 SmartWay. Todos los derechos reservados.</p>
         </div>
     </footer>
-
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="scripts/index.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Service Worker registrado:', reg))
+                    .catch(err => console.error('Error registrando Service Worker:', err));
+            });
+        }
+    </script>
 </body>
 </html>
