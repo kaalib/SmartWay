@@ -13,3 +13,15 @@ scripts/env.js
 # Ignorar archivos del sistema
 .DS_Store
 Thumbs.db
+
+#ubuntu
+.env.save
+.env.save.1
+gunicorn.log
+messages.json
+mi_env/
+public/scripts/__pycache__/
+
+
+
+
