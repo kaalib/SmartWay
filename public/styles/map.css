@@ -116,7 +116,7 @@ nav {
     display: flex;
     width: 100%;
     max-width: 1600px; /* Aumentado para pantallas grandes */
-    height: calc(100% - 70px);
+    height: 100%;
     gap: 15px;
 }
 
