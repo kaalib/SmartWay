@@ -27,6 +27,8 @@ const urlsToCache = [
     '/styles/seguridad.css',
     '/styles/sidebar.css',
     '/styles/sweetalert-custom.css',
+    '/media/eye-open.svg',
+    '/media/eye-closed.svg',
     '/media/favicon.svg',
     '/media/iconobus.svg',
     '/media/technology.png',

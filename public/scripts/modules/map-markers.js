@@ -1,7 +1,10 @@
 // scripts/modules/map-markers.js
+let paradaMarcadores = new Map(); // Almacenar marcadores de paradas por ID
+
 async function actualizarMapa(rutasIA) {
     if (!rutasIA) return;
 
+    // No eliminar los marcadores de paradas aquí, solo los marcadores temporales
     window.marcadores.forEach(marcador => marcador.map = null);
     window.marcadores = [];
     window.rutasDibujadas.forEach(ruta => ruta.setMap(null));
@@ -14,7 +17,6 @@ async function actualizarMapa(rutasIA) {
         const color = window.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
         await procesarRuta(ruta, color, bounds);
     } else {
-        // Dibujar ambas rutas al inicio
         await Promise.all([
             procesarRuta(rutasIA.mejor_ruta_distancia, '#00CC66', bounds),
             procesarRuta(rutasIA.mejor_ruta_trafico, '#FF9900', bounds)
@@ -31,10 +33,9 @@ async function procesarRuta(direcciones, color, bounds) {
 
     const locations = await Promise.all(direcciones.map(async (direccion) => {
         const location = await geocodificarDireccion(direccion);
-        return location; // Devuelve LatLng o null
+        return location;
     }));
 
-    // Usar nombres de las paradas si están disponibles, sino fallback
     locations.filter(loc => loc).forEach((location, index) => {
         const nombre = direcciones[index].nombre || `Parada ${index + 1}`;
         agregarMarcador(location, nombre, bounds, index + 1);
@@ -47,12 +48,10 @@ async function procesarRuta(direcciones, color, bounds) {
     return null;
 }
 
-// Ajustar geocodificarDireccion para manejar strings de coordenadas
 function geocodificarDireccion(direccion) {
     return new Promise((resolve) => {
         if (!direccion) return resolve(null);
 
-        // Si es un string con coordenadas (ej. "10.9903872,-74.7896832")
         if (typeof direccion === "string" && direccion.includes(",")) {
             const [lat, lng] = direccion.split(",").map(Number);
             if (!isNaN(lat) && !isNaN(lng)) {
@@ -61,7 +60,6 @@ function geocodificarDireccion(direccion) {
             }
         }
 
-        // Si es una dirección de texto, geocodificarla
         window.geocoder.geocode({ address: direccion }, (results, status) => {
             if (status === "OK" && results[0]) {
                 resolve(results[0].geometry.location);
@@ -99,8 +97,8 @@ function dibujarRutaConductor(locations, color) {
     });
 
     directionsService.route({
-        origin: locations[0], // Ya es LatLng
-        destination: locations[locations.length - 1], // Ya es LatLng
+        origin: locations[0],
+        destination: locations[locations.length - 1],
         waypoints: locations.slice(1, -1).map(loc => ({ location: loc, stopover: true })),
         travelMode: google.maps.TravelMode.DRIVING
     }, (result, status) => {
@@ -126,6 +124,31 @@ function agregarMarcador(location, title, bounds, label) {
     bounds.extend(location);
 }
 
+function agregarMarcadorParada(item, index, bounds) {
+    const direccionNormalizada = item.direccionNormalizada; // Esto se pasará desde actualizarMapaConRutaSeleccionada
+    if (!direccionNormalizada) return;
+
+    const marcador = new google.maps.marker.AdvancedMarkerElement({
+        position: direccionNormalizada,
+        map: window.map,
+        title: item.nombre || `Parada ${index}`,
+        content: crearMarcadorCirculo(index.toString())
+    });
+
+    paradaMarcadores.set(item.id, marcador);
+    bounds.extend(direccionNormalizada);
+    console.log(`🖌️ Marcador de parada ${item.id} añadido: ${item.nombre}`);
+}
+
+function eliminarMarcadorParada(paradaId) {
+    const marcador = paradaMarcadores.get(paradaId);
+    if (marcador) {
+        marcador.map = null; // Eliminar del mapa
+        paradaMarcadores.delete(paradaId);
+        console.log(`🗑️ Marcador de parada ${paradaId} eliminado`);
+    }
+}
+
 function crearMarcadorCirculo(label) {
     const div = document.createElement("div");
     div.style.width = "24px";
@@ -142,4 +165,13 @@ function crearMarcadorCirculo(label) {
     return div;
 }
 
-export { actualizarMapa, procesarRuta, geocodificarDireccion, agregarMarcador, dibujarRutaConductor, crearMarcadorCirculo };
+function limpiarMarcadoresParadas() {
+    paradaMarcadores.forEach(marcador => {
+        marcador.map = null;
+    });
+    paradaMarcadores.clear();
+    console.log("🗑️ Todos los marcadores de paradas limpiados");
+}
+
+
+export { actualizarMapa, procesarRuta, geocodificarDireccion, agregarMarcador, dibujarRutaConductor, crearMarcadorCirculo, agregarMarcadorParada, eliminarMarcadorParada, limpiarMarcadoresParadas };

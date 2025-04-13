@@ -1,7 +1,46 @@
-// scripts/modules/location.js
+// /public/scripts/modules/location.js
 import CONFIG from '../config.js';
 
-let watchId = null; // Almacena el ID de watchPosition
+let watchId = null;
+
+async function requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission !== 'granted') {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            console.warn("⚠️ Permiso de notificaciones denegado");
+            return false;
+        }
+    }
+    return true;
+}
+
+// Mostrar una notificación persistente para mantener la app activa
+async function showTrackingNotification() {
+    if ('Notification' in window && 'serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        registration.showNotification('Rastreo de ubicación activo', {
+            body: 'SmartWay está rastreando tu ubicación en tiempo real.',
+            icon: '/media/favicon.svg', // Ajustado para la ruta relativa
+            tag: 'location-tracking', // Evita duplicados
+            renotify: false, // No vibrar/notificar si ya existe
+            ongoing: true // Mantiene la notificación visible (en Android)
+        });
+        console.log("📢 Notificación de rastreo mostrada");
+    } else {
+        console.warn("⚠️ Notificaciones o Service Worker no soportados");
+    }
+}
+
+// Cerrar la notificación cuando se detenga el rastreo
+async function closeTrackingNotification() {
+    if ('Notification' in window && 'serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        registration.getNotifications({ tag: 'location-tracking' }).then(notifications => {
+            notifications.forEach(notification => notification.close());
+            console.log("🔔 Notificación de rastreo cerrada");
+        });
+    }
+}
 
 async function gestionarUbicacion(primeraVezOverride = null) {
     return new Promise((resolve, reject) => {
@@ -14,19 +53,18 @@ async function gestionarUbicacion(primeraVezOverride = null) {
             return reject("Geolocalización no disponible");
         }
 
-        // Detener cualquier watchPosition existente
         if (watchId !== null) {
             navigator.geolocation.clearWatch(watchId);
             watchId = null;
         }
 
-        // Iniciar watchPosition
         watchId = navigator.geolocation.watchPosition(
             async (position) => {
-                const { latitude, longitude } = position.coords;
+                let { latitude, longitude } = position.coords;
+                latitude = Number(latitude.toFixed(5));
+                longitude = Number(longitude.toFixed(5));
                 const ubicacion = { lat: latitude, lng: longitude };
 
-                // Evitar enviar la misma ubicación
                 if (window.ultimaUbicacionBus &&
                     ubicacion.lat === window.ultimaUbicacionBus.lat &&
                     ubicacion.lng === window.ultimaUbicacionBus.lng) {
@@ -55,8 +93,13 @@ async function gestionarUbicacion(primeraVezOverride = null) {
                     });
 
                     if (!response.ok) throw new Error(`Error: ${response.status}`);
+
                     if (isPrimeraVez) window.primeraVez = false;
                     console.log("✅ Ubicación enviada al servidor");
+
+                    // Mostrar la notificación persistente
+                    await showTrackingNotification();
+
                     resolve();
                 } catch (error) {
                     console.error("❌ Error enviando ubicación:", error);
@@ -75,9 +118,9 @@ async function gestionarUbicacion(primeraVezOverride = null) {
                 reject(error);
             },
             {
-                enableHighAccuracy: true, // Alta precisión para el conductor
-                timeout: 5000, // 5 segundos máximo por intento
-                maximumAge: 0 // No usar caché
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 0
             }
         );
     });
@@ -88,6 +131,9 @@ async function detenerUbicacion() {
         navigator.geolocation.clearWatch(watchId);
         watchId = null;
         console.log("🛑 Seguimiento de ubicación detenido");
+
+        // Cerrar la notificación
+        await closeTrackingNotification();
     }
 }
 
@@ -113,7 +159,7 @@ async function actualizarMarcadorBus(ubicacion) {
     svgIcon.onerror = () => console.error("❌ Error cargando iconobus.svg");
 
     if (window.marcadorBus) {
-        window.marcadorBus.position = ubicacion; // Ya es LatLng
+        window.marcadorBus.position = ubicacion;
     } else {
         window.marcadorBus = new google.maps.marker.AdvancedMarkerElement({
             position: ubicacion,
