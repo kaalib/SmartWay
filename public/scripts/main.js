@@ -20,7 +20,8 @@ window.ultimaUbicacionBus = null;
 window.intervalID = null;
 window.primeraVez = true;
 window.ultimaParada = null;
-window.primeraActualizacionMapa = true; 
+window.primeraActualizacionMapa = true;
+window.paradaMarcadores = {}; // Añadimos paradaMarcadores como variable global
 
 async function inicializarAplicacion() {
     console.log("🚀 Inicializando aplicación SmartWay...");
@@ -34,8 +35,8 @@ async function inicializarAplicacion() {
     }
 
     try {
-        await loadGoogleMapsApi(); // Espera a que la API se cargue
-        initMap(); // Luego inicializa el mapa
+        await loadGoogleMapsApi();
+        initMap();
     } catch (error) {
         console.error("⚠️ Error cargando o inicializando Google Maps:", error);
         window.map = null;
@@ -50,9 +51,8 @@ async function inicializarAplicacion() {
         console.error("⚠️ Error configurando eventos de UI:", error);
     }
 
-    // Mostrar texto por defecto para mensajes TCP al inicio
     try {
-        mostrarMensajesTCP([]); // Array vacío para mostrar "No hay pasajeros..."
+        mostrarMensajesTCP([]);
         console.log("✅ Mensajes TCP inicializados con texto por defecto.");
     } catch (error) {
         console.error("⚠️ Error mostrando mensajes TCP iniciales:", error);
