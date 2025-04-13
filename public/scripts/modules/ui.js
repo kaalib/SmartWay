@@ -209,10 +209,11 @@ function setupUIEvents() {
             // Reintentar obtener /messages hasta que rutasIA esté disponible
             let data;
             let intentos = 0;
-            const maxIntentos = 10; // Máximo 10 intentos (10 segundos)
+            const maxIntentos = 20; // Aumentamos a 20 intentos (20 segundos)
             while (intentos < maxIntentos) {
                 const response = await fetch("/messages");
                 data = await response.json();
+                console.log("📡 Respuesta de /messages (intento", intentos + 1, "):", data); // Depuración
                 if (data.rutasIA && data.rutasIA.mejor_ruta_distancia && data.rutasIA.mejor_ruta_trafico) {
                     console.log("✅ rutasIA obtenido después de", intentos + 1, "intentos");
                     break;
