@@ -1,38 +1,38 @@
-// /public/sw.js
+// /sw-cloud.js
 const CACHE_NAME = 'smartway-app-v2';
 const urlsToCache = [
-    '/public/index.html',
-    '/public/map.html',
-    '/public/login.html',
-    '/public/historial.html',
-    '/public/scripts/index.js',
-    '/public/scripts/login.js',
-    '/public/scripts/main.js',
-    '/public/scripts/map-layout.js',
-    '/public/scripts/modules/api.js',
-    '/public/scripts/modules/auth.js',
-    '/public/scripts/modules/location.js',
-    '/public/scripts/modules/map-init.js',
-    '/public/scripts/modules/map-markers.js',
-    '/public/scripts/modules/navigation.js',
-    '/public/scripts/modules/sidebar.js',
-    '/public/scripts/modules/socket.js',
-    '/public/scripts/modules/ui.js',
-    '/public/scripts/config.js',
-    '/public/styles/comun.css',
-    '/public/styles/historial.css',
-    '/public/styles/index.css',
-    '/public/styles/login.css',
-    '/public/styles/map.css',
-    '/public/styles/seguridad.css',
-    '/public/styles/sidebar.css',
-    '/public/styles/sweetalert-custom.css',
-    '/public/media/favicon.svg',
-    '/public/media/iconobus.svg',
-    '/public/media/technology.png',
-    '/public/media/benefits.png',
-    '/public/media/carlos.png',
-    '/public/media/samy.png'
+    '/index.html',
+    '/map.html',
+    '/login.html',
+    '/historial.html',
+    '/scripts/index.js',
+    '/scripts/login.js',
+    '/scripts/main.js',
+    '/scripts/map-layout.js',
+    '/scripts/modules/api.js',
+    '/scripts/modules/auth.js',
+    '/scripts/modules/location.js',
+    '/scripts/modules/map-init.js',
+    '/scripts/modules/map-markers.js',
+    '/scripts/modules/navigation.js',
+    '/scripts/modules/sidebar.js',
+    '/scripts/modules/socket.js',
+    '/scripts/modules/ui.js',
+    '/scripts/config.js',
+    '/styles/comun.css',
+    '/styles/historial.css',
+    '/styles/index.css',
+    '/styles/login.css',
+    '/styles/map.css',
+    '/styles/seguridad.css',
+    '/styles/sidebar.css',
+    '/styles/sweetalert-custom.css',
+    '/media/favicon.svg',
+    '/media/iconobus.svg',
+    '/media/technology.png',
+    '/media/benefits.png',
+    '/media/carlos.png',
+    '/media/samy.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -92,7 +92,7 @@ self.addEventListener('fetch', (event) => {
                         });
                     });
                 });
-                return caches.match('/public/index.html');
+                return caches.match('/index.html');
             });
         })
     );

@@ -1,0 +1,31 @@
+{
+    "name": "SmartWay",
+    "short_name": "SmartWay",
+    "start_url": "/index.html",
+    "display": "standalone",
+    "background_color": "#f8f9fa",
+    "theme_color": "#0059FF",
+    "icons": [
+        {
+            "src": "/media/favicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        }     
+    ],
+    "screenshots": [
+        {
+            "src": "/media/screenshot-desktop.png",
+            "sizes": "1850x878",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "SmartWay en escritorio"
+        },
+        {
+            "src": "/media/screenshot-mobile.png",
+            "sizes": "494x737",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "SmartWay en móvil"
+        }
+    ]
+}
