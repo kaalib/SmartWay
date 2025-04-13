@@ -17,15 +17,20 @@ async function requestNotificationPermission() {
 // Mostrar una notificación persistente para mantener la app activa
 async function showTrackingNotification() {
     if ('Notification' in window && 'serviceWorker' in navigator) {
-        const registration = await navigator.serviceWorker.ready;
-        registration.showNotification('Rastreo de ubicación activo', {
-            body: 'SmartWay está rastreando tu ubicación en tiempo real.',
-            icon: '/media/favicon.svg', // Ajustado para la ruta relativa
-            tag: 'location-tracking', // Evita duplicados
-            renotify: false, // No vibrar/notificar si ya existe
-            ongoing: true // Mantiene la notificación visible (en Android)
-        });
-        console.log("📢 Notificación de rastreo mostrada");
+        const hasPermission = await requestNotificationPermission();
+        if (hasPermission) {
+            const registration = await navigator.serviceWorker.ready;
+            registration.showNotification('Rastreo de ubicación activo', {
+                body: 'SmartWay está rastreando tu ubicación en tiempo real.',
+                icon: '/media/favicon.svg',
+                tag: 'location-tracking',
+                renotify: false,
+                ongoing: true
+            });
+            console.log("📢 Notificación de rastreo mostrada");
+        } else {
+            console.warn("⚠️ Permisos de notificación no otorgados");
+        }
     } else {
         console.warn("⚠️ Notificaciones o Service Worker no soportados");
     }
@@ -61,8 +66,8 @@ async function gestionarUbicacion(primeraVezOverride = null) {
         watchId = navigator.geolocation.watchPosition(
             async (position) => {
                 let { latitude, longitude } = position.coords;
-                latitude = Number(latitude.toFixed(5));
-                longitude = Number(longitude.toFixed(5));
+                latitude = Number(latitude.toFixed(6));
+                longitude = Number(longitude.toFixed(6));
                 const ubicacion = { lat: latitude, lng: longitude };
 
                 if (window.ultimaUbicacionBus &&
