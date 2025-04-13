@@ -4,23 +4,47 @@ import CONFIG from '../config.js';
 let watchId = null;
 
 async function requestNotificationPermission() {
-    if ('Notification' in window && Notification.permission !== 'granted') {
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') {
-            console.warn("⚠️ Permiso de notificaciones denegado");
+    if ('Notification' in window) {
+        console.log("🔔 Solicitando permisos de notificación...");
+        if (Notification.permission === 'granted') {
+            console.log("✅ Permisos ya otorgados");
+            return true;
+        }
+        if (Notification.permission !== 'denied') {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                console.log("✅ Permisos otorgados por el usuario");
+                return true;
+            } else {
+                console.warn("⚠️ Permiso de notificaciones denegado por el usuario");
+                return false;
+            }
+        } else {
+            console.warn("⚠️ Permisos de notificación previamente denegados");
             return false;
         }
+    } else {
+        console.warn("⚠️ Notificaciones no soportadas en este navegador");
+        return false;
     }
-    return true;
 }
 
-// Mostrar una notificación persistente para mantener la app activa
 async function showTrackingNotification() {
     if ('Notification' in window && 'serviceWorker' in navigator) {
-        const hasPermission = await requestNotificationPermission();
-        if (hasPermission) {
+        try {
+            const hasPermission = await requestNotificationPermission();
+            if (!hasPermission) {
+                console.warn("⚠️ No se pueden mostrar notificaciones sin permisos");
+                return;
+            }
+
             const registration = await navigator.serviceWorker.ready;
-            registration.showNotification('Rastreo de ubicación activo', {
+            if (!registration) {
+                console.warn("⚠️ ServiceWorker no está listo");
+                return;
+            }
+
+            await registration.showNotification('Rastreo de ubicación activo', {
                 body: 'SmartWay está rastreando tu ubicación en tiempo real.',
                 icon: '/media/favicon.svg',
                 tag: 'location-tracking',
@@ -28,22 +52,24 @@ async function showTrackingNotification() {
                 ongoing: true
             });
             console.log("📢 Notificación de rastreo mostrada");
-        } else {
-            console.warn("⚠️ Permisos de notificación no otorgados");
+        } catch (error) {
+            console.error("❌ Error al mostrar notificación:", error.message);
         }
     } else {
         console.warn("⚠️ Notificaciones o Service Worker no soportados");
     }
 }
 
-// Cerrar la notificación cuando se detenga el rastreo
 async function closeTrackingNotification() {
     if ('Notification' in window && 'serviceWorker' in navigator) {
-        const registration = await navigator.serviceWorker.ready;
-        registration.getNotifications({ tag: 'location-tracking' }).then(notifications => {
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            const notifications = await registration.getNotifications({ tag: 'location-tracking' });
             notifications.forEach(notification => notification.close());
             console.log("🔔 Notificación de rastreo cerrada");
-        });
+        } catch (error) {
+            console.error("❌ Error al cerrar notificación:", error.message);
+        }
     }
 }
 

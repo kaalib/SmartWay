@@ -1,8 +1,9 @@
 // scripts/modules/map-markers.js
-let paradaMarcadores = new Map(); // Almacenar marcadores de paradas por ID
-
 async function actualizarMapa(rutasIA) {
-    if (!rutasIA) return;
+    if (!rutasIA) {
+        console.warn("⚠️ rutasIA no proporcionado");
+        return;
+    }
 
     // No eliminar los marcadores de paradas aquí, solo los marcadores temporales
     window.marcadores.forEach(marcador => marcador.map = null);
@@ -15,56 +16,104 @@ async function actualizarMapa(rutasIA) {
     if (window.rutaSeleccionada) {
         const ruta = rutasIA[window.rutaSeleccionada];
         const color = window.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
-        await procesarRuta(ruta, color, bounds);
+        const result = await procesarRuta(ruta, color, bounds);
+        if (result?.renderer) {
+            console.log("✅ Ruta seleccionada añadida a window.rutasDibujadas:", result.renderer);
+        } else {
+            console.warn("⚠️ No se pudo procesar la ruta seleccionada:", ruta);
+        }
     } else {
-        await Promise.all([
-            procesarRuta(rutasIA.mejor_ruta_distancia, '#00CC66', bounds),
-            procesarRuta(rutasIA.mejor_ruta_trafico, '#FF9900', bounds)
-        ]);
+        const promesas = [];
+        if (rutasIA.mejor_ruta_distancia) {
+            promesas.push(procesarRuta(rutasIA.mejor_ruta_distancia, '#00CC66', bounds));
+        } else {
+            console.warn("⚠️ mejor_ruta_distancia no disponible:", rutasIA.mejor_ruta_distancia);
+        }
+        if (rutasIA.mejor_ruta_trafico) {
+            promesas.push(procesarRuta(rutasIA.mejor_ruta_trafico, '#FF9900', bounds));
+        } else {
+            console.warn("⚠️ mejor_ruta_trafico no disponible:", rutasIA.mejor_ruta_trafico);
+        }
+        const resultados = await Promise.all(promesas);
+        resultados.forEach((result, index) => {
+            if (result?.renderer) {
+                console.log(`✅ Ruta ${index === 0 ? "distancia" : "tráfico"} añadida a window.rutasDibujadas:`, result.renderer);
+            } else {
+                console.warn(`⚠️ No se pudo procesar la ruta ${index === 0 ? "distancia" : "tráfico"}`);
+            }
+        });
     }
 
     if (!bounds.isEmpty()) {
         window.map.fitBounds(bounds);
+        console.log("🗺️ Mapa ajustado a los límites:", bounds.toJSON());
+    } else {
+        console.warn("⚠️ Bounds vacíos, no se pudo ajustar el mapa");
     }
+
+    console.log("📋 Estado final de window.rutasDibujadas:", window.rutasDibujadas);
 }
 
 async function procesarRuta(direcciones, color, bounds) {
-    if (!direcciones || direcciones.length === 0) return;
+    if (!direcciones || direcciones.length === 0) {
+        console.warn("⚠️ Direcciones no proporcionadas o vacías:", direcciones);
+        return null;
+    }
 
-    const locations = await Promise.all(direcciones.map(async (direccion) => {
-        const location = await geocodificarDireccion(direccion);
+    console.log("🖌️ Procesando ruta con direcciones:", direcciones, "y color:", color);
+    const locations = await Promise.all(direcciones.map(async (direccion, index) => {
+        const dir = typeof direccion === "object" && direccion.direccion ? direccion.direccion : direccion;
+        const location = await geocodificarDireccion(dir);
+        console.log(`📍 Geocodificado (${index}): ${dir} ->`, location?.toJSON());
         return location;
     }));
 
-    locations.filter(loc => loc).forEach((location, index) => {
-        const nombre = direcciones[index].nombre || `Parada ${index + 1}`;
+    const locationsFiltradas = locations.filter(loc => loc);
+    console.log("📍 Ubicaciones filtradas:", locationsFiltradas.map(loc => loc?.toJSON()));
+
+    if (locationsFiltradas.length < 2) {
+        console.warn("⚠️ No hay suficientes ubicaciones válidas para dibujar la ruta:", locationsFiltradas);
+        return null;
+    }
+
+    locationsFiltradas.forEach((location, index) => {
+        const nombre = typeof direcciones[index] === "object" ? (direcciones[index].nombre || `Parada ${index + 1}`) : `Parada ${index + 1}`;
         agregarMarcador(location, nombre, bounds, index + 1);
     });
 
-    if (locations.length > 1) {
-        const renderer = dibujarRutaConductor(locations.filter(loc => loc), color);
-        return { locations: locations.filter(loc => loc), renderer };
+    const renderer = dibujarRutaConductor(locationsFiltradas, color);
+    if (renderer) {
+        console.log("✅ Renderer creado para la ruta:", renderer);
+        return { locations: locationsFiltradas, renderer };
+    } else {
+        console.warn("⚠️ No se pudo crear el renderer para la ruta");
+        return null;
     }
-    return null;
 }
 
 function geocodificarDireccion(direccion) {
     return new Promise((resolve) => {
-        if (!direccion) return resolve(null);
+        if (!direccion) {
+            console.warn("⚠️ Dirección no proporcionada");
+            return resolve(null);
+        }
 
         if (typeof direccion === "string" && direccion.includes(",")) {
             const [lat, lng] = direccion.split(",").map(Number);
             if (!isNaN(lat) && !isNaN(lng)) {
-                resolve(new google.maps.LatLng(lat, lng));
-                return;
+                const location = new google.maps.LatLng(lat, lng);
+                console.log(`📍 Coordenadas parseadas: ${direccion} ->`, location.toJSON());
+                return resolve(location);
             }
         }
 
         window.geocoder.geocode({ address: direccion }, (results, status) => {
             if (status === "OK" && results[0]) {
-                resolve(results[0].geometry.location);
+                const location = results[0].geometry.location;
+                console.log(`📍 Geocodificado con éxito: ${direccion} ->`, location.toJSON());
+                resolve(location);
             } else {
-                console.warn(`⚠️ No se pudo geocodificar: ${direccion}`);
+                console.warn(`⚠️ No se pudo geocodificar: ${direccion}, status: ${status}`);
                 resolve(null);
             }
         });
@@ -72,8 +121,12 @@ function geocodificarDireccion(direccion) {
 }
 
 function dibujarRutaConductor(locations, color) {
-    if (locations.length < 2) return null;
+    if (locations.length < 2) {
+        console.warn("⚠️ No hay suficientes ubicaciones para dibujar la ruta:", locations);
+        return null;
+    }
 
+    console.log("🖌️ Dibujando ruta con ubicaciones:", locations.map(loc => loc.toJSON()), "y color:", color);
     const directionsService = new google.maps.DirectionsService();
     const directionsRenderer = new google.maps.DirectionsRenderer({
         map: window.map,
@@ -96,17 +149,21 @@ function dibujarRutaConductor(locations, color) {
         }
     });
 
+    const waypoints = locations.slice(1, -1).map(loc => ({ location: loc, stopover: true }));
+    console.log("📍 Waypoints:", waypoints);
+
     directionsService.route({
         origin: locations[0],
         destination: locations[locations.length - 1],
-        waypoints: locations.slice(1, -1).map(loc => ({ location: loc, stopover: true })),
+        waypoints: waypoints,
         travelMode: google.maps.TravelMode.DRIVING
     }, (result, status) => {
         if (status === google.maps.DirectionsStatus.OK) {
             directionsRenderer.setDirections(result);
             window.rutasDibujadas.push(directionsRenderer);
+            console.log("✅ Ruta dibujada con éxito, añadida a window.rutasDibujadas:", directionsRenderer);
         } else {
-            console.error("❌ Error al calcular ruta:", status);
+            console.error("❌ Error al calcular ruta, status:", status);
         }
     });
 
@@ -122,11 +179,15 @@ function agregarMarcador(location, title, bounds, label) {
     });
     window.marcadores.push(marcador);
     bounds.extend(location);
+    console.log(`🖌️ Marcador añadido: ${title} en`, location.toJSON());
 }
 
 function agregarMarcadorParada(item, index, bounds) {
-    const direccionNormalizada = item.direccionNormalizada; // Esto se pasará desde actualizarMapaConRutaSeleccionada
-    if (!direccionNormalizada) return;
+    const direccionNormalizada = item.direccionNormalizada;
+    if (!direccionNormalizada) {
+        console.warn(`⚠️ No se pudo añadir marcador de parada ${item.id}: dirección normalizada no disponible`);
+        return;
+    }
 
     const marcador = new google.maps.marker.AdvancedMarkerElement({
         position: direccionNormalizada,
@@ -135,17 +196,19 @@ function agregarMarcadorParada(item, index, bounds) {
         content: crearMarcadorCirculo(index.toString())
     });
 
-    paradaMarcadores.set(item.id, marcador);
+    window.paradaMarcadores[item.id] = marcador; // Usamos window.paradaMarcadores
     bounds.extend(direccionNormalizada);
     console.log(`🖌️ Marcador de parada ${item.id} añadido: ${item.nombre}`);
 }
 
 function eliminarMarcadorParada(paradaId) {
-    const marcador = paradaMarcadores.get(paradaId);
+    const marcador = window.paradaMarcadores[paradaId];
     if (marcador) {
         marcador.map = null; // Eliminar del mapa
-        paradaMarcadores.delete(paradaId);
+        delete window.paradaMarcadores[paradaId]; // Usamos delete porque window.paradaMarcadores es un objeto
         console.log(`🗑️ Marcador de parada ${paradaId} eliminado`);
+    } else {
+        console.warn(`⚠️ No se encontró marcador para la parada ${paradaId}`);
     }
 }
 
@@ -166,12 +229,11 @@ function crearMarcadorCirculo(label) {
 }
 
 function limpiarMarcadoresParadas() {
-    paradaMarcadores.forEach(marcador => {
+    Object.values(window.paradaMarcadores).forEach(marcador => {
         marcador.map = null;
     });
-    paradaMarcadores.clear();
+    window.paradaMarcadores = {}; // Reemplazamos el objeto para limpiarlo
     console.log("🗑️ Todos los marcadores de paradas limpiados");
 }
-
 
 export { actualizarMapa, procesarRuta, geocodificarDireccion, agregarMarcador, dibujarRutaConductor, crearMarcadorCirculo, agregarMarcadorParada, eliminarMarcadorParada, limpiarMarcadoresParadas };
