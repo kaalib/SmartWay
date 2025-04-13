@@ -587,6 +587,17 @@ app.post('/messages', async (req, res) => {
 });
 
 
+app.get("/obtener-ruta-inicial", (req, res) => {
+    if (messages.rutaseleccionada && messages.rutaseleccionada.length > 0) {
+        res.json({
+            ruta: messages.colorRutaSeleccionada,
+            locations: messages.rutaseleccionada
+        });
+    } else {
+        res.json({ ruta: null, locations: [] });
+    }
+});
+
 // Cache para almacenar las coordenadas geocodificadas
 const addressCache = new Map();
 
