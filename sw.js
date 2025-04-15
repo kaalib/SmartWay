@@ -1,24 +1,10 @@
 // /public/sw.js
-const CACHE_NAME = 'smartway-app-v2';
+const CACHE_NAME = 'smartway-app-v3';
 const urlsToCache = [
     '/public/index.html',
     '/public/map.html',
     '/public/login.html',
     '/public/historial.html',
-    '/public/scripts/index.js',
-    '/public/scripts/login.js',
-    '/public/scripts/main.js',
-    '/public/scripts/map-layout.js',
-    '/public/scripts/modules/api.js',
-    '/public/scripts/modules/auth.js',
-    '/public/scripts/modules/location.js',
-    '/public/scripts/modules/map-init.js',
-    '/public/scripts/modules/map-markers.js',
-    '/public/scripts/modules/navigation.js',
-    '/public/scripts/modules/sidebar.js',
-    '/public/scripts/modules/socket.js',
-    '/public/scripts/modules/ui.js',
-    '/public/scripts/config.js',
     '/public/styles/comun.css',
     '/public/styles/historial.css',
     '/public/styles/index.css',

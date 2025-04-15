@@ -161,7 +161,7 @@ function emitirActualizacionRutas() {
         console.log("⚠️ No hay rutasIA para emitir.");
         return;
     }
-    io.emit("actualizar_rutas", { rutasIA: messages.rutasIA });
+    io.emit("optimizar_rutas", { rutasIA: messages.rutasIA });
     console.log("📡 Emitiendo rutas a todos los clientes WebSocket:", messages.rutasIA);
 }
 
@@ -733,13 +733,13 @@ app.post("/actualizar-ubicacion-bus", async (req, res) => {
             } else {
                 console.error("❌ Error en Flask:", flaskData.message);
                 messages.rutasIA = {};
-                io.emit("actualizar_rutas", { rutasIA: {} });
+                io.emit("optimizar_rutas", { rutasIA: {} });
                 return res.status(500).json({ error: "Error procesando rutas en Flask" });
             }
         } catch (error) {
             console.error("❌ Error enviando a Flask:", error);
             messages.rutasIA = {};
-            io.emit("actualizar_rutas", { rutasIA: {} });
+            io.emit("optimizar_rutas", { rutasIA: {} });
             return res.status(500).json({ error: "Error conectando con Flask" });
         }
     }

@@ -1,7 +1,7 @@
-// /public/scripts/modules/location.js
 import CONFIG from '../config.js';
 
 let watchId = null;
+let locationInterval = null; // Variable para el temporizador
 
 async function requestNotificationPermission() {
     if ('Notification' in window) {
@@ -84,88 +84,105 @@ async function gestionarUbicacion(primeraVezOverride = null) {
             return reject("Geolocalización no disponible");
         }
 
-        if (watchId !== null) {
-            navigator.geolocation.clearWatch(watchId);
-            watchId = null;
+        // Limpiar cualquier temporizador existente
+        if (locationInterval !== null) {
+            clearInterval(locationInterval);
+            locationInterval = null;
         }
 
-        watchId = navigator.geolocation.watchPosition(
-            async (position) => {
+        // Función para obtener y enviar la ubicación
+        const obtenerYEnviarUbicacion = async () => {
+            try {
+                // Obtener la ubicación actual
+                const position = await new Promise((posResolve, posReject) => {
+                    navigator.geolocation.getCurrentPosition(
+                        posResolve,
+                        posReject,
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 5000,
+                            maximumAge: 0
+                        }
+                    );
+                });
+
                 let { latitude, longitude } = position.coords;
                 latitude = Number(latitude.toFixed(6));
                 longitude = Number(longitude.toFixed(6));
                 const ubicacion = { lat: latitude, lng: longitude };
 
+                // Verificar si la ubicación ha cambiado
                 if (window.ultimaUbicacionBus &&
                     ubicacion.lat === window.ultimaUbicacionBus.lat &&
                     ubicacion.lng === window.ultimaUbicacionBus.lng) {
                     console.log("🔄 Ubicación sin cambios:", ubicacion);
-                    resolve();
-                    return;
+                    return; // No enviar si no ha cambiado
                 }
 
                 window.ultimaUbicacionBus = ubicacion;
                 console.log("📍 Nueva ubicación detectada:", ubicacion);
 
-                try {
-                    const isPrimeraVez = primeraVezOverride !== null ? primeraVezOverride : window.primeraVez;
-                    const payload = {
-                        lat: latitude,
-                        lng: longitude,
-                        direccion: isPrimeraVez ? { lat: latitude, lng: longitude } : null,
-                        ultimaParada: isPrimeraVez ? window.ultimaParada : null
-                    };
-                    console.log("📡 Enviando a /actualizar-ubicacion-bus:", payload);
+                // Preparar el payload para enviar al servidor
+                const isPrimeraVez = primeraVezOverride !== null ? primeraVezOverride : window.primeraVez;
+                const payload = {
+                    lat: latitude,
+                    lng: longitude,
+                    direccion: isPrimeraVez ? { lat: latitude, lng: longitude } : null,
+                    ultimaParada: isPrimeraVez ? window.ultimaParada : null
+                };
+                console.log("📡 Enviando a /actualizar-ubicacion-bus:", payload);
 
-                    const response = await fetch(`${CONFIG.SERVER_URL}/actualizar-ubicacion-bus`, {
-                        method: 'POST',
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(payload)
-                    });
+                // Enviar la ubicación al servidor
+                const response = await fetch(`${CONFIG.SERVER_URL}/actualizar-ubicacion-bus`, {
+                    method: 'POST',
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
 
-                    if (!response.ok) throw new Error(`Error: ${response.status}`);
+                if (!response.ok) throw new Error(`Error: ${response.status}`);
 
-                    if (isPrimeraVez) window.primeraVez = false;
-                    console.log("✅ Ubicación enviada al servidor");
-
-                    // Mostrar la notificación persistente
-                    await showTrackingNotification();
-
-                    resolve();
-                } catch (error) {
-                    console.error("❌ Error enviando ubicación:", error);
-                    reject(error);
-                }
-            },
-            (error) => {
-                console.error("❌ Error obteniendo ubicación:", error);
+                if (isPrimeraVez) window.primeraVez = false;
+                console.log("✅ Ubicación enviada al servidor");
+            } catch (error) {
+                console.error("❌ Error obteniendo o enviando ubicación:", error);
                 if (error.code === error.PERMISSION_DENIED) {
                     Swal.fire({
                         icon: "warning",
                         title: "Permiso denegado",
                         text: "Activa la ubicación para continuar."
                     });
+                    clearInterval(locationInterval); // Detener el temporizador si no hay permisos
+                    locationInterval = null;
+                    reject(error);
                 }
-                reject(error);
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 5000,
-                maximumAge: 0
             }
-        );
+        };
+
+        // Ejecutar inmediatamente la primera vez
+        obtenerYEnviarUbicacion().then(async () => {
+            // Mostrar la notificación persistente
+            await showTrackingNotification();
+
+            // Configurar el temporizador para ejecutarse cada 10 segundos
+            locationInterval = setInterval(obtenerYEnviarUbicacion, 10000);
+            console.log("⏲️ Temporizador de ubicación iniciado (cada 10 segundos)");
+
+            resolve();
+        }).catch(error => {
+            reject(error);
+        });
     });
 }
 
 async function detenerUbicacion() {
-    if (watchId !== null) {
-        navigator.geolocation.clearWatch(watchId);
-        watchId = null;
-        console.log("🛑 Seguimiento de ubicación detenido");
-
-        // Cerrar la notificación
-        await closeTrackingNotification();
+    if (locationInterval !== null) {
+        clearInterval(locationInterval);
+        locationInterval = null;
+        console.log("🛑 Temporizador de ubicación detenido");
     }
+
+    // Cerrar la notificación
+    await closeTrackingNotification();
 }
 
 async function actualizarMarcadorBus(ubicacion) {
