@@ -37,10 +37,11 @@ function setupSocket() {
     });
 
     // Evento para actualizar rutas
-    socketInstance.on("actualizar_rutas", (data) => {
+    socketInstance.on("optimizar_rutas", (data) => {
         if (data.rutaseleccionada) {
-            console.log("📡 WebSocket actualiza la ruta seleccionada:", data.rutaseleccionada);
-            actualizarMapaConRutaSeleccionada(data.rutaseleccionada);
+            console.log("📡 WebSocket actualiza la ruta seleccionada:", data.rutasIA);
+        // Dibujar rutas
+        actualizarMapa(rutasIA);;
         }
     });
 
@@ -58,10 +59,10 @@ function setupSocket() {
         console.log("📡 Mensajes TCP recibidos por WebSocket:", data.tcp);
         mostrarMensajesTCP(data.tcp);
         // Actualizar mapa con rutaseleccionada si está disponible
-        if (data.rutaseleccionada && window.rutaSeleccionada) {
-            const color = window.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
-            actualizarMapaConRutaSeleccionada(data.rutaseleccionada, color);
-        }
+        //if (data.rutaseleccionada && window.rutaSeleccionada) {
+        //    const color = window.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
+        //    actualizarMapaConRutaSeleccionada(data.rutaseleccionada, color);
+        //}
     });
 
     // Evento para limpiar mapa y mostrar mensaje
@@ -111,50 +112,125 @@ function convertirADireccionLatLng(direccion) {
 }
 
 async function actualizarMapaConRutaSeleccionada(rutaseleccionada, color) {
-    if (!rutaseleccionada) return;
-
-    //window.marcadores.forEach(marcador => marcador.map = null);
-    //window.marcadores = [];
-    window.rutasDibujadas.forEach(ruta => ruta.setMap(null));
-    window.rutasDibujadas = [];
+    if (!rutaseleccionada) {
+        console.warn("⚠️ No se proporcionó ruta seleccionada");
+        return;
+    }
 
     const bounds = new google.maps.LatLngBounds();
+
+    // Geocodificar las direcciones
     const locations = await Promise.all(rutaseleccionada.map(async item => {
         const loc = convertirADireccionLatLng(item.direccion);
         return await geocodificarDireccion(loc.lat ? `${loc.lat},${loc.lng}` : item.direccion);
     }));
 
+    // Crear o actualizar marcadores usando window.marcadores
     rutaseleccionada.forEach((item, index) => {
         const direccionNormalizada = locations[index];
         if (direccionNormalizada) {
             if (index === 0) {
+                // Actualizar la posición del bus
                 actualizarMarcadorBus(direccionNormalizada);
                 bounds.extend(direccionNormalizada);
             } else if (index === rutaseleccionada.length - 1) {
-                const marcadorFin = new google.maps.marker.AdvancedMarkerElement({
-                    position: direccionNormalizada,
-                    map: window.map,
-                    title: item.nombre || "Punto Final", // Usar nombre del servidor
-                    content: crearMarcadorCirculo("Fin")
-                });
-                window.marcadores.push(marcadorFin);
+                // Marcador de "Fin" (usar window.marcadores.destino)
+                if (!window.marcadores.destino) {
+                    window.marcadores.destino = new google.maps.marker.AdvancedMarkerElement({
+                        position: direccionNormalizada,
+                        map: window.map,
+                        title: item.nombre || "Punto Final",
+                        content: crearMarcadorCirculo("Fin")
+                    });
+                    console.log("🖌️ Marcador de Fin creado:", item.nombre || "Punto Final");
+                } else {
+                    // Actualizar la posición y título si cambió
+                    window.marcadores.destino.position = direccionNormalizada;
+                    window.marcadores.destino.title = item.nombre || "Punto Final";
+                    console.log("🖌️ Marcador de Fin actualizado:", item.nombre || "Punto Final");
+                }
                 bounds.extend(direccionNormalizada);
             } else if (item.bus === 1) {
-                agregarMarcador(direccionNormalizada, item.nombre, bounds, index); // Usar nombre del servidor
+                // Marcadores de paradas (usar window.marcadores.empleados)
+                const paradaId = item.id || `parada-${index}`; // Asegurar un ID único
+                let marcadorExistente = window.marcadores.empleados.find(m => m.paradaId === paradaId);
+
+                if (!marcadorExistente) {
+                    const marcador = new google.maps.marker.AdvancedMarkerElement({
+                        position: direccionNormalizada,
+                        map: window.map,
+                        title: item.nombre || `Parada ${index}`,
+                        content: crearMarcadorCirculo(index.toString())
+                    });
+                    marcador.paradaId = paradaId; // Añadir un identificador al marcador
+                    window.marcadores.empleados.push(marcador);
+                    console.log(`🖌️ Marcador de parada creado: ${paradaId} - ${item.nombre}`);
+                } else {
+                    // Actualizar la posición y título si cambió
+                    marcadorExistente.position = direccionNormalizada;
+                    marcadorExistente.title = item.nombre || `Parada ${index}`;
+                    console.log(`🖌️ Marcador de parada actualizado: ${paradaId} - ${item.nombre}`);
+                }
+                bounds.extend(direccionNormalizada);
             }
         }
     });
 
-    if (locations.length > 1) {
-        const renderer = dibujarRutaConductor(locations.filter((_, i) => rutaseleccionada[i].bus === 1 || i === rutaseleccionada.length - 1), color);
-        if (renderer) window.rutasDibujadas.push(renderer);
+    // Filtrar las ubicaciones para la ruta (bus, paradas y destino final)
+    const locationsFiltradas = locations.filter((_, i) => i === 0 || rutaseleccionada[i].bus === 1 || i === rutaseleccionada.length - 1);
+
+    if (locationsFiltradas.length > 1) {
+        // Si ya existe un renderer, actualizamos sus propiedades
+        if (window.rutasDibujadas.length > 0) {
+            const renderer = window.rutasDibujadas[0];
+            renderer.setOptions({
+                polylineOptions: {
+                    strokeColor: color,
+                    strokeOpacity: 0.8,
+                    strokeWeight: 5,
+                    icons: [{
+                        icon: {
+                            path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+                            scale: 4,
+                            strokeColor: color,
+                            strokeWeight: 2,
+                            fillOpacity: 1
+                        },
+                        offset: "0%",
+                        repeat: "100px"
+                    }]
+                }
+            });
+
+            // Actualizar la ruta con las nuevas ubicaciones
+            const directionsService = new google.maps.DirectionsService();
+            directionsService.route({
+                origin: locationsFiltradas[0],
+                destination: locationsFiltradas[locationsFiltradas.length - 1],
+                waypoints: locationsFiltradas.slice(1, -1).map(loc => ({ location: loc, stopover: true })),
+                travelMode: google.maps.TravelMode.DRIVING
+            }, (result, status) => {
+                if (status === google.maps.DirectionsStatus.OK) {
+                    renderer.setDirections(result);
+                    console.log("✅ Ruta actualizada suavemente:", color);
+                } else {
+                    console.error("❌ Error al actualizar ruta:", status);
+                }
+            });
+        } else {
+            // Si no existe un renderer, creamos uno nuevo
+            const renderer = dibujarRutaConductor(locationsFiltradas, color);
+            if (renderer) {
+                window.rutasDibujadas.push(renderer);
+                console.log("✅ Nueva ruta dibujada:", color);
+            }
+        }
     }
 
-    if (!bounds.isEmpty() && window.primeravez) {
+    if (!bounds.isEmpty()) {
         window.map.fitBounds(bounds);
-        window.primeravez = false;
+        console.log("🗺️ Mapa ajustado a los límites:", bounds.toJSON());
     }
-    
 }
 
 async function actualizarRutaSeleccionada(socket) {

@@ -193,7 +193,7 @@ function setupUIEvents() {
         const response = await fetch("/messages");
         const data = await response.json();
 
-        if (data.rutasIA && data.rutasIA.mejor_ruta_distancia && data.rutasIA.mejor_ruta_trafico) {
+        if (data.rutasIA) {
             window.rutaDistancia = data.rutasIA.mejor_ruta_distancia;
             window.rutaTrafico = data.rutasIA.mejor_ruta_trafico;
             window.distanciaTotalKm = data.rutasIA.distancia_total_km;
@@ -207,7 +207,7 @@ function setupUIEvents() {
             console.log("🗺️ Dibujando rutas:", { mejor_ruta_distancia: window.rutaDistancia, mejor_ruta_trafico: window.rutaTrafico });
 
             // Dibujar rutas
-            await actualizarMapa({ mejor_ruta_distancia: window.rutaDistancia, mejor_ruta_trafico: window.rutaTrafico });
+            await actualizarMapa(rutasIA);
 
 
             modalText.textContent = "Datos cargados. Escoja la mejor ruta según la información brindada.";
