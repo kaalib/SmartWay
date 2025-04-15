@@ -2,8 +2,7 @@
 async function actualizarMapa(rutasIA) {
     if (!rutasIA) return;
 
-    window.marcadores.forEach(marcador => marcador.map = null);
-    window.marcadores = [];
+    // NO borrar todos los marcadores
     window.rutasDibujadas.forEach(ruta => ruta.setMap(null));
     window.rutasDibujadas = [];
 
@@ -14,15 +13,16 @@ async function actualizarMapa(rutasIA) {
         const color = window.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
         await procesarRuta(ruta, color, bounds);
     } else {
-        // Dibujar ambas rutas al inicio
         await Promise.all([
             procesarRuta(rutasIA.mejor_ruta_distancia, '#00CC66', bounds),
             procesarRuta(rutasIA.mejor_ruta_trafico, '#FF9900', bounds)
         ]);
     }
 
-    if (!bounds.isEmpty()) {
-        window.map.fitBounds(bounds);
+    // ✅ fitBounds solo la primera vez
+    if (!bounds.isEmpty() && window.primeraActualizacionMapa) {
+        map.fitBounds(bounds, { padding: 80 });
+        window.primeraActualizacionMapa = false;
     }
 }
 

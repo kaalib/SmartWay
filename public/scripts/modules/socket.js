@@ -113,8 +113,8 @@ function convertirADireccionLatLng(direccion) {
 async function actualizarMapaConRutaSeleccionada(rutaseleccionada, color) {
     if (!rutaseleccionada) return;
 
-    window.marcadores.forEach(marcador => marcador.map = null);
-    window.marcadores = [];
+    //window.marcadores.forEach(marcador => marcador.map = null);
+    //window.marcadores = [];
     window.rutasDibujadas.forEach(ruta => ruta.setMap(null));
     window.rutasDibujadas = [];
 
@@ -150,9 +150,11 @@ async function actualizarMapaConRutaSeleccionada(rutaseleccionada, color) {
         if (renderer) window.rutasDibujadas.push(renderer);
     }
 
-    if (!bounds.isEmpty()) {
+    if (!bounds.isEmpty() && window.primeravez) {
         window.map.fitBounds(bounds);
+        window.primeravez = false;
     }
+    
 }
 
 async function actualizarRutaSeleccionada(socket) {
@@ -239,16 +241,7 @@ async function iniciarActualizacionRuta(socket) {
         clearInterval(window.intervalID);
         window.intervalID = null;
     }
-
-    // Iniciar seguimiento continuo de ubicación
-    try {
-        console.log("📍 Iniciando seguimiento de ubicación...");
-        await gestionarUbicacion(); // Inicia watchPosition
-    } catch (error) {
-        console.error("❌ Error iniciando seguimiento de ubicación:", error);
-        return;
-    }
-    await solicitarReorganizacionRutas();
+    //await solicitarReorganizacionRutas();
     // Dibujar la ruta seleccionada inicial
     await actualizarRutaSeleccionada(socket);
 }
