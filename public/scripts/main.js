@@ -10,7 +10,12 @@ import { iniciarNavegacionConductor, detenerNavegacionConductor } from './module
 // Variables globales
 window.map = null;
 window.geocoder = null;
-window.marcadores = [];
+window.marcadores = {
+    bus: null,
+    empleados: [],
+    destino: null,
+  };
+  
 window.rutasDibujadas = [];
 window.rutaSeleccionada = null;
 window.rutaDistancia = null;
