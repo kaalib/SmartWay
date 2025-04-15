@@ -12,6 +12,18 @@ function ocultarEnlacesAdmin() {
 }
 
 function checkUserRole() {
+    // Determinar si estamos en localhost
+    const esLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+
+    // Si estamos en localhost, permitir acceso completo sin restricciones
+    if (esLocalhost) {
+        console.log("🖥️ Ejecutando en localhost, ignorando restricciones de roles...");
+        return; // No aplicar ninguna restricción, permitir acceso a todas las páginas
+    }
+
+    // Si no estamos en localhost, aplicar las reglas de acceso normalmente
+    console.log("🌐 Ejecutando en producción, aplicando restricciones de roles...");
+
     const role = localStorage.getItem("userRole");
     const currentPage = window.location.pathname.split("/").pop() || "index.html";
 

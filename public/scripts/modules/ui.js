@@ -175,25 +175,84 @@ function setupUIEvents() {
     // Inicializar window.primeraVez al cargar el módulo
     window.primeraVez = localStorage.getItem('rutaEnProgreso') !== 'true';
 
+    // Simular la respuesta de fetch("/messages") para pruebas locales
+    function simularFetchMessages(simularError = false) {
+        return new Promise((resolve) => {
+            // Caso de éxito: devolver datos con rutasIA
+            const datosExito = {
+                rutasIA: {
+                    mejor_ruta_distancia: [
+                        { direccion: "Carrera 50 #53, Barranquilla, Colombia", nombre: "Inicio" },
+                        { direccion: "Calle 72 #45-20, Barranquilla, Colombia", nombre: "Parada1", bus: 1 },
+                        { direccion: "Carrera 43 #70-15, Barranquilla, Colombia", nombre: "Parada2", bus: 1 },
+                        { direccion: "Calle 84 #51-30, Barranquilla, Colombia", nombre: "Parada3", bus: 1 },
+                        { direccion: "Carrera 15 #27A-40, Barranquilla, Colombia", nombre: "Destino" }
+                    ],
+                    mejor_ruta_trafico: [
+                        { direccion: "Carrera 50 #53, Barranquilla, Colombia", nombre: "Inicio" },
+                        { direccion: "Calle 70 #46-10, Barranquilla, Colombia", nombre: "Parada1", bus: 1 },
+                        { direccion: "Carrera 44 #68-25, Barranquilla, Colombia", nombre: "Parada2", bus: 1 },
+                        { direccion: "Calle 82 #50-40, Barranquilla, Colombia", nombre: "Parada3", bus: 1 },
+                        { direccion: "Carrera 15 #27A-40, Barranquilla, Colombia", nombre: "Destino" }
+                    ],
+                    distancia_total_km: 15,
+                    tiempo_total_min: 30
+                }
+            };
+
+            // Caso de error: devolver datos sin rutasIA
+            const datosError = {
+                mensaje: "No hay rutas disponibles"
+            };
+
+            // Simular una respuesta HTTP
+            const respuestaSimulada = {
+                ok: true,
+                json: () => Promise.resolve(simularError ? datosError : datosExito)
+            };
+
+            setTimeout(() => resolve(respuestaSimulada), 1000); // Simular un pequeño retraso de red
+        });
+    }
+
     document.getElementById("btnSeleccionarUbicacion").addEventListener("click", async () => {
-        await cerrarUbicacionModal();
-        await mostrarLoader();
+        try {
+            await cerrarUbicacionModal();
+            await mostrarLoader();
 
-        const btnInicio = document.getElementById("btnInicio");
-        const btnSeleccionRuta = document.getElementById("btnSeleccionRuta");
-        const btnFin = document.getElementById("btnFin");
-        const modalText = document.getElementById("modalText");
+            const btnInicio = document.getElementById("btnInicio");
+            const btnSeleccionRuta = document.getElementById("btnSeleccionRuta");
+            const btnFin = document.getElementById("btnFin");
+            const modalText = document.getElementById("modalText");
 
-        const opcionSeleccionada = document.querySelector('input[name="ubicacion"]:checked').value;
-        console.log("📍 Ubicación seleccionada:", opcionSeleccionada);
-        window.ultimaParada = opcionSeleccionada === "parqueadero" ? "Carrera 15 #27A-40, Barranquilla" : "actual";
-        await gestionarUbicacion(true);
-        await iniciarEnvioActualizacion();
+            const opcionSeleccionada = document.querySelector('input[name="ubicacion"]:checked').value;
+            console.log("📍 Ubicación seleccionada:", opcionSeleccionada);
+            window.ultimaParada = opcionSeleccionada === "parqueadero" ? "Carrera 15 #27A-40, Barranquilla" : "actual";
 
-        const response = await fetch("/messages");
-        const data = await response.json();
+            await gestionarUbicacion(true);
+            await iniciarEnvioActualizacion();
 
-        if (data.rutasIA) {
+            let response;
+            // Determinar si estamos en localhost para usar datos simulados
+            const esLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+            if (esLocalhost) {
+                console.log("🖥️ Ejecutando en localhost, usando datos simulados...");
+                const simularError = false; // Cambia a true para simular el caso de error en localhost
+                response = await simularFetchMessages(simularError);
+            } else {
+                console.log("🌐 Ejecutando en producción, usando fetch real...");
+                response = await fetch("/messages");
+            }
+
+            if (!response.ok) {
+                throw new Error(`Error en la solicitud: ${response.status}`);
+            }
+            const data = await response.json();
+
+            if (!data.rutasIA) {
+                throw new Error("No se recibieron rutasIA del servidor");
+            }
+
             window.rutaDistancia = data.rutasIA.mejor_ruta_distancia;
             window.rutaTrafico = data.rutasIA.mejor_ruta_trafico;
             window.distanciaTotalKm = data.rutasIA.distancia_total_km;
@@ -206,9 +265,14 @@ function setupUIEvents() {
 
             console.log("🗺️ Dibujando rutas:", { mejor_ruta_distancia: window.rutaDistancia, mejor_ruta_trafico: window.rutaTrafico });
 
+            // Construir el objeto rutasIA para pasarlo a actualizarMapa
+            const rutasIA = {
+                mejor_ruta_distancia: window.rutaDistancia,
+                mejor_ruta_trafico: window.rutaTrafico
+            };
+
             // Dibujar rutas
             await actualizarMapa(rutasIA);
-
 
             modalText.textContent = "Datos cargados. Escoja la mejor ruta según la información brindada.";
             btnInicio.disabled = true;
@@ -225,11 +289,14 @@ function setupUIEvents() {
             localStorage.setItem('btnSeleccionRutaHabilitado', 'true');
             localStorage.setItem('btnFinHabilitado', 'false');
 
-            //const socket = setupSocket();
             socket.emit("solicitar_mensajes_tcp");
-        } else {
+        } catch (error) {
             console.error("❌ Error:", error);
+            const modalText = document.getElementById("modalText");
             modalText.textContent = "Error procesando la solicitud. Intente de nuevo.";
+            const btnInicio = document.getElementById("btnInicio");
+            const btnSeleccionRuta = document.getElementById("btnSeleccionRuta");
+            const btnFin = document.getElementById("btnFin");
             btnInicio.disabled = false;
             btnInicio.classList.remove("btn-disabled");
             btnInicio.classList.add("btn-enabled");
@@ -243,41 +310,95 @@ function setupUIEvents() {
             localStorage.setItem('btnSeleccionRutaHabilitado', 'false');
             localStorage.setItem('btnFinHabilitado', 'false');
             localStorage.setItem('rutaEnProgreso', 'false');
-            setTimeout(cerrarLoader, 2000);
-            return;
-
+        } finally {
+            await cerrarLoader();
         }
-
-        await cerrarLoader();
     });
+    
+    // Simular la respuesta de fetch("/messages") para pruebas locales
+    function simularFetchMessagesBtnInicio(simularError = false) {
+        return new Promise((resolve) => {
+            // Caso de éxito: devolver datos con tcp con más de 2 elementos
+            const datosExito = {
+                tcp: [
+                    { direccion: "10.9903872,-74.7896832", nombre: "Pasajero 1" },
+                    { direccion: "10.9953872,-74.7856832", nombre: "Pasajero 2" },
+                    { direccion: "11.0003872,-74.7816832", nombre: "Pasajero 3" }
+                ]
+            };
+
+            // Caso de error: devolver datos con tcp con menos de 2 elementos
+            const datosError = {
+                tcp: [
+                    { direccion: "10.9903872,-74.7896832", nombre: "Pasajero 1" }
+                ]
+            };
+
+            // Simular una respuesta HTTP
+            const respuestaSimulada = {
+                ok: true,
+                json: () => Promise.resolve(simularError ? datosError : datosExito)
+            };
+
+            setTimeout(() => resolve(respuestaSimulada), 1000); // Simular un pequeño retraso de red
+        });
+    }
 
     document.getElementById('btnInicio').addEventListener("click", async () => {
+        try {
+            // Determinar si estamos en localhost
+            const esLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 
-        const response = await fetch("/messages");
-        const data = await response.json();
+            let response;
+            if (esLocalhost) {
+                console.log("🖥️ Ejecutando en localhost, usando datos simulados para btnInicio...");
+                const simularError = false; // Cambia a true para simular el caso de error en localhost
+                response = await simularFetchMessagesBtnInicio(simularError);
+            } else {
+                console.log("🌐 Ejecutando en producción, usando fetch real para btnInicio...");
+                response = await fetch("/messages");
+            }
 
-        if (data.tcp && data.tcp.length > 2) {
-            abrirUbicacionModal();
-        } else {
+            if (!response.ok) {
+                throw new Error(`Error en la solicitud: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.tcp && data.tcp.length > 2) {
+                abrirUbicacionModal();
+            } else {
+                const modal = document.getElementById("loaderContainer");
+                const loader = document.getElementById("loader");
+                const modalText = document.getElementById("modalText");
+                const btnInicio = document.getElementById("btnInicio");
+                const btnSeleccionRuta = document.getElementById("btnSeleccionRuta");
+                const btnFin = document.getElementById("btnFin");
+
+                modal.style.visibility = "visible";
+                modal.style.opacity = "1";
+                loader.classList.add("hidden");
+                modalText.textContent = "Espere a que ingresen pasajeros al sistema.";
+
+                btnInicio.disabled = false;
+                btnSeleccionRuta.disabled = true;
+                btnFin.disabled = true;
+                localStorage.setItem('btnInicioHabilitado', 'true');
+                localStorage.setItem('btnSeleccionRutaHabilitado', 'false');
+                localStorage.setItem('btnFinHabilitado', 'false');
+
+                setTimeout(() => {
+                    modal.style.visibility = "hidden";
+                    modal.style.opacity = "0";
+                }, 3000);
+            }
+        } catch (error) {
+            console.error("❌ Error en btnInicio:", error);
             const modal = document.getElementById("loaderContainer");
-            const loader = document.getElementById("loader");
             const modalText = document.getElementById("modalText");
-            const btnInicio = document.getElementById("btnInicio");
-            const btnSeleccionRuta = document.getElementById("btnSeleccionRuta");
-            const btnFin = document.getElementById("btnFin");
-
             modal.style.visibility = "visible";
             modal.style.opacity = "1";
-            loader.classList.add("hidden");
-            modalText.textContent = "Espere a que ingresen pasajeros al sistema.";
-
-            btnInicio.disabled = false;
-            btnSeleccionRuta.disabled = true;
-            btnFin.disabled = true;
-            localStorage.setItem('btnInicioHabilitado', 'true');
-            localStorage.setItem('btnSeleccionRutaHabilitado', 'false');
-            localStorage.setItem('btnFinHabilitado', 'false');
-
+            modalText.textContent = "Error al procesar la solicitud. Intente de nuevo.";
             setTimeout(() => {
                 modal.style.visibility = "hidden";
                 modal.style.opacity = "0";
