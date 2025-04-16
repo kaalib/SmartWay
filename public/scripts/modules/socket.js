@@ -68,11 +68,40 @@ function setupSocket() {
     // Evento para limpiar mapa y mostrar mensaje
     socketInstance.on("limpiar_mapa_y_mostrar_mensaje", () => {
         console.log("🧹 Limpiando mapa y mostrando mensaje en cliente WebSocket");
-        // Limpiar mapa
-        window.marcadores.forEach(marcador => marcador.map = null);
-        window.marcadores = [];
-        window.rutasDibujadas.forEach(ruta => ruta.setMap(null));
-        window.rutasDibujadas = [];
+
+        // Limpiar marcadores de empleados
+        if (window.marcadores && Array.isArray(window.marcadores.empleados)) {
+            window.marcadores.empleados.forEach(marcador => {
+                if (marcador && typeof marcador.setMap === "function") {
+                    marcador.setMap(null);
+                }
+            });
+            window.marcadores.empleados = [];
+        } else {
+            console.warn("⚠️ window.marcadores.empleados no es un array o no está definido");
+            window.marcadores = { empleados: [] };
+        }
+
+        // Limpiar marcador del bus, si existe
+        if (window.marcadores && window.marcadores.bus) {
+            if (typeof window.marcadores.bus.setMap === "function") {
+                window.marcadores.bus.setMap(null);
+            }
+            window.marcadores.bus = null;
+        }
+
+        // Limpiar rutas dibujadas
+        if (Array.isArray(window.rutasDibujadas)) {
+            window.rutasDibujadas.forEach(ruta => {
+                if (ruta && typeof ruta.setMap === "function") {
+                    ruta.setMap(null);
+                }
+            });
+            window.rutasDibujadas = [];
+        } else {
+            console.warn("⚠️ window.rutasDibujadas no es un array o no está definido");
+            window.rutasDibujadas = [];
+        }
 
         // Crear contenedor del mensaje con clases existentes
         const mensajeContainer = document.createElement("div");
@@ -83,9 +112,9 @@ function setupSocket() {
         const mensajeContent = document.createElement("div");
         mensajeContent.className = "modal-content";
         mensajeContent.innerHTML = `
-            <h2 class="modal-title">Ruta Finalizada</h2>
-            <p id="modalText">Gracias por utilizar nuestro servicio</p>
-        `;
+        <h2 class="modal-title">Ruta Finalizada</h2>
+        <p id="modalText">Gracias por utilizar nuestro servicio</p>
+    `;
 
         mensajeContainer.appendChild(mensajeContent);
         document.body.appendChild(mensajeContainer);

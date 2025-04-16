@@ -7,16 +7,7 @@ import { setupSocket, mostrarMensajesTCP } from './modules/socket.js';
 import { setupUIEvents } from './modules/ui.js';
 import { iniciarNavegacionConductor, detenerNavegacionConductor } from './modules/navigation.js';
 
-// Variables globales
-window.map = null;
-window.geocoder = null;
-window.marcadores = {
-    bus: null,
-    empleados: [],
-    destino: null,
-  };
-  
-window.rutasDibujadas = [];
+// Variables globales (solo las que no están relacionadas con el mapa)
 window.rutaSeleccionada = null;
 window.rutaDistancia = null;
 window.rutaTrafico = null;
@@ -25,33 +16,48 @@ window.ultimaUbicacionBus = null;
 window.intervalID = null;
 window.primeraVez = true;
 window.ultimaParada = null;
-window.primeraActualizacionMapa = true; 
+window.primeraActualizacionMapa = true;
 
 async function inicializarAplicacion() {
     console.log("🚀 Inicializando aplicación SmartWay...");
 
-    try { checkUserRole(); } catch (error) {
+    // Verificar rol del usuario
+    try {
+        checkUserRole();
+    } catch (error) {
         console.error("⚠️ Error verificando rol del usuario:", error);
     }
 
-    try { configurarBarrasLaterales(); } catch (error) {
+    // Configurar barras laterales
+    try {
+        configurarBarrasLaterales();
+    } catch (error) {
         console.error("⚠️ Error configurando barras laterales:", error);
     }
 
+    // Cargar e inicializar Google Maps
     try {
         await loadGoogleMapsApi(); // Espera a que la API se cargue
-        initMap(); // Luego inicializa el mapa
+        initMap(); // Luego inicializa el mapa, que también inicializa window.marcadores y window.rutasDibujadas
     } catch (error) {
         console.error("⚠️ Error cargando o inicializando Google Maps:", error);
         window.map = null;
         window.geocoder = null;
+        window.marcadores = { bus: null, empleados: [], destino: null }; // Fallback
+        window.rutasDibujadas = []; // Fallback
     }
 
-    try { setupSocket(); } catch (error) {
+    // Inicializar WebSocket
+    try {
+        setupSocket();
+    } catch (error) {
         console.error("⚠️ Error inicializando WebSocket:", error);
     }
 
-    try { setupUIEvents(); } catch (error) {
+    // Configurar eventos de UI
+    try {
+        setupUIEvents();
+    } catch (error) {
         console.error("⚠️ Error configurando eventos de UI:", error);
     }
 

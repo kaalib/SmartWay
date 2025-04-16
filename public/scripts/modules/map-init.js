@@ -53,6 +53,8 @@ async function loadGoogleMapsApi() {
 
 function initMap() {
     console.log("Inicializando el mapa...");
+
+    // Inicializar el mapa
     window.map = new google.maps.Map(document.getElementById("map"), {
         center: { lat: 10.9878, lng: -74.7889 }, // Coordenadas por defecto (Barranquilla, Colombia)
         zoom: 13,
@@ -67,7 +69,22 @@ function initMap() {
             }
         ]
     });
+
+    // Inicializar el geocodificador
     window.geocoder = new google.maps.Geocoder();
+
+    // Inicializar marcadores y rutas
+    window.marcadores = {
+        bus: null,      // Marcador único para el bus
+        empleados: [],  // Array para marcadores de empleados
+        destino: null   // Marcador único para el destino (si lo usas)
+    };
+    window.rutasDibujadas = []; // Array para las rutas dibujadas
+
+    console.log("✅ Mapa y estructuras globales inicializadas:", {
+        marcadores: window.marcadores,
+        rutasDibujadas: window.rutasDibujadas
+    });
 }
 
 export { loadGoogleMapsApi, initMap };
