@@ -1,6 +1,6 @@
 // scripts/modules/ui.js
 import CONFIG from '../config.js';
-import { actualizarMapa } from './map-markers.js';
+import { actualizarMapa, dibujarRutasPrimeraVez } from './map-markers.js';
 import { iniciarActualizacionRuta, detenerActualizacionRuta, actualizarRutaSeleccionada, setupSocket, actualizarMapaConRutaSeleccionada, mostrarMensajesTCP } from './socket.js';
 import { iniciarEnvioActualizacion, detenerEnvioActualizacion, limpiarMapa, solicitarActualizacionRutas } from './api.js';
 import { gestionarUbicacion } from './location.js';
@@ -148,6 +148,17 @@ async function restaurarEstado() {
 
 // Nueva función para limpiar el estado en localStorage
 function limpiarEstado() {
+    // Limpiar variables globales relacionadas con las rutas
+    window.rutaDistancia = [];
+    window.rutaTrafico = [];
+    window.distanciaTotalKm = 0;
+    window.tiempoTotalMin = 0;
+    window.rutaSeleccionada = null;
+    window.primeraActualizacionMapa = true;
+    window.primeraVez = true;
+    window.ultimaParada = null;
+
+    // Limpiar localStorage (excepto userRole, que ya se maneja en el evento click)
     localStorage.removeItem('rutaEnProgreso');
     localStorage.removeItem('rutaSeleccionada');
     localStorage.removeItem('rutaDistancia');
@@ -155,11 +166,8 @@ function limpiarEstado() {
     localStorage.setItem('btnInicioHabilitado', 'true');
     localStorage.setItem('btnSeleccionRutaHabilitado', 'false');
     localStorage.setItem('btnFinHabilitado', 'false');
-    window.rutaSeleccionada = null;
-    window.rutaDistancia = null;
-    window.rutaTrafico = null;
-    window.primeraVez = true;
-    window.primeraActualizacionMapa = true;
+
+    console.log("🧹 Estado global y localStorage limpiados (excepto userRole)");
 }
 
 function setupUIEvents() {
@@ -254,7 +262,7 @@ function setupUIEvents() {
     }
 
     document.getElementById("btnSeleccionarUbicacion").addEventListener("click", async () => {
-        let success = false; // Bandera para rastrear si el dibujo fue exitoso
+        let success = false;
         try {
             await cerrarUbicacionModal();
             await mostrarLoader();
@@ -272,7 +280,6 @@ function setupUIEvents() {
             await iniciarEnvioActualizacion();
     
             let response;
-            // Determinar si estamos en localhost para usar datos simulados
             const esLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
             if (esLocalhost) {
                 console.log("🖥️ Ejecutando en localhost, usando datos simulados...");
@@ -297,7 +304,6 @@ function setupUIEvents() {
             window.distanciaTotalKm = data.rutasIA.distancia_total_km;
             window.tiempoTotalMin = data.rutasIA.tiempo_total_min;
     
-            // Transformar rutasIA para que tenga el formato esperado (array de objetos)
             const transformarRuta = (ruta, tcp) => {
                 return ruta.map((direccion, index) => {
                     let nombre;
@@ -323,67 +329,32 @@ function setupUIEvents() {
                 });
             };
     
-            // Transformar las rutas usando los datos de tcp
             const rutasIA = {
                 mejor_ruta_distancia: transformarRuta(data.rutasIA.mejor_ruta_distancia, data.tcp),
                 mejor_ruta_trafico: transformarRuta(data.rutasIA.mejor_ruta_trafico, data.tcp)
             };
     
-            // Guardar rutas transformadas en localStorage
             localStorage.setItem('rutaDistancia', JSON.stringify(rutasIA.mejor_ruta_distancia));
             localStorage.setItem('rutaTrafico', JSON.stringify(rutasIA.mejor_ruta_trafico));
             localStorage.setItem('rutaEnProgreso', 'true');
     
-            console.log("🗺️ Dibujando rutas:", {
+            console.log("🗺️ Dibujando rutas iniciales:", {
                 mejor_ruta_distancia: rutasIA.mejor_ruta_distancia,
                 mejor_ruta_trafico: rutasIA.mejor_ruta_trafico
             });
     
-            // Intentar dibujar rutas con actualizarMapa
-            try {
-                await actualizarMapa(rutasIA);
-                success = true; // Marcar como exitoso si actualizarMapa no falla
-            } catch (error) {
-                console.error("❌ Error al dibujar rutas con actualizarMapa:", error);
-                // Intentar dibujar directamente desde variables globales como respaldo
-                console.log("ℹ️ Intentando dibujar rutas directamente desde variables globales...");
-                const bounds = new google.maps.LatLngBounds();
-    
-                // Procesar mejor_ruta_distancia
-                const resultDistancia = await procesarRuta(window.rutaDistancia, '#00CC66', bounds);
-                if (resultDistancia?.renderer) {
-                    window.rutasDibujadas[0] = resultDistancia.renderer;
-                    console.log("✅ Ruta distancia dibujada directamente:", '#00CC66');
-                }
-    
-                // Procesar mejor_ruta_trafico
-                const resultTrafico = await procesarRuta(window.rutaTrafico, '#FF9900', bounds);
-                if (resultTrafico?.renderer) {
-                    window.rutasDibujadas[1] = resultTrafico.renderer;
-                    console.log("✅ Ruta tráfico dibujada directamente:", '#FF9900');
-                }
-    
-                if (resultDistancia || resultTrafico) {
-                    window.map.fitBounds(bounds);
-                    success = true; // Marcar como exitoso si al menos una ruta se dibujó
-                } else {
-                    throw new Error("No se pudieron dibujar las rutas ni siquiera desde las variables globales");
-                }
+            // Usar la nueva función para dibujar las rutas iniciales
+            success = await dibujarRutasPrimeraVez(rutasIA);
+            if (!success) {
+                throw new Error("No se pudieron dibujar las rutas iniciales");
             }
     
             // Actualizar UI si el dibujo fue exitoso
-            if (success) {
-                modalText.textContent = "Datos cargados. Escoja la mejor ruta según la información brindada.";
-            } else {
-                modalText.textContent = "Error al dibujar las rutas, pero puede continuar seleccionando una ruta.";
-            }
-    
+            modalText.textContent = "Datos cargados. Escoja la mejor ruta según la información brindada.";
         } catch (error) {
             console.error("❌ Error:", error);
-            const modalText = document.getElementById("modalText");
             modalText.textContent = "Error procesando la solicitud. Intente de nuevo.";
         } finally {
-            // Asegurar que los botones se actualicen siempre
             const btnInicio = document.getElementById("btnInicio");
             const btnSeleccionRuta = document.getElementById("btnSeleccionRuta");
             const btnFin = document.getElementById("btnFin");
@@ -419,7 +390,6 @@ function setupUIEvents() {
                 localStorage.setItem('rutaEnProgreso', 'false');
             }
     
-            // Manejar socket.emit en localhost
             const esLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
             if (!esLocalhost && success) {
                 const socket = setupSocket();
@@ -532,11 +502,13 @@ function setupUIEvents() {
     });
 
     document.getElementById("confirmYes").addEventListener("click", () => {
+        // Limpiar mapa y estado
         limpiarMapa();
         detenerEnvioActualizacion();
         detenerActualizacionRuta();
         limpiarEstado();
 
+        // Actualizar botones
         const btnInicio = document.getElementById("btnInicio");
         btnInicio.disabled = false;
         btnInicio.classList.remove("btn-disabled");
@@ -559,6 +531,7 @@ function setupUIEvents() {
             console.log("🧹 localStorage.userRole eliminado para", userRole);
         }
 
+        // Detener emisión en el servidor
         fetch(`${CONFIG.SERVER_URL}/detener-emision`, {
             method: "POST",
             headers: { "Content-Type": "application/json" }
@@ -589,7 +562,7 @@ function setupUIEvents() {
 
     document.getElementById("btnSeleccionarRutaConfirm").addEventListener("click", () => {
         window.rutaSeleccionada = document.querySelector('input[name="ruta"]:checked').value;
-        
+
         cerrarRutaModal();
         document.getElementById("btnSeleccionRuta").disabled = true;
         document.getElementById("btnFin").disabled = false;
@@ -599,8 +572,15 @@ function setupUIEvents() {
         localStorage.setItem('btnSeleccionRutaHabilitado', 'false');
         localStorage.setItem('btnFinHabilitado', 'true');
 
-        window.rutasDibujadas.forEach(ruta => ruta.setMap(null));
-        window.rutasDibujadas = [];
+        // Limpiar solo las polilíneas (mantener los marcadores)
+        if (Array.isArray(window.rutasDibujadas)) {
+            window.rutasDibujadas.forEach(ruta => {
+                if (ruta && typeof ruta.setMap === "function") {
+                    ruta.setMap(null);
+                }
+            });
+            window.rutasDibujadas = [];
+        }
 
         console.log("🗺️ Ruta seleccionada:", window.rutaSeleccionada);
         fetch(`${CONFIG.SERVER_URL}/seleccionar-ruta`, {
@@ -616,6 +596,8 @@ function setupUIEvents() {
             })
             .catch(err => console.error("❌ Error enviando selección de ruta:", err));
 
+        // Iniciar la actualización periódica vía WebSocket
+        const socket = setupSocket();
         iniciarActualizacionRuta(socket);
     });
 }

@@ -58,16 +58,41 @@ async function detenerEnvioActualizacion() {
 }
 
 async function limpiarMapa() {
-    window.marcadores.forEach(marcador => marcador.setMap(null));
-    window.marcadores = [];
-    window.rutasDibujadas.forEach(ruta => ruta.setMap(null));
-    window.rutasDibujadas = [];
-
-    if (window.marcadorBus) {
-        window.marcadorBus.setMap(null);
-        window.marcadorBus = null;
+    // Limpiar marcadores de empleados
+    if (window.marcadores && Array.isArray(window.marcadores.empleados)) {
+        window.marcadores.empleados.forEach(marcador => {
+            if (marcador && typeof marcador.setMap === "function") {
+                marcador.setMap(null);
+            }
+        });
+        window.marcadores.empleados = [];
+    } else {
+        console.warn("⚠️ window.marcadores.empleados no es un array o no está definido");
+        window.marcadores = { empleados: [] }; // Reiniciar como respaldo
     }
 
+    // Limpiar marcador del bus, si existe
+    if (window.marcadores && window.marcadores.bus) {
+        if (typeof window.marcadores.bus.setMap === "function") {
+            window.marcadores.bus.setMap(null);
+        }
+        window.marcadores.bus = null;
+    }
+
+    // Limpiar rutas dibujadas
+    if (Array.isArray(window.rutasDibujadas)) {
+        window.rutasDibujadas.forEach(ruta => {
+            if (ruta && typeof ruta.setMap === "function") {
+                ruta.setMap(null);
+            }
+        });
+        window.rutasDibujadas = [];
+    } else {
+        console.warn("⚠️ window.rutasDibujadas no es un array o no está definido");
+        window.rutasDibujadas = []; // Reiniciar como respaldo
+    }
+
+    // Limpiar elementos del DOM
     document.querySelectorAll(".tcpInput").forEach(el => {
         if (el.tagName === "INPUT") el.value = "";
         else el.innerHTML = "";
@@ -78,15 +103,18 @@ async function limpiarMapa() {
         else el.innerHTML = "";
     });
 
-    fetch('/messages', { method: 'DELETE' })
-        .then(response => response.json())
-        .then(data => console.log(data.message))
-        .catch(error => console.error('Error al limpiar mensajes:', error));
+    // Limpiar datos en el servidor
+    try {
+        const responseMessages = await fetch('/messages', { method: 'DELETE' });
+        const dataMessages = await responseMessages.json();
+        console.log("✅ Mensajes limpiados en el servidor:", dataMessages.message);
 
-    fetch('/updateBus', { method: 'PUT' })
-        .then(response => response.json())
-        .then(data => console.log(data.message))
-        .catch(error => console.error('Error al actualizar bus:', error));
+        const responseBus = await fetch('/updateBus', { method: 'PUT' });
+        const dataBus = await responseBus.json();
+        console.log("✅ Bus actualizado en el servidor:", dataBus.message);
+    } catch (error) {
+        console.error('❌ Error al limpiar datos en el servidor:', error);
+    }
 }
 
 

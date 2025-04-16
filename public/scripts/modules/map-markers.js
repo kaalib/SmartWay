@@ -308,4 +308,158 @@ function crearMarcadorCirculo(label) {
     return div;
 }
 
-export { actualizarMapa, procesarRuta, geocodificarDireccion, agregarMarcador, dibujarRutaConductor, crearMarcadorCirculo };
+async function dibujarRutasPrimeraVez(rutasIA) {
+    if (!rutasIA || !rutasIA.mejor_ruta_distancia || !rutasIA.mejor_ruta_trafico) {
+        console.warn("⚠️ Datos de rutasIA incompletos:", rutasIA);
+        return false;
+    }
+
+    const bounds = new google.maps.LatLngBounds();
+    let success = false;
+
+    // Geocodificar todas las direcciones primero
+    const geocodificarTodas = async (ruta) => {
+        return Promise.all(ruta.map(async (entry, index) => {
+            const direccion = entry.direccion;
+            const location = await geocodificarDireccion(direccion);
+            if (!location) {
+                console.warn(`⚠️ No se pudo geocodificar la dirección: ${direccion}`);
+                return null;
+            }
+            return { location, entry, index };
+        }));
+    };
+
+    // Procesar ambas rutas
+    const rutaDistancia = rutasIA.mejor_ruta_distancia;
+    const rutaTrafico = rutasIA.mejor_ruta_trafico;
+
+    // Geocodificar direcciones para ambas rutas
+    const locationsDistancia = (await geocodificarTodas(rutaDistancia)).filter(loc => loc);
+    const locationsTrafico = (await geocodificarTodas(rutaTrafico)).filter(loc => loc);
+
+    // Verificar si tenemos suficientes ubicaciones válidas
+    if (locationsDistancia.length < 2 && locationsTrafico.length < 2) {
+        console.warn("⚠️ No hay suficientes ubicaciones válidas para dibujar ninguna ruta:", {
+            distancia: locationsDistancia,
+            trafico: locationsTrafico
+        });
+        return false;
+    }
+
+    // Añadir marcadores (solo una vez, ya que ambas rutas tienen los mismos puntos)
+    const allLocations = [...locationsDistancia, ...locationsTrafico];
+    const uniqueLocations = [];
+    const seen = new Set();
+
+    allLocations.forEach(loc => {
+        const key = `${loc.location.lat()},${loc.location.lng()}`;
+        if (!seen.has(key)) {
+            seen.add(key);
+            uniqueLocations.push(loc);
+        }
+    });
+
+    // Crear el ícono del bus
+    const svgIcon = document.createElement("img");
+    svgIcon.src = "/media/iconobus.svg";
+    svgIcon.style.width = "40px";
+    svgIcon.style.height = "40px";
+    svgIcon.onerror = () => console.error("❌ Error cargando iconobus.svg");
+
+    uniqueLocations.forEach(({ location, entry, index }) => {
+        const nombre = entry.nombre || `Parada ${index}`;
+        if (index === 0) {
+            // Primer marcador: ícono de bus usando iconobus.svg
+            const marcadorBus = new google.maps.marker.AdvancedMarkerElement({
+                position: location,
+                map: window.map,
+                title: nombre,
+                content: svgIcon.cloneNode(true) // Clonar el ícono para evitar problemas de reutilización
+            });
+            window.marcadores.bus = marcadorBus;
+            console.log(`🚌 Marcador de bus creado: ${nombre}`);
+        } else if (index === rutaDistancia.length - 1) {
+            // Último marcador: destino
+            const marcadorDestino = new google.maps.marker.AdvancedMarkerElement({
+                position: location,
+                map: window.map,
+                title: nombre,
+                content: crearMarcadorCirculo("D")
+            });
+            window.marcadores.destino = marcadorDestino;
+            console.log(`🏁 Marcador de destino creado: ${nombre}`);
+        } else {
+            // Marcadores intermedios: paradas
+            agregarMarcador(location, nombre, bounds, index);
+        }
+        bounds.extend(location);
+    });
+
+    // Dibujar las rutas
+    const dibujarRuta = (locations, color) => {
+        if (locations.length < 2) {
+            console.warn(`⚠️ No hay suficientes ubicaciones para dibujar la ruta (${color}):`, locations);
+            return null;
+        }
+
+        const latLngs = locations.map(loc => loc.location);
+        const renderer = new google.maps.DirectionsRenderer({
+            map: window.map,
+            suppressMarkers: true,
+            polylineOptions: {
+                strokeColor: color,
+                strokeOpacity: 0.8,
+                strokeWeight: 5,
+                icons: [{
+                    icon: {
+                        path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+                        scale: 4,
+                        strokeColor: color,
+                        strokeWeight: 2,
+                        fillOpacity: 1
+                    },
+                    offset: "0%",
+                    repeat: "100px"
+                }]
+            }
+        });
+
+        const directionsService = new google.maps.DirectionsService();
+        directionsService.route({
+            origin: latLngs[0],
+            destination: latLngs[latLngs.length - 1],
+            waypoints: latLngs.slice(1, -1).map(loc => ({ location: loc, stopover: true })),
+            travelMode: google.maps.TravelMode.DRIVING
+        }, (result, status) => {
+            if (status === google.maps.DirectionsStatus.OK) {
+                renderer.setDirections(result);
+                window.rutasDibujadas.push(renderer);
+                console.log(`✅ Ruta dibujada (${color}):`, latLngs);
+                success = true;
+            } else {
+                console.error(`❌ Error al dibujar ruta (${color}):`, status);
+            }
+        });
+
+        return renderer;
+    };
+
+    // Dibujar ambas rutas si tienen suficientes ubicaciones
+    if (locationsDistancia.length >= 2) {
+        dibujarRuta(locationsDistancia, '#00CC66'); // Verde para distancia
+    }
+    if (locationsTrafico.length >= 2) {
+        dibujarRuta(locationsTrafico, '#FF9900'); // Naranja para tráfico
+    }
+
+    // Ajustar el mapa a los límites
+    if (!bounds.isEmpty()) {
+        window.map.fitBounds(bounds);
+        console.log("🗺️ Mapa ajustado a los límites:", bounds.toJSON());
+    }
+
+    return success;
+}
+
+export {dibujarRutasPrimeraVez, actualizarMapa, procesarRuta, geocodificarDireccion, agregarMarcador, dibujarRutaConductor, crearMarcadorCirculo };
