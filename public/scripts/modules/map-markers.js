@@ -385,7 +385,7 @@ async function dibujarRutasPrimeraVez(rutasIA) {
                 position: location,
                 map: window.map,
                 title: nombre,
-                content: crearMarcadorCirculo("D")
+                content: crearMarcadorCirculo("Fin")
             });
             window.marcadores.destino = marcadorDestino;
             console.log(`🏁 Marcador de destino creado: ${nombre}`);
