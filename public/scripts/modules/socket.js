@@ -128,6 +128,25 @@ function setupSocket() {
         }, 3000);
     });
 
+    // Evento para manejar paradas completadas
+    socketInstance.on("parada_completada", (data) => {
+        const { paradaId } = data;
+        console.log(`🔔 Parada completada recibida por WebSocket: ${paradaId}`);
+
+        // Buscar y eliminar el marcador de la parada
+        if (window.marcadores && Array.isArray(window.marcadores.empleados)) {
+            const index = window.marcadores.empleados.findIndex(marcador => marcador.paradaId === paradaId);
+            if (index !== -1) {
+                const marcador = window.marcadores.empleados[index];
+                marcador.setMap(null);
+                window.marcadores.empleados.splice(index, 1);
+                console.log(`🗑️ Marcador de parada eliminado: ${paradaId}`);
+            } else {
+                console.warn(`⚠️ Marcador no encontrado para parada: ${paradaId}`);
+            }
+        }
+    });
+    
     return socketInstance;
 }
 
@@ -159,7 +178,13 @@ async function actualizarMapaConRutaSeleccionada(rutaseleccionada, color) {
         const direccionNormalizada = locations[index];
         if (direccionNormalizada) {
             if (index === 0) {
-                // Actualizar la posición del bus
+                // Eliminar el marcador anterior del bus, si existe
+                if (window.marcadores.bus) {
+                    window.marcadores.bus.setMap(null);
+                    console.log("🗑️ Marcador anterior del bus eliminado del mapa (actualizarMapaConRutaSeleccionada)");
+                }
+
+                // Actualizar la posición del bus usando actualizarMarcadorBus
                 actualizarMarcadorBus(direccionNormalizada);
                 bounds.extend(direccionNormalizada);
             } else if (index === rutaseleccionada.length - 1) {
@@ -256,12 +281,11 @@ async function actualizarMapaConRutaSeleccionada(rutaseleccionada, color) {
         }
     }
 
-    if (!bounds.isEmpty()) {
-        window.map.fitBounds(bounds);
-        console.log("🗺️ Mapa ajustado a los límites:", bounds.toJSON());
-    }
+    //if (!bounds.isEmpty()) {
+    //    window.map.fitBounds(bounds);
+    //    console.log("🗺️ Mapa ajustado a los límites:", bounds.toJSON());
+    //}
 }
-
 async function actualizarRutaSeleccionada(socket) {
     if (!window.rutaSeleccionada) return;
 
