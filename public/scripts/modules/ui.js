@@ -361,31 +361,19 @@ function setupUIEvents() {
     
             if (success) {
                 btnInicio.disabled = true;
-                btnInicio.classList.remove("btn-enabled");
-                btnInicio.classList.add("btn-disabled");
                 btnSeleccionRuta.disabled = false;
-                btnSeleccionRuta.classList.remove("btn-disabled");
-                btnSeleccionRuta.classList.add("btn-enabled");
                 btnFin.disabled = true;
-                btnFin.classList.remove("btn-enabled");
-                btnFin.classList.add("btn-disabled");
     
                 localStorage.setItem('btnInicioHabilitado', 'false');
                 localStorage.setItem('btnSeleccionRutaHabilitado', 'true');
                 localStorage.setItem('btnFinHabilitado', 'false');
             } else {
-                btnInicio.disabled = false;
-                btnInicio.classList.remove("btn-disabled");
-                btnInicio.classList.add("btn-enabled");
-                btnSeleccionRuta.disabled = true;
-                btnSeleccionRuta.classList.remove("btn-enabled");
-                btnSeleccionRuta.classList.add("btn-disabled");
+                btnInicio.disabled = true;
+                btnSeleccionRuta.disabled = false;
                 btnFin.disabled = true;
-                btnFin.classList.remove("btn-enabled");
-                btnFin.classList.add("btn-disabled");
     
-                localStorage.setItem('btnInicioHabilitado', 'true');
-                localStorage.setItem('btnSeleccionRutaHabilitado', 'false');
+                localStorage.setItem('btnInicioHabilitado', 'false');
+                localStorage.setItem('btnSeleccionRutaHabilitado', 'true');
                 localStorage.setItem('btnFinHabilitado', 'false');
                 localStorage.setItem('rutaEnProgreso', 'false');
             }
