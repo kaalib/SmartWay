@@ -329,12 +329,12 @@ app.get('/messages', (req, res) => {
 // Endpoint para eliminar mensajes TCP y  rutasIA
 app.delete('/messages', (req, res) => {
     messages.tcp = []; // Vaciar el array de mensajes TCP
-    messages.rutasIA = []; // Vaciar el array de mensajes rutasIA
+    messages.rutasIA = {}; // Vaciar el array de mensajes rutasIA
     messages.bus = []; // Vaciar el array de mensajes bus
     messages.rutaseleccionada = []; // Vaciar el array de mensajes rutaseleccionada
     messages.colorRutaSeleccionada = []; // Vaciar el array de mensajes colorRutaSeleccionada
     fs.writeFileSync("messages.json", JSON.stringify(messages, null, 2)); // Guardar cambios en el archivo
-    res.json({ success: true, message: "Mensajes TCP eliminados" });
+    res.json({ success: true, message: "Mensajes en el servidor eliminados" });
 });
 
 
@@ -587,16 +587,6 @@ app.post('/messages', async (req, res) => {
 });
 
 
-app.get("/obtener-ruta-inicial", (req, res) => {
-    if (messages.rutaseleccionada && messages.rutaseleccionada.length > 0) {
-        res.json({
-            ruta: messages.colorRutaSeleccionada,
-            locations: messages.rutaseleccionada
-        });
-    } else {
-        res.json({ ruta: null, locations: [] });
-    }
-});
 
 // Cache para almacenar las coordenadas geocodificadas
 const addressCache = new Map();

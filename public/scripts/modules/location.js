@@ -193,6 +193,7 @@ async function actualizarMarcadorBus(ubicacion) {
 
     console.log("🖌️ Intentando actualizar marcador del bus:", ubicacion);
 
+    // Verificar si la ubicación ha cambiado
     if (window.ultimaUbicacionBus &&
         ubicacion.lat === window.ultimaUbicacionBus.lat &&
         ubicacion.lng === window.ultimaUbicacionBus.lng) {
@@ -200,22 +201,26 @@ async function actualizarMarcadorBus(ubicacion) {
         return;
     }
 
+    // Crear el ícono del bus
     const svgIcon = document.createElement("img");
     svgIcon.src = "/media/iconobus.svg";
     svgIcon.style.width = "40px";
     svgIcon.style.height = "40px";
     svgIcon.onerror = () => console.error("❌ Error cargando iconobus.svg");
 
-    if (window.marcadorBus) {
-        window.marcadorBus.position = ubicacion;
-    } else {
-        window.marcadorBus = new google.maps.marker.AdvancedMarkerElement({
-            position: ubicacion,
-            map: window.map,
-            title: "Ubicación actual del Bus",
-            content: svgIcon
-        });
+    // Eliminar el marcador anterior del bus, si existe
+    if (window.marcadores.bus) {
+        window.marcadores.bus.setMap(null);
+        console.log("🗑️ Marcador anterior del bus eliminado del mapa");
     }
+
+    // Crear un nuevo marcador en la nueva posición
+    window.marcadores.bus = new google.maps.marker.AdvancedMarkerElement({
+        position: ubicacion,
+        map: window.map,
+        title: "Ubicación actual del Bus",
+        content: svgIcon
+    });
 
     window.ultimaUbicacionBus = ubicacion;
     console.log("✅ Marcador del bus actualizado:", ubicacion);

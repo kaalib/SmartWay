@@ -1,3 +1,4 @@
+// scripts/modules/map-markers.js
 async function actualizarMapa(rutasIA) {
     if (!rutasIA) {
         console.warn("⚠️ rutasIA no proporcionado");
@@ -113,10 +114,10 @@ async function actualizarMapa(rutasIA) {
         });
     }
 
-    if (!bounds.isEmpty()) {
-        window.map.fitBounds(bounds);
-        console.log("🗺️ Mapa ajustado a los límites:", bounds.toJSON());
-    }
+    //if (!bounds.isEmpty()) {
+    //    window.map.fitBounds(bounds);
+    //    console.log("🗺️ Mapa ajustado a los límites:", bounds.toJSON());
+    //}
 }
 
 async function procesarRuta(direcciones, color, bounds) {
