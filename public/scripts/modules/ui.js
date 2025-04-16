@@ -180,37 +180,75 @@ function setupUIEvents() {
         return new Promise((resolve) => {
             // Caso de éxito: devolver datos con rutasIA
             const datosExito = {
+                tcp: [
+                    {
+                        id: "bus",
+                        nombre: "Bus",
+                        apellido: "",
+                        direccion: {
+                            lat: 10.9903872,
+                            lng: -74.7896832
+                        }
+                    },
+                    {
+                        id: 1,
+                        nombre: "Parada",
+                        apellido: "1",
+                        direccion: "Calle 72 #45-20, Barranquilla, Colombia",
+                        bus: 1
+                    },
+                    {
+                        id: 2,
+                        nombre: "Parada",
+                        apellido: "2",
+                        direccion: "Carrera 43 #70-15, Barranquilla, Colombia",
+                        bus: 1
+                    },
+                    {
+                        id: 3,
+                        nombre: "Parada",
+                        apellido: "3",
+                        direccion: "Calle 84 #51-30, Barranquilla, Colombia",
+                        bus: 1
+                    },
+                    {
+                        id: "punto_final",
+                        nombre: "Punto Final",
+                        apellido: "",
+                        direccion: "Carrera 15 #27A-40, Barranquilla, Colombia"
+                    }
+                ],
                 rutasIA: {
                     mejor_ruta_distancia: [
-                        { direccion: "Carrera 50 #53, Barranquilla, Colombia", nombre: "Inicio" },
-                        { direccion: "Calle 72 #45-20, Barranquilla, Colombia", nombre: "Parada1", bus: 1 },
-                        { direccion: "Carrera 43 #70-15, Barranquilla, Colombia", nombre: "Parada2", bus: 1 },
-                        { direccion: "Calle 84 #51-30, Barranquilla, Colombia", nombre: "Parada3", bus: 1 },
+                        { direccion: "10.9903872,-74.7896832", nombre: "Inicio" },
+                        { direccion: "Calle 72 #45-20, Barranquilla, Colombia", nombre: "Parada 1", bus: 1 },
+                        { direccion: "Carrera 43 #70-15, Barranquilla, Colombia", nombre: "Parada 2", bus: 1 },
+                        { direccion: "Calle 84 #51-30, Barranquilla, Colombia", nombre: "Parada 3", bus: 1 },
                         { direccion: "Carrera 15 #27A-40, Barranquilla, Colombia", nombre: "Destino" }
                     ],
                     mejor_ruta_trafico: [
-                        { direccion: "Carrera 50 #53, Barranquilla, Colombia", nombre: "Inicio" },
-                        { direccion: "Calle 70 #46-10, Barranquilla, Colombia", nombre: "Parada1", bus: 1 },
-                        { direccion: "Carrera 44 #68-25, Barranquilla, Colombia", nombre: "Parada2", bus: 1 },
-                        { direccion: "Calle 82 #50-40, Barranquilla, Colombia", nombre: "Parada3", bus: 1 },
+                        { direccion: "10.9903872,-74.7896832", nombre: "Inicio" },
+                        { direccion: "Calle 70 #46-10, Barranquilla, Colombia", nombre: "Parada 1 Alternativa", bus: 1 },
+                        { direccion: "Carrera 44 #68-25, Barranquilla, Colombia", nombre: "Parada 2 Alternativa", bus: 1 },
+                        { direccion: "Calle 82 #50-40, Barranquilla, Colombia", nombre: "Parada 3 Alternativa", bus: 1 },
                         { direccion: "Carrera 15 #27A-40, Barranquilla, Colombia", nombre: "Destino" }
                     ],
                     distancia_total_km: 15,
                     tiempo_total_min: 30
                 }
             };
-
+    
             // Caso de error: devolver datos sin rutasIA
             const datosError = {
                 mensaje: "No hay rutas disponibles"
             };
-
+    
             // Simular una respuesta HTTP
             const respuestaSimulada = {
                 ok: true,
                 json: () => Promise.resolve(simularError ? datosError : datosExito)
             };
-
+    
             setTimeout(() => resolve(respuestaSimulada), 1000); // Simular un pequeño retraso de red
         });
     }
@@ -219,19 +257,19 @@ function setupUIEvents() {
         try {
             await cerrarUbicacionModal();
             await mostrarLoader();
-
+    
             const btnInicio = document.getElementById("btnInicio");
             const btnSeleccionRuta = document.getElementById("btnSeleccionRuta");
             const btnFin = document.getElementById("btnFin");
             const modalText = document.getElementById("modalText");
-
+    
             const opcionSeleccionada = document.querySelector('input[name="ubicacion"]:checked').value;
             console.log("📍 Ubicación seleccionada:", opcionSeleccionada);
             window.ultimaParada = opcionSeleccionada === "parqueadero" ? "Carrera 15 #27A-40, Barranquilla" : "actual";
-
+    
             await gestionarUbicacion(true);
             await iniciarEnvioActualizacion();
-
+    
             let response;
             // Determinar si estamos en localhost para usar datos simulados
             const esLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
@@ -243,37 +281,68 @@ function setupUIEvents() {
                 console.log("🌐 Ejecutando en producción, usando fetch real...");
                 response = await fetch("/messages");
             }
-
+    
             if (!response.ok) {
                 throw new Error(`Error en la solicitud: ${response.status}`);
             }
             const data = await response.json();
-
+    
             if (!data.rutasIA) {
                 throw new Error("No se recibieron rutasIA del servidor");
             }
-
+    
             window.rutaDistancia = data.rutasIA.mejor_ruta_distancia;
             window.rutaTrafico = data.rutasIA.mejor_ruta_trafico;
             window.distanciaTotalKm = data.rutasIA.distancia_total_km;
             window.tiempoTotalMin = data.rutasIA.tiempo_total_min;
-
-            // Guardar rutas en localStorage
-            localStorage.setItem('rutaDistancia', JSON.stringify(window.rutaDistancia));
-            localStorage.setItem('rutaTrafico', JSON.stringify(window.rutaTrafico));
-            localStorage.setItem('rutaEnProgreso', 'true');
-
-            console.log("🗺️ Dibujando rutas:", { mejor_ruta_distancia: window.rutaDistancia, mejor_ruta_trafico: window.rutaTrafico });
-
-            // Construir el objeto rutasIA para pasarlo a actualizarMapa
-            const rutasIA = {
-                mejor_ruta_distancia: window.rutaDistancia,
-                mejor_ruta_trafico: window.rutaTrafico
+    
+            // Transformar rutasIA para que tenga el formato esperado (array de objetos)
+            const transformarRuta = (ruta, tcp) => {
+                return ruta.map((direccion, index) => {
+                    // Buscar la entrada correspondiente en tcp
+                    let nombre;
+                    if (index === 0) {
+                        nombre = "Inicio"; // Primer punto
+                    } else if (index === ruta.length - 1) {
+                        nombre = "Destino"; // Último punto
+                    } else {
+                        // Buscar en tcp para las paradas intermedias
+                        const entradaTcp = tcp.find(t => {
+                            if (typeof t.direccion === "object") {
+                                return `${t.direccion.lat},${t.direccion.lng}` === direccion;
+                            }
+                            return t.direccion === direccion;
+                        });
+                        nombre = entradaTcp ? `${entradaTcp.nombre} ${entradaTcp.apellido}`.trim() : `Parada ${index}`;
+                    }
+    
+                    return {
+                        direccion: direccion,
+                        nombre: nombre,
+                        bus: index > 0 && index < ruta.length - 1 ? 1 : undefined // Añadir bus solo para paradas intermedias
+                    };
+                });
             };
-
+    
+            // Transformar las rutas usando los datos de tcp
+            const rutasIA = {
+                mejor_ruta_distancia: transformarRuta(data.rutasIA.mejor_ruta_distancia, data.tcp),
+                mejor_ruta_trafico: transformarRuta(data.rutasIA.mejor_ruta_trafico, data.tcp)
+            };
+    
+            // Guardar rutas transformadas en localStorage
+            localStorage.setItem('rutaDistancia', JSON.stringify(rutasIA.mejor_ruta_distancia));
+            localStorage.setItem('rutaTrafico', JSON.stringify(rutasIA.mejor_ruta_trafico));
+            localStorage.setItem('rutaEnProgreso', 'true');
+    
+            console.log("🗺️ Dibujando rutas:", {
+                mejor_ruta_distancia: rutasIA.mejor_ruta_distancia,
+                mejor_ruta_trafico: rutasIA.mejor_ruta_trafico
+            });
+    
             // Dibujar rutas
             await actualizarMapa(rutasIA);
-
+    
             modalText.textContent = "Datos cargados. Escoja la mejor ruta según la información brindada.";
             btnInicio.disabled = true;
             btnInicio.classList.remove("btn-enabled");
@@ -284,12 +353,15 @@ function setupUIEvents() {
             btnFin.disabled = true;
             btnFin.classList.remove("btn-enabled");
             btnFin.classList.add("btn-disabled");
-
+    
             localStorage.setItem('btnInicioHabilitado', 'false');
             localStorage.setItem('btnSeleccionRutaHabilitado', 'true');
             localStorage.setItem('btnFinHabilitado', 'false');
-
-            socket.emit("solicitar_mensajes_tcp");
+    
+            // Manejar socket.emit en localhost
+            if (!esLocalhost) {
+                socket.emit("solicitar_mensajes_tcp");
+            }
         } catch (error) {
             console.error("❌ Error:", error);
             const modalText = document.getElementById("modalText");
@@ -451,7 +523,7 @@ function setupUIEvents() {
             .then(res => res.json())
             .then(data => {
                 console.log("✅ Emisión detenida en el servidor:", data);
-                //const socket = setupSocket();
+                const socket = setupSocket();
                 socket.emit("ruta_finalizada");
             })
             .catch(err => console.error("❌ Error deteniendo emisión:", err));
@@ -474,7 +546,7 @@ function setupUIEvents() {
 
     document.getElementById("btnSeleccionarRutaConfirm").addEventListener("click", () => {
         window.rutaSeleccionada = document.querySelector('input[name="ruta"]:checked').value;
-        //const socket = setupSocket();
+        
         cerrarRutaModal();
         document.getElementById("btnSeleccionRuta").disabled = true;
         document.getElementById("btnFin").disabled = false;

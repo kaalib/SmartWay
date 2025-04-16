@@ -122,15 +122,22 @@ async function actualizarMapa(rutasIA) {
 async function procesarRuta(direcciones, color, bounds) {
     if (!direcciones || direcciones.length === 0) {
         console.warn("⚠️ Direcciones vacías o no proporcionadas");
-        return;
+        return null;
     }
 
-    const locations = await Promise.all(direcciones.map(async (direccion, index) => {
+    const locations = await Promise.all(direcciones.map(async (entry, index) => {
+        // Manejar tanto objetos como strings
+        const direccion = typeof entry === "string" ? entry : entry.direccion;
+        if (!direccion) {
+            console.warn(`⚠️ Dirección no válida en la posición ${index}:`, entry);
+            return null;
+        }
+
         const location = await geocodificarDireccion(direccion);
         if (location) {
             // Crear o actualizar marcadores solo para las paradas (excluyendo origen y destino)
             if (index > 0 && index < direcciones.length - 1) {
-                const nombre = direcciones[index].nombre || `Parada ${index}`;
+                const nombre = typeof entry === "string" ? `Parada ${index}` : (entry.nombre || `Parada ${index}`);
                 agregarMarcador(location, nombre, bounds, index);
             }
         }
