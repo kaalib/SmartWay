@@ -140,13 +140,21 @@ async function procesarRuta(direcciones, color, bounds) {
                 const nombre = typeof entry === "string" ? `Parada ${index}` : (entry.nombre || `Parada ${index}`);
                 agregarMarcador(location, nombre, bounds, index);
             }
+        } else {
+            console.warn(`⚠️ No se pudo obtener ubicación para: ${direccion}`);
         }
         return location; // Devuelve LatLng o null
     }));
 
     const validLocations = locations.filter(loc => loc);
     if (validLocations.length < 2) {
-        console.warn("⚠️ No hay suficientes ubicaciones válidas para dibujar la ruta");
+        console.warn("⚠️ No hay suficientes ubicaciones válidas para dibujar la ruta. Ubicaciones válidas:", validLocations);
+        // Intentar continuar con las ubicaciones disponibles, si hay al menos 1
+        if (validLocations.length === 1) {
+            console.log("ℹ️ Solo hay una ubicación válida, no se dibujará una ruta, pero se mostrará el marcador.");
+            const nombre = typeof direcciones[0] === "string" ? "Punto único" : (direcciones[0].nombre || "Punto único");
+            agregarMarcador(validLocations[0], nombre, bounds, 0);
+        }
         return null;
     }
 
@@ -158,23 +166,31 @@ async function procesarRuta(direcciones, color, bounds) {
 // Ajustar geocodificarDireccion para manejar strings de coordenadas
 function geocodificarDireccion(direccion) {
     return new Promise((resolve) => {
-        if (!direccion) return resolve(null);
+        if (!direccion) {
+            console.warn("⚠️ Dirección no proporcionada:", direccion);
+            return resolve(null);
+        }
 
-        // Si es un string con coordenadas (ej. "10.9903872,-74.7896832")
+        // Manejar coordenadas (ej. "11.000218,-74.812621")
         if (typeof direccion === "string" && direccion.includes(",")) {
-            const [lat, lng] = direccion.split(",").map(Number);
+            const [lat, lng] = direccion.split(",").map(val => parseFloat(val.trim()));
             if (!isNaN(lat) && !isNaN(lng)) {
-                resolve(new google.maps.LatLng(lat, lng));
-                return;
+                console.log(`📍 Coordenadas parseadas: ${direccion} -> LatLng(${lat}, ${lng})`);
+                return resolve(new google.maps.LatLng(lat, lng));
+            } else {
+                console.warn(`⚠️ Coordenadas inválidas: ${direccion}`);
             }
         }
 
         // Si es una dirección de texto, geocodificarla
+        console.log(`📍 Geocodificando dirección de texto: ${direccion}`);
         window.geocoder.geocode({ address: direccion }, (results, status) => {
             if (status === "OK" && results[0]) {
-                resolve(results[0].geometry.location);
+                const location = results[0].geometry.location;
+                console.log(`✅ Dirección geocodificada: ${direccion} -> LatLng(${location.lat()}, ${location.lng()})`);
+                resolve(location);
             } else {
-                console.warn(`⚠️ No se pudo geocodificar: ${direccion}`);
+                console.warn(`⚠️ No se pudo geocodificar: ${direccion} - Estado: ${status}`);
                 resolve(null);
             }
         });

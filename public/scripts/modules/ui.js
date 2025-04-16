@@ -254,6 +254,7 @@ function setupUIEvents() {
     }
 
     document.getElementById("btnSeleccionarUbicacion").addEventListener("click", async () => {
+        let success = false; // Bandera para rastrear si el dibujo fue exitoso
         try {
             await cerrarUbicacionModal();
             await mostrarLoader();
@@ -275,7 +276,7 @@ function setupUIEvents() {
             const esLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
             if (esLocalhost) {
                 console.log("🖥️ Ejecutando en localhost, usando datos simulados...");
-                const simularError = false; // Cambia a true para simular el caso de error en localhost
+                const simularError = false;
                 response = await simularFetchMessages(simularError);
             } else {
                 console.log("🌐 Ejecutando en producción, usando fetch real...");
@@ -299,14 +300,12 @@ function setupUIEvents() {
             // Transformar rutasIA para que tenga el formato esperado (array de objetos)
             const transformarRuta = (ruta, tcp) => {
                 return ruta.map((direccion, index) => {
-                    // Buscar la entrada correspondiente en tcp
                     let nombre;
                     if (index === 0) {
-                        nombre = "Inicio"; // Primer punto
+                        nombre = "Inicio";
                     } else if (index === ruta.length - 1) {
-                        nombre = "Destino"; // Último punto
+                        nombre = "Destino";
                     } else {
-                        // Buscar en tcp para las paradas intermedias
                         const entradaTcp = tcp.find(t => {
                             if (typeof t.direccion === "object") {
                                 return `${t.direccion.lat},${t.direccion.lng}` === direccion;
@@ -319,7 +318,7 @@ function setupUIEvents() {
                     return {
                         direccion: direccion,
                         nombre: nombre,
-                        bus: index > 0 && index < ruta.length - 1 ? 1 : undefined // Añadir bus solo para paradas intermedias
+                        bus: index > 0 && index < ruta.length - 1 ? 1 : undefined
                     };
                 });
             };
@@ -340,49 +339,93 @@ function setupUIEvents() {
                 mejor_ruta_trafico: rutasIA.mejor_ruta_trafico
             });
     
-            // Dibujar rutas
-            await actualizarMapa(rutasIA);
+            // Intentar dibujar rutas con actualizarMapa
+            try {
+                await actualizarMapa(rutasIA);
+                success = true; // Marcar como exitoso si actualizarMapa no falla
+            } catch (error) {
+                console.error("❌ Error al dibujar rutas con actualizarMapa:", error);
+                // Intentar dibujar directamente desde variables globales como respaldo
+                console.log("ℹ️ Intentando dibujar rutas directamente desde variables globales...");
+                const bounds = new google.maps.LatLngBounds();
     
-            modalText.textContent = "Datos cargados. Escoja la mejor ruta según la información brindada.";
-            btnInicio.disabled = true;
-            btnInicio.classList.remove("btn-enabled");
-            btnInicio.classList.add("btn-disabled");
-            btnSeleccionRuta.disabled = false;
-            btnSeleccionRuta.classList.remove("btn-disabled");
-            btnSeleccionRuta.classList.add("btn-enabled");
-            btnFin.disabled = true;
-            btnFin.classList.remove("btn-enabled");
-            btnFin.classList.add("btn-disabled");
+                // Procesar mejor_ruta_distancia
+                const resultDistancia = await procesarRuta(window.rutaDistancia, '#00CC66', bounds);
+                if (resultDistancia?.renderer) {
+                    window.rutasDibujadas[0] = resultDistancia.renderer;
+                    console.log("✅ Ruta distancia dibujada directamente:", '#00CC66');
+                }
     
-            localStorage.setItem('btnInicioHabilitado', 'false');
-            localStorage.setItem('btnSeleccionRutaHabilitado', 'true');
-            localStorage.setItem('btnFinHabilitado', 'false');
+                // Procesar mejor_ruta_trafico
+                const resultTrafico = await procesarRuta(window.rutaTrafico, '#FF9900', bounds);
+                if (resultTrafico?.renderer) {
+                    window.rutasDibujadas[1] = resultTrafico.renderer;
+                    console.log("✅ Ruta tráfico dibujada directamente:", '#FF9900');
+                }
     
-            // Manejar socket.emit en localhost
-            if (!esLocalhost) {
-                socket.emit("solicitar_mensajes_tcp");
+                if (resultDistancia || resultTrafico) {
+                    window.map.fitBounds(bounds);
+                    success = true; // Marcar como exitoso si al menos una ruta se dibujó
+                } else {
+                    throw new Error("No se pudieron dibujar las rutas ni siquiera desde las variables globales");
+                }
             }
+    
+            // Actualizar UI si el dibujo fue exitoso
+            if (success) {
+                modalText.textContent = "Datos cargados. Escoja la mejor ruta según la información brindada.";
+            } else {
+                modalText.textContent = "Error al dibujar las rutas, pero puede continuar seleccionando una ruta.";
+            }
+    
         } catch (error) {
             console.error("❌ Error:", error);
             const modalText = document.getElementById("modalText");
             modalText.textContent = "Error procesando la solicitud. Intente de nuevo.";
+        } finally {
+            // Asegurar que los botones se actualicen siempre
             const btnInicio = document.getElementById("btnInicio");
             const btnSeleccionRuta = document.getElementById("btnSeleccionRuta");
             const btnFin = document.getElementById("btnFin");
-            btnInicio.disabled = false;
-            btnInicio.classList.remove("btn-disabled");
-            btnInicio.classList.add("btn-enabled");
-            btnSeleccionRuta.disabled = true;
-            btnSeleccionRuta.classList.remove("btn-enabled");
-            btnSeleccionRuta.classList.add("btn-disabled");
-            btnFin.disabled = true;
-            btnFin.classList.remove("btn-enabled");
-            btnFin.classList.add("btn-disabled");
-            localStorage.setItem('btnInicioHabilitado', 'true');
-            localStorage.setItem('btnSeleccionRutaHabilitado', 'false');
-            localStorage.setItem('btnFinHabilitado', 'false');
-            localStorage.setItem('rutaEnProgreso', 'false');
-        } finally {
+    
+            if (success) {
+                btnInicio.disabled = true;
+                btnInicio.classList.remove("btn-enabled");
+                btnInicio.classList.add("btn-disabled");
+                btnSeleccionRuta.disabled = false;
+                btnSeleccionRuta.classList.remove("btn-disabled");
+                btnSeleccionRuta.classList.add("btn-enabled");
+                btnFin.disabled = true;
+                btnFin.classList.remove("btn-enabled");
+                btnFin.classList.add("btn-disabled");
+    
+                localStorage.setItem('btnInicioHabilitado', 'false');
+                localStorage.setItem('btnSeleccionRutaHabilitado', 'true');
+                localStorage.setItem('btnFinHabilitado', 'false');
+            } else {
+                btnInicio.disabled = false;
+                btnInicio.classList.remove("btn-disabled");
+                btnInicio.classList.add("btn-enabled");
+                btnSeleccionRuta.disabled = true;
+                btnSeleccionRuta.classList.remove("btn-enabled");
+                btnSeleccionRuta.classList.add("btn-disabled");
+                btnFin.disabled = true;
+                btnFin.classList.remove("btn-enabled");
+                btnFin.classList.add("btn-disabled");
+    
+                localStorage.setItem('btnInicioHabilitado', 'true');
+                localStorage.setItem('btnSeleccionRutaHabilitado', 'false');
+                localStorage.setItem('btnFinHabilitado', 'false');
+                localStorage.setItem('rutaEnProgreso', 'false');
+            }
+    
+            // Manejar socket.emit en localhost
+            const esLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+            if (!esLocalhost && success) {
+                const socket = setupSocket();
+                socket.emit("solicitar_mensajes_tcp");
+            }
+    
             await cerrarLoader();
         }
     });
