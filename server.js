@@ -18,7 +18,6 @@ const MAX_TCP_CONNECTIONS = 1;
 let activeTcpConnections = 0;
 
 
-
 // Connect to MySQL database
 const db = mysql.createConnection({
     host: process.env.db_host,
@@ -34,6 +33,48 @@ db.connect((err) => {
     }
     console.log('✅ Connected to MySQL');
 });
+
+// Función para reconectar manualmente si la conexión se pierde
+function reconnect() {
+    console.log('🔄 Intentando reconectar a MySQL...');
+    db.connect((err) => {
+        if (err) {
+            console.error('❌ Error al reconectar a MySQL:', err.message);
+            // Reintentar después de 5 segundos si falla
+            setTimeout(reconnect, 5000);
+        } else {
+            console.log('✅ Reconexión exitosa a MySQL');
+        }
+    });
+}
+
+// Manejar eventos de desconexión
+db.on('error', (err) => {
+    console.error('❌ Error en la conexión a MySQL:', err.message);
+    if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+        console.log('🔄 Conexión perdida con RDS MySQL, intentando reconectar...');
+        reconnect();
+    } else {
+        throw err; // Otros errores no manejados
+    }
+});
+
+// Función para mantener la conexión viva con un ping cada 2 horas
+function keepAlive() {
+    db.query('SELECT id FROM empleados LIMIT 1', (err, results) => {
+        if (err) {
+            console.error('❌ Error al mantener viva la conexión a RDS MySQL:', err.message);
+            if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+                reconnect();
+            }
+        } else {
+            console.log('✅ Conexión a RDS MySQL mantenida viva:', new Date().toISOString());
+        }
+    });
+}
+
+// Iniciar el keep-alive cada 2 horas (7200000 ms)
+setInterval(keepAlive, 7200000);
 
 
 // Serve static files
