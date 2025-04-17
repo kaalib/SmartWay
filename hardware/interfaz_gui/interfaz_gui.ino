@@ -4,6 +4,7 @@
 #include <Adafruit_Fingerprint.h>
 #include <WiFi.h>
 #include <WiFiUdp.h>
+#include <Preferences.h>
 #include "var_config.h"
 
 #define XPT2046_IRQ 36
@@ -37,6 +38,10 @@ HardwareSerial mySerial(2);
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
 bool fingerprintReading = false;
+bool enrolling = false;
+int nextEnrollID = 1; 
+
+Preferences prefs; //guardar el ID en la memoria no volatil del esp32
 
 WiFiClient tcpClient;
 WiFiUDP udpClient;
@@ -97,7 +102,7 @@ bool enviarDatoTCP(int id) {
     Serial.println("✅ Conectado al servidor TCP");
 
     // Enviar el ID
-    Serial.print("📤 Enviando ID: ");
+    Serial.print("Enviando ID: ");
     Serial.println(id);
     tcpClient.print(String(id));
     tcpClient.flush();
@@ -129,7 +134,7 @@ void checkFingerprint() {
                 if (!enviarDatoTCP(finger.fingerID)) {
                     lv_label_set_text(label_status, "Error al enviar ID por TCP");
                     lv_task_handler();
-                    delay(2000);
+                    delay(3000);
                     lv_label_set_text(label_status, "Inserte su huella");
                 }
             } else {
@@ -276,6 +281,29 @@ void lv_create_main_gui(void) {
 
 static void btn_enroll_event_handler(lv_event_t * e) {
     Serial.println("Enroll button pressed");
+    lv_obj_add_flag(enroll_btn, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(fingerprint_btn, LV_OBJ_FLAG_HIDDEN);
+
+    back_btn = lv_btn_create(main_panel);
+    lv_obj_set_size(back_btn, 125, 45);
+    lv_obj_align(back_btn, LV_ALIGN_CENTER, 0, 60);
+    lv_obj_set_style_bg_color(back_btn, lv_color_hex(0x0059FF), LV_PART_MAIN);
+    lv_obj_add_event_cb(back_btn, back_event_handler, LV_EVENT_CLICKED, NULL);
+    lv_obj_set_style_radius(back_btn, 20, LV_PART_MAIN);
+    lv_obj_clear_flag(back_btn, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t * back_label = lv_label_create(back_btn);
+    lv_label_set_text(back_label, "Volver");
+    lv_obj_center(back_label);
+
+    lv_label_set_text(title_label, "Coloque el dedo en el\nsensor dos veces para\nregistrarse");
+    lv_obj_align(title_label, LV_ALIGN_TOP_MID, 0, -7);
+    lv_label_set_text(label_status, "Coloque su huella por primera vez");
+    lv_obj_align(label_status, LV_ALIGN_BOTTOM_MID, 0, -70);
+
+    lv_task_handler();
+
+    enrolling = true;
 }
 
 static void btn_fingerprint_event_handler(lv_event_t * e) {
@@ -297,6 +325,7 @@ static void btn_fingerprint_event_handler(lv_event_t * e) {
 
     lv_label_set_text(label_status, "Inserte su huella");
     lv_label_set_text(title_label, "");
+    lv_obj_align(title_label, LV_ALIGN_TOP_MID, 0, 12);
     lv_task_handler();
 
     startFingerprintReading();
@@ -305,6 +334,7 @@ static void btn_fingerprint_event_handler(lv_event_t * e) {
 static void back_event_handler(lv_event_t * e) {
     Serial.println("Back button pressed");
     fingerprintReading = false;
+    enrolling = false;
     if (tcpClient.connected()) {
         tcpClient.stop();
         Serial.println("✅ Conexión TCP cerrada");
@@ -316,15 +346,136 @@ static void back_event_handler(lv_event_t * e) {
     lv_obj_clear_flag(label_status, LV_OBJ_FLAG_HIDDEN);
 
     lv_label_set_text(title_label, "Transformando el\nTransporte Empresarial");
-    lv_label_set_text(label_status, "Por favor seleccione un modo");
+    lv_obj_align(title_label, LV_ALIGN_TOP_MID, 0, 2);
+    lv_label_set_text(label_status, "Seleccione un modo");
+    lv_obj_align(label_status, LV_ALIGN_BOTTOM_MID, 0, -80);
     lv_task_handler();
+}
+
+void enrollFingerprint() {
+    if (!enrolling) return;
+
+    if (nextEnrollID > 127) {
+        lv_obj_align(title_label, LV_ALIGN_TOP_MID, 0, -3);
+        lv_label_set_text(title_label, "Máximo número de\nhuellas registrado");
+        lv_label_set_text(label_status, "No se pueden registrar más huellas");
+        Serial.println("❌ Máximo número de huellas alcanzado");
+        enrolling = false;
+        lv_task_handler();
+        delay(2000);
+        back_event_handler(NULL);
+        return;
+    }
+
+    int id = nextEnrollID;
+    Serial.println("Iniciando registro para ID: " + String(id));
+
+    finger.deleteModel(id);
+    Serial.println("Eliminando huella previa en ID: " + String(id));
+
+    uint8_t p = FINGERPRINT_NOFINGER;
+    while (p != FINGERPRINT_OK) {
+        p = finger.getImage();
+        if (p == FINGERPRINT_NOFINGER) {
+            lv_timer_handler();
+            delay(1);
+            if (!enrolling) return;
+            continue;
+        }
+        if (p != FINGERPRINT_OK) {
+            lv_label_set_text(label_status, "Ha ocurrido un error, coloque el dedo por primera vez de nuevo");
+            Serial.println("❌ Error al leer huella (primera vez): " + String(p));
+            lv_task_handler();
+            delay(1000);
+            lv_label_set_text(label_status, "Coloque su huella por primera vez");
+            p = FINGERPRINT_NOFINGER;
+        }
+    }
+
+    p = finger.image2Tz(1);
+    if (p != FINGERPRINT_OK) {
+        lv_label_set_text(label_status, "Ha ocurrido un error, coloque el dedo por primera vez de nuevo");
+        Serial.println("❌ Error en image2Tz(1): " + String(p));
+        lv_task_handler();
+        delay(1000);
+        lv_label_set_text(label_status, "Coloque su huella por primera vez");
+        return;
+    }
+
+    lv_label_set_text(label_status, "Coloque su huella por segunda vez");
+    lv_task_handler();
+    delay(2000);
+
+    p = FINGERPRINT_NOFINGER;
+    while (p != FINGERPRINT_OK) {
+        p = finger.getImage();
+        if (p == FINGERPRINT_NOFINGER) {
+            lv_timer_handler();
+            delay(1);
+            if (!enrolling) return;
+            continue;
+        }
+        if (p != FINGERPRINT_OK) {
+            lv_label_set_text(label_status, "Ha ocurrido un error, coloque el dedo por segunda vez de nuevo");
+            Serial.println("❌ Error al leer huella (segunda vez): " + String(p));
+            lv_task_handler();
+            delay(1000);
+            lv_label_set_text(label_status, "Coloque su huella por segunda vez");
+            p = FINGERPRINT_NOFINGER;
+        }
+    }
+
+    p = finger.image2Tz(2);
+    if (p != FINGERPRINT_OK) {
+        lv_label_set_text(label_status, "Ha ocurrido un error, coloque el dedo por segunda vez de nuevo");
+        Serial.println("❌ Error en image2Tz(2): " + String(p));
+        lv_task_handler();
+        delay(1000);
+        lv_label_set_text(label_status, "Coloque su huella por segunda vez");
+        return;
+    }
+
+    p = finger.createModel();
+    if (p != FINGERPRINT_OK) {
+        lv_label_set_text(label_status, "Ha ocurrido un error, coloque el dedo por primera vez de nuevo");
+        Serial.println("❌ Error en createModel: " + String(p));
+        lv_task_handler();
+        delay(1000);
+        lv_label_set_text(label_status, "Coloque su huella por primera vez");
+        return;
+    }
+
+    p = finger.storeModel(id);
+    if (p != FINGERPRINT_OK) {
+        lv_label_set_text(label_status, "Ha ocurrido un error, coloque el dedo por primera vez de nuevo");
+        Serial.println("❌ Error en storeModel: " + String(p));
+        lv_task_handler();
+        delay(1000);
+        lv_label_set_text(label_status, "Coloque su huella por primera vez");
+        return;
+    }
+
+    lv_label_set_text(label_status, ("Huella #" + String(id) + " registrada exitosamente").c_str());
+    Serial.println("✅ Huella registrada con ID: " + String(id));
+
+    nextEnrollID++;
+    prefs.putInt("nextEnrollID", nextEnrollID);
+    Serial.println("Guardando nextEnrollID: " + String(nextEnrollID));
+
+    enrolling = false;
+    lv_task_handler();
+    delay(2000);
+    lv_label_set_text(label_status, "Coloque su huella por primera vez");
 }
 
 void setup() {
     Serial.begin(115200);
     lv_init();
 
-    // 1. Inicializar pantalla
+    prefs.begin("fingerprint", false);
+    nextEnrollID = prefs.getInt("nextEnrollID", 1);
+    Serial.println("Cargando nextEnrollID: " + String(nextEnrollID));
+
     tft.begin();
     delay(100);
     tft.setRotation(1);
@@ -354,7 +505,6 @@ void setup() {
     Serial.println("✅ Pantalla inicializada");
     Serial.println("Memoria libre después de pantalla: " + String(ESP.getFreeHeap()));
 
-    // 2. Inicializar sensor de huellas
     mySerial.begin(57600, SERIAL_8N1, FINGERPRINT_RX, FINGERPRINT_TX);
     finger.begin(57600);
 
@@ -367,7 +517,6 @@ void setup() {
     }
     Serial.println("Memoria libre después de sensor: " + String(ESP.getFreeHeap()));
 
-    // 3. Conectar a WiFi
     connectToWiFi();
 
     Serial.println("✅ Interfaz lista");
@@ -377,6 +526,9 @@ void loop() {
     lv_timer_handler();
     if (fingerprintReading) {
         checkFingerprint();
+    }
+    if (enrolling) {
+        enrollFingerprint();
     }
     delay(1);
 }
