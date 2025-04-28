@@ -20,11 +20,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Cargar variables de entorno
-env_path = os.path.join(os.getcwd(), "APIs.env")
+env_path = os.path.join(os.getcwd(), ".env")
 if not os.path.exists(env_path):
     logger.error(f"No se encontró APIs.env en {env_path}")
     raise FileNotFoundError(f"No se encontró APIs.env en {env_path}")
-load_dotenv("APIs.env")
+load_dotenv(".env")
 
 MYSQL_HOST = os.getenv('db_host')
 MYSQL_PORT = int(os.getenv('MYSQL_PORT', 3306))
