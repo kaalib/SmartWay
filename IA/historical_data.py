@@ -7,6 +7,10 @@ from dotenv import load_dotenv
 import mysql.connector
 from mysql.connector import Error
 import logging
+import polyline
+from math import radians, sin, cos, sqrt, atan2
+import random
+
 
 # Configurar logging
 logging.basicConfig(
@@ -35,7 +39,7 @@ GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 TOMTOM_API_KEY = os.getenv('TOMTOM_API_KEY')
 OPENWEATHER_API_KEY = os.getenv('OPENWEATHER_API_KEY')
 
-# Lista completa de direcciones (máximo 40)
+# Lista completa de direcciones (40 direcciones)
 ADDRESSES = [
     "Carrera 54 #55-127, Barranquilla, Atlántico",
     "Carrera 26B #74B-52, Barranquilla, Atlántico",
@@ -102,6 +106,15 @@ HOLIDAYS_2025 = [
     "2025-12-08", "2025-12-25"
 ]
 
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371000  # Radio de la Tierra en metros
+    phi1, phi2 = radians(lat1), radians(lat2)
+    delta_phi = radians(lat2 - lat1)
+    delta_lambda = radians(lon2 - lon1)
+    a = sin(delta_phi / 2) ** 2 + cos(phi1) * cos(phi2) * sin(delta_lambda / 2) ** 2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return R * c
+
 def connect_to_db():
     try:
         connection = mysql.connector.connect(
@@ -163,13 +176,13 @@ def geocode_address(address, connection):
     cursor.close()
     return None, None
 
-def get_google_directions(origin, destination, connection):
+def get_google_directions(origin, destination, connection, direction_calls):
     cursor = connection.cursor()
     query = """
         SELECT travel_time, distance_meters, response_json
         FROM api_cache
         WHERE origin = %s AND destination = %s AND api_type = 'google_directions'
-        AND timestamp > NOW() - INTERVAL 1 HOUR
+        AND timestamp > NOW() - INTERVAL 4 HOUR
     """
     cursor.execute(query, (origin, destination))
     result = cursor.fetchone()
@@ -177,7 +190,7 @@ def get_google_directions(origin, destination, connection):
     if result:
         logger.info(f"Usando caché para Directions: {origin} -> {destination}")
         cursor.close()
-        return result[0], result[1], json.loads(result[2])
+        return result[0], result[1], json.loads(result[2]), direction_calls
     
     logger.info(f"Consultando Directions API para: {origin} -> {destination}")
     url = "https://maps.googleapis.com/maps/api/directions/json"
@@ -204,18 +217,45 @@ def get_google_directions(origin, destination, connection):
                 connection.commit()
                 logger.info(f"Guardado en api_cache para: {origin} -> {destination}")
                 cursor.close()
-                return travel_time, distance, data
+                return travel_time, distance, data, direction_calls + 1
             else:
                 logger.error(f"Error en Directions API: {data.get('status', 'Desconocido')}")
-                return None, None, None
+                return None, None, None, direction_calls
         except Exception as e:
             logger.error(f"Intento {attempt + 1} fallido en Directions API: {e}")
             time.sleep(2 ** attempt)
     logger.error(f"No se pudo obtener Directions para {origin} -> {destination}")
     cursor.close()
-    return None, None, None
+    return None, None, None, direction_calls
 
-def get_tomtom_traffic(lat, lng):
+def get_tomtom_traffic(lat, lng, connection, traffic_cache, is_peak_hour):
+    # En horas pico, usar api_cache para el origen
+    if is_peak_hour:
+        cursor = connection.cursor()
+        query = """
+            SELECT response_json
+            FROM api_cache
+            WHERE origin = %s AND api_type = 'tomtom_traffic' AND timestamp > NOW() - INTERVAL 1 HOUR
+        """
+        cursor.execute(query, (f"{lat},{lng}",))
+        result = cursor.fetchone()
+        
+        if result:
+            logger.info(f"Usando api_cache para TomTom Traffic: ({lat}, {lng})")
+            data = json.loads(result[0])
+            current_speed = data['flowSegmentData']['currentSpeed']
+            free_flow_speed = data['flowSegmentData']['freeFlowSpeed']
+            traffic_level = 1 - (current_speed / free_flow_speed)
+            traffic_level = min(max(traffic_level, 0), 1)
+            cursor.close()
+            return traffic_level
+    
+    # Caché en memoria para puntos cercanos
+    for (cached_lat, cached_lng), traffic_level in traffic_cache.items():
+        if haversine(lat, lng, cached_lat, cached_lng) < 100:
+            logger.info(f"Usando tráfico en caché para ({lat}, {lng}) desde ({cached_lat}, {cached_lng})")
+            return traffic_level
+    
     url = "https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json"
     params = {
         'point': f"{lat},{lng}",
@@ -229,7 +269,22 @@ def get_tomtom_traffic(lat, lng):
                 current_speed = data['flowSegmentData']['currentSpeed']
                 free_flow_speed = data['flowSegmentData']['freeFlowSpeed']
                 traffic_level = 1 - (current_speed / free_flow_speed)
-                return min(max(traffic_level, 0), 1)
+                traffic_level = min(max(traffic_level, 0), 1)
+                traffic_cache[(lat, lng)] = traffic_level
+                
+                # Guardar en api_cache en horas pico
+                if is_peak_hour:
+                    cursor = connection.cursor()
+                    cursor.execute("""
+                        INSERT INTO api_cache (origin, api_type, timestamp, response_json)
+                        VALUES (%s, %s, NOW(), %s)
+                    """, (f"{lat},{lng}", 'tomtom_traffic', json.dumps(data)))
+                    connection.commit()
+                    logger.info(f"Guardado en api_cache para TomTom Traffic: ({lat}, {lng})")
+                    cursor.close()
+                
+                logger.info(f"Consultado TomTom para ({lat}, {lng}): traffic_level={traffic_level}")
+                return traffic_level
             else:
                 logger.error(f"Error en TomTom API: {data.get('error', 'Desconocido')}")
                 return 0.5
@@ -239,7 +294,12 @@ def get_tomtom_traffic(lat, lng):
     logger.warning("Usando tráfico por defecto (0.5) tras fallos en TomTom")
     return 0.5
 
-def get_openweather_condition(lat, lng):
+def get_openweather_condition(lat, lng, weather_cache):
+    current_hour = datetime.now().strftime('%Y-%m-%d %H:00:00')
+    if current_hour in weather_cache:
+        logger.info(f"Usando clima en caché para hora: {current_hour}")
+        return weather_cache[current_hour]
+    
     url = "https://api.openweathermap.org/data/2.5/weather"
     params = {
         'lat': lat,
@@ -254,15 +314,18 @@ def get_openweather_condition(lat, lng):
             if response.status_code == 200:
                 weather = data['weather'][0]['main']
                 if weather in ['Rain', 'Drizzle', 'Thunderstorm']:
-                    return "Lluvia"
+                    condition = "Lluvia"
                 elif weather == 'Clear':
-                    return "Despejado"
+                    condition = "Despejado"
                 elif weather == 'Clouds':
-                    return "Nublado"
+                    condition = "Nublado"
                 elif weather in ['Mist', 'Fog']:
-                    return "Niebla"
+                    condition = "Niebla"
                 else:
-                    return "Despejado"
+                    condition = "Despejado"
+                weather_cache[current_hour] = condition
+                logger.info(f"Consultado OpenWeather para ({lat}, {lng}): {condition}")
+                return condition
             else:
                 logger.error(f"Error en OpenWeather API: {data.get('message', 'Desconocido')}")
                 return "Despejado"
@@ -295,10 +358,29 @@ def check_arroyo_in_route(origin_coords, dest_coords, arroyo_coords, weather_con
     distance = ((ax - proj_x) ** 2 + (ay - proj_y) ** 2) ** 0.5
     return distance < 0.005
 
+def select_route_pairs(addresses, current_hour, is_peak_hour):
+    if is_peak_hour:
+        return [(o, d) for i, o in enumerate(addresses) for j, d in enumerate(addresses) if i != j]
+    
+    # Dividir en dos grupos de 20 direcciones
+    group_a = addresses[:20]
+    group_b = addresses[20:]
+    
+    # Alternar grupos según la hora (par/impar)
+    selected_group = group_a if current_hour % 2 == 0 else group_b
+    
+    # Generar pares dentro del grupo seleccionado (20 × 19 ÷ 2 ≈ 190, ajustado a 188)
+    pairs = [(o, d) for i, o in enumerate(selected_group) for j, d in enumerate(selected_group) if i < j]
+    return random.sample(pairs, min(188, len(pairs)))
+
 def collect_real_data():
     logger.info("Iniciando recolección de datos reales")
     connection = connect_to_db()
     cursor = connection.cursor()
+    
+    # Contadores de llamadas
+    direction_calls = 0
+    geocode_calls = 0
     
     # Geocodificar direcciones
     address_coords = {}
@@ -309,6 +391,7 @@ def collect_real_data():
             address_coords[address] = (lat, lng)
         else:
             logger.warning(f"Saltando dirección no geocodificada: {address}")
+        geocode_calls += 1 if not cursor._executed or 'SELECT' not in cursor._executed.decode() else 0
     
     for arroyo_address in ARROYO_ADDRESSES:
         lat, lng = geocode_address(arroyo_address, connection)
@@ -316,6 +399,7 @@ def collect_real_data():
             arroyo_coords[arroyo_address] = (lat, lng)
         else:
             logger.warning(f"Saltando arroyo no geocodificado: {arroyo_address}")
+        geocode_calls += 1 if not cursor._executed or 'SELECT' not in cursor._executed.decode() else 0
     
     if not address_coords:
         logger.error("No se geocodificaron direcciones válidas. Abortando.")
@@ -323,51 +407,84 @@ def collect_real_data():
         connection.close()
         return
     
+    # Caché de tráfico y clima
+    traffic_cache = {}
+    weather_cache = {}
+    tomtom_calls = 0
+    max_tomtom_calls = 100  # Límite por ejecución (2400 / 24 = 100)
+    
+    # Determinar si es hora pico
+    current_time = datetime.now()
+    current_hour = current_time.hour
+    is_peak_hour = current_hour in [7, 8, 17, 18, 19]
+    
+    # Seleccionar pares de rutas
+    route_pairs = select_route_pairs(list(address_coords.keys()), current_hour, is_peak_hour)
+    logger.info(f"Procesando {len(route_pairs)} pares de rutas (hora pico: {is_peak_hour})")
+    
     # Preparar datos para inserción
     data_to_insert = []
-    current_time = datetime.now()
     day_of_week = current_time.strftime('%A')
     is_holiday = 1 if current_time.strftime("%Y-%m-%d") in HOLIDAYS_2025 else 0
-    hour_of_day = current_time.hour
+    hour_of_day = current_hour
     
     # Obtener clima (Barranquilla)
     central_lat, central_lng = 10.9878, -74.7889
-    weather_condition = get_openweather_condition(central_lat, central_lng)
+    weather_condition = get_openweather_condition(central_lat, central_lng, weather_cache)
     
-    for i, origin in enumerate(address_coords.keys()):
-        for j, destination in enumerate(address_coords.keys()):
-            if i != j:
-                origin_coords = address_coords[origin]
-                dest_coords = address_coords[destination]
-                
-                # Obtener datos de Google Maps
-                travel_time, distance, directions_data = get_google_directions(origin, destination, connection)
-                if travel_time is None:
-                    logger.warning(f"Saltando ruta {origin} -> {destination} por fallo en Directions")
-                    continue
-                
-                # Obtener tráfico de TomTom
-                traffic_level = get_tomtom_traffic(origin_coords[0], origin_coords[1])
-                
-                # Verificar impacto de arroyos
-                weather_index = 0
-                for arroyo_address in arroyo_coords:
-                    if check_arroyo_in_route(origin_coords, dest_coords, arroyo_coords[arroyo_address], weather_condition):
-                        weather_index = 1
-                        break
-                
-                # Agregar a la lista para inserción
-                data_to_insert.append((
-                    origin, destination,
-                    float(origin_coords[0]), float(origin_coords[1]),
-                    float(dest_coords[0]), float(dest_coords[1]),
-                    float(travel_time), float(distance),
-                    float(traffic_level), day_of_week, is_holiday,
-                    weather_condition, hour_of_day, weather_index,
-                    current_time.strftime('%Y-%m-%d %H:%M:%S')
-                ))
-                logger.info(f"Preparada ruta: {origin} -> {destination}")
-                time.sleep(0.1)  # Evitar límites de API
+    for origin, destination in route_pairs:
+        origin_coords = address_coords[origin]
+        dest_coords = address_coords[destination]
+        
+        # Obtener datos de Google Maps
+        travel_time, distance, directions_data, direction_calls = get_google_directions(origin, destination, connection, direction_calls)
+        if travel_time is None:
+            logger.warning(f"Saltando ruta {origin} -> {destination} por fallo en Directions")
+            continue
+        
+        # Obtener polilínea y calcular tráfico
+        try:
+            polyline_encoded = directions_data['routes'][0]['overview_polyline']['points']
+            points = polyline.decode(polyline_encoded)
+            if len(points) > 3:
+                selected_points = [points[0], points[len(points)//2], points[-1]]  # Inicio, medio, fin
+            else:
+                selected_points = points
+        except Exception as e:
+            logger.warning(f"No se pudo decodificar polilínea para {origin} -> {destination}: {e}")
+            selected_points = [origin_coords, dest_coords]
+        
+        # Calcular tráfico promedio
+        traffic_levels = []
+        points_to_check = [points[0]] if is_peak_hour else selected_points  # Solo origen en horas pico
+        for lat, lng in points_to_check:
+            if tomtom_calls < max_tomtom_calls:
+                traffic_level = get_tomtom_traffic(lat, lng, connection, traffic_cache, is_peak_hour)
+                traffic_levels.append(traffic_level)
+                tomtom_calls += 1
+            else:
+                traffic_levels.append(0.5)  # Valor por defecto
+        traffic_level = sum(traffic_levels) / len(traffic_levels) if traffic_levels else 0.5
+        
+        # Verificar impacto de arroyos
+        weather_index = 0
+        for arroyo_address in arroyo_coords:
+            if check_arroyo_in_route(origin_coords, dest_coords, arroyo_coords[arroyo_address], weather_condition):
+                weather_index = 1
+                break
+        
+        # Agregar a la lista para inserción
+        data_to_insert.append((
+            origin, destination,
+            float(origin_coords[0]), float(origin_coords[1]),
+            float(dest_coords[0]), float(dest_coords[1]),
+            float(travel_time), float(distance),
+            float(traffic_level), day_of_week, is_holiday,
+            weather_condition, hour_of_day, weather_index,
+            current_time.strftime('%Y-%m-%d %H:%M:%S')
+        ))
+        logger.info(f"Preparada ruta: {origin} -> {destination}, traffic_level={traffic_level}")
+        time.sleep(0.1)  # Evitar límites de API
     
     # Insertar en historical_data_real
     if data_to_insert:
@@ -389,6 +506,9 @@ def collect_real_data():
                 logger.error(f"Error al insertar en historical_data_real: {e}")
                 connection.rollback()
     
+    logger.info(f"Total de llamadas a TomTom: {tomtom_calls}")
+    logger.info(f"Total de llamadas a Google Directions: {direction_calls}")
+    logger.info(f"Total de llamadas a Google Geocoding: {geocode_calls}")
     cursor.close()
     connection.close()
     logger.info("Conexión a MySQL cerrada")
