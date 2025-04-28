@@ -357,9 +357,9 @@ def check_arroyo_in_route(origin_coords, dest_coords, arroyo_coords, weather_con
     return distance < 0.005
 
 def select_route_pairs(addresses, current_hour, is_peak_hour):
-    # Generar todos los pares posibles y tomar 20 aleatoriamente
+    # Generar todos los pares posibles y tomar 100 aleatoriamente
     all_pairs = [(o, d) for i, o in enumerate(addresses) for j, d in enumerate(addresses) if i != j]
-    return random.sample(all_pairs, min(20, len(all_pairs)))
+    return random.sample(all_pairs, min(100, len(all_pairs)))
 
 def collect_real_data():
     logger.info("Iniciando recolección de datos reales")
