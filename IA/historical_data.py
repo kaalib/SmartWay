@@ -13,18 +13,18 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('data_collection.log'),
+        logging.FileHandler('/home/ubuntu/PF/IA/historical_data.log'),
         logging.StreamHandler()
     ]
 )
 logger = logging.getLogger(__name__)
 
 # Cargar variables de entorno
-env_path = os.path.join(os.getcwd(), ".env")
+env_path = "/home/ubuntu/PF/.env"  # Ruta absoluta
 if not os.path.exists(env_path):
-    logger.error(f"No se encontró APIs.env en {env_path}")
-    raise FileNotFoundError(f"No se encontró APIs.env en {env_path}")
-load_dotenv(".env")
+    logger.error(f"No se encontró .env en {env_path}")
+    raise FileNotFoundError(f"No se encontró .env en {env_path}")
+load_dotenv(env_path)  # Usar la ruta absoluta definida
 
 MYSQL_HOST = os.getenv('db_host')
 MYSQL_PORT = int(os.getenv('MYSQL_PORT', 3306))
