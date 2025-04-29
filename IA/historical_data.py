@@ -109,7 +109,7 @@ def haversine(lat1, lon1, lat2, lon2):
     phi1, phi2 = radians(lat1), radians(lat2)
     delta_phi = radians(lat2 - lat1)
     delta_lambda = radians(lon2 - lon1)
-    a = sin(delta_phi / 2) * 2 + cos(phi1) * cos(phi2) * sin(delta_lambda / 2) * 2
+    a = sin(delta_phi / 2) ** 2 + cos(phi1) * cos(phi2) * sin(delta_lambda / 2) ** 2
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
     return R * c
 
@@ -345,7 +345,7 @@ def check_arroyo_in_route(origin_coords, dest_coords, arroyo_coords, weather_con
     dx, dy = dest_coords
     ax, ay = arroyo_lat, arroyo_lng
     
-    len_sq = (dx - ox) * 2 + (dy - oy) * 2
+    len_sq = (dx - ox) ** 2 + (dy - oy) ** 2
     if len_sq == 0:
         return False
     
@@ -353,7 +353,7 @@ def check_arroyo_in_route(origin_coords, dest_coords, arroyo_coords, weather_con
     proj_x = ox + t * (dx - ox)
     proj_y = oy + t * (dy - oy)
     
-    distance = ((ax - proj_x) * 2 + (ay - proj_y) * 2) ** 0.5
+    distance = ((ax - proj_x) ** 2 + (ay - proj_y) ** 2) ** 0.5
     return distance < 0.005
 
 def select_route_pairs(addresses, current_hour, is_peak_hour):
