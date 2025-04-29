@@ -485,7 +485,7 @@ def collect_real_data():
     connection.close()
     logger.info("Conexión a MySQL cerrada")
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     try:
         collect_real_data()
     except Exception as e:
