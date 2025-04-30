@@ -129,7 +129,7 @@ void checkFingerprint() {
         if (p == FINGERPRINT_OK) {
             p = finger.fingerSearch();
             if (p == FINGERPRINT_OK) {
-                lv_label_set_text(title_label, "Huella leida exitosamente");
+                lv_label_set_text(title_label, "Huella detectada exitosamente");
                 Serial.println("Huella reconocida, ID: " + String(finger.fingerID));
                 if (!enviarDatoTCP(finger.fingerID)) {
                     lv_label_set_text(label_status, "Error al enviar ID por TCP");
@@ -247,7 +247,7 @@ void lv_create_main_gui(void) {
     lv_style_set_text_font(&style_btn_label, &lv_font_montserrat_16);
 
     lv_obj_t * enroll_label = lv_label_create(enroll_btn);
-    lv_label_set_text(enroll_label, "Enroll");
+    lv_label_set_text(enroll_label, "Registrar");
     lv_obj_add_style(enroll_label, &style_btn_label, 0);
     lv_style_set_text_font(&style_btn_label, &lv_font_montserrat_18);
     lv_obj_center(enroll_label);
@@ -262,7 +262,7 @@ void lv_create_main_gui(void) {
     lv_obj_set_style_radius(fingerprint_btn, 20, LV_PART_MAIN);
 
     lv_obj_t * fingerprint_label = lv_label_create(fingerprint_btn);
-    lv_label_set_text(fingerprint_label, "Fingerprint");
+    lv_label_set_text(fingerprint_label, "Ingresar");
     lv_obj_add_style(fingerprint_label, &style_btn_label, 0);
     lv_style_set_text_font(&style_btn_label, &lv_font_montserrat_18);
     lv_obj_set_style_text_color(fingerprint_label, lv_color_hex(0x0055FF), LV_PART_MAIN);
@@ -296,9 +296,9 @@ static void btn_enroll_event_handler(lv_event_t * e) {
     lv_label_set_text(back_label, "Volver");
     lv_obj_center(back_label);
 
-    lv_label_set_text(title_label, "Coloque el dedo en el\nsensor dos veces para\nregistrarse");
+    lv_label_set_text(title_label, "Siga las instrucciones de\nabajo para registrarse");
     lv_obj_align(title_label, LV_ALIGN_TOP_MID, 0, -7);
-    lv_label_set_text(label_status, "Coloque su huella por primera vez");
+    lv_label_set_text(label_status, "Coloque su huella 1\nvez y retire el dedo");
     lv_obj_align(label_status, LV_ALIGN_BOTTOM_MID, 0, -70);
 
     lv_task_handler();
@@ -357,9 +357,9 @@ void enrollFingerprint() {
 
     if (nextEnrollID > 127) {
         lv_obj_align(title_label, LV_ALIGN_TOP_MID, 0, -3);
-        lv_label_set_text(title_label, "Máximo número de\nhuellas registrado");
+        lv_label_set_text(title_label, "Maximo número de\nhuellas registrado");
         lv_label_set_text(label_status, "No se pueden registrar más huellas");
-        Serial.println("❌ Máximo número de huellas alcanzado");
+        Serial.println("❌ Maximo número de huellas alcanzado");
         enrolling = false;
         lv_task_handler();
         delay(2000);
@@ -383,26 +383,31 @@ void enrollFingerprint() {
             continue;
         }
         if (p != FINGERPRINT_OK) {
-            lv_label_set_text(label_status, "Ha ocurrido un error, coloque el dedo por primera vez de nuevo");
+            lv_label_set_text(label_status, "Ha ocurrido un error, coloque el\n    dedo y retirelo");
+            delay(5000);
+            lv_obj_align(label_status, LV_ALIGN_BOTTOM_MID, 0, -70);
             Serial.println("❌ Error al leer huella (primera vez): " + String(p));
             lv_task_handler();
             delay(1000);
-            lv_label_set_text(label_status, "Coloque su huella por primera vez");
+            lv_label_set_text(label_status, "Coloque su huella 1\nvez y retire el dedo");
             p = FINGERPRINT_NOFINGER;
         }
     }
 
     p = finger.image2Tz(1);
     if (p != FINGERPRINT_OK) {
-        lv_label_set_text(label_status, "Ha ocurrido un error, coloque el dedo por primera vez de nuevo");
+        lv_label_set_text(label_status, "Ha ocurrido un error, vuelva a\n    colocar el dedo y retirelo");
+        delay(5000);
+        lv_obj_align(label_status, LV_ALIGN_BOTTOM_MID, 0, -70);
         Serial.println("❌ Error en image2Tz(1): " + String(p));
         lv_task_handler();
         delay(1000);
-        lv_label_set_text(label_status, "Coloque su huella por primera vez");
+        lv_label_set_text(label_status, "Coloque su huella 1\nvez y retire el dedo");
         return;
     }
 
-    lv_label_set_text(label_status, "Coloque su huella por segunda vez");
+    lv_label_set_text(label_status, "     Coloque su huella una\nsegunda vez y retire el dedo");
+    lv_obj_align(label_status, LV_ALIGN_BOTTOM_MID, 0, -70);
     lv_task_handler();
     delay(2000);
 
@@ -416,46 +421,57 @@ void enrollFingerprint() {
             continue;
         }
         if (p != FINGERPRINT_OK) {
-            lv_label_set_text(label_status, "Ha ocurrido un error, coloque el dedo por segunda vez de nuevo");
+            lv_label_set_text(label_status, "Ha ocurrido un error, vuelva a\n    colocar el dedo y retirelo");
+            delay(5000);
+            lv_obj_align(label_status, LV_ALIGN_BOTTOM_MID, 0, -70);
             Serial.println("❌ Error al leer huella (segunda vez): " + String(p));
             lv_task_handler();
             delay(1000);
-            lv_label_set_text(label_status, "Coloque su huella por segunda vez");
+            lv_label_set_text(label_status, "     Coloque su huella una\nsegunda vez y retire el dedo");
+            lv_obj_align(label_status, LV_ALIGN_BOTTOM_MID, 0, -70);
             p = FINGERPRINT_NOFINGER;
         }
     }
 
     p = finger.image2Tz(2);
     if (p != FINGERPRINT_OK) {
-        lv_label_set_text(label_status, "Ha ocurrido un error, coloque el dedo por segunda vez de nuevo");
+        lv_label_set_text(label_status, "Ha ocurrido un error, vuelva a\n    colocar el dedo y retirelo");
+        delay(5000);
+        lv_obj_align(label_status, LV_ALIGN_BOTTOM_MID, 0, -70);
+        lv_obj_align(label_status, LV_ALIGN_BOTTOM_MID, 0, -70);
         Serial.println("❌ Error en image2Tz(2): " + String(p));
         lv_task_handler();
         delay(1000);
-        lv_label_set_text(label_status, "Coloque su huella por segunda vez");
+        lv_label_set_text(label_status, "     Coloque su huella una\nsegunda vez y retire el dedo");
+        lv_obj_align(label_status, LV_ALIGN_BOTTOM_MID, 0, -70);
         return;
     }
 
     p = finger.createModel();
     if (p != FINGERPRINT_OK) {
-        lv_label_set_text(label_status, "Ha ocurrido un error, coloque el dedo por primera vez de nuevo");
+        lv_label_set_text(label_status, "Ha ocurrido un error, vuelva a\n    colocar el dedo y retirelo");
+        delay(5000);
+        lv_obj_align(label_status, LV_ALIGN_BOTTOM_MID, 0, -70);
         Serial.println("❌ Error en createModel: " + String(p));
         lv_task_handler();
         delay(1000);
-        lv_label_set_text(label_status, "Coloque su huella por primera vez");
+        lv_label_set_text(label_status, "Coloque su huella 1\nvez y retire el dedo");
         return;
     }
 
     p = finger.storeModel(id);
     if (p != FINGERPRINT_OK) {
-        lv_label_set_text(label_status, "Ha ocurrido un error, coloque el dedo por primera vez de nuevo");
+        lv_label_set_text(label_status, "Ha ocurrido un error, vuelva a\n    colocar el dedo y retirelo");
+        delay(5000);
+        lv_obj_align(label_status, LV_ALIGN_BOTTOM_MID, 0, -70);
         Serial.println("❌ Error en storeModel: " + String(p));
         lv_task_handler();
         delay(1000);
-        lv_label_set_text(label_status, "Coloque su huella por primera vez");
+        lv_label_set_text(label_status, "Coloque su huella 1\nvez y retire el dedo");
         return;
     }
 
-    lv_label_set_text(label_status, ("Huella #" + String(id) + " registrada exitosamente").c_str());
+    lv_label_set_text(label_status, ("Huella #" + String(id) + " registrada\nexitosamente").c_str());
     Serial.println("✅ Huella registrada con ID: " + String(id));
 
     nextEnrollID++;
@@ -465,7 +481,7 @@ void enrollFingerprint() {
     enrolling = false;
     lv_task_handler();
     delay(2000);
-    lv_label_set_text(label_status, "Coloque su huella por primera vez");
+    lv_label_set_text(label_status, "Coloque su huella 1\nvez y retire el dedo");
 }
 
 void setup() {
