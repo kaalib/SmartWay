@@ -1,0 +1,372 @@
+2025-04-29 21:58:13,452 - INFO - Conexión exitosa a MySQL con SQLAlchemy
+2025-04-29 21:58:13,779 - INFO - Clima actual: Despejado
+2025-04-29 21:58:14,018 - ERROR - Error en la optimización: Could not locate function 'mse'. Make sure custom classes are decorated with `@keras.saving.register_keras_serializable()`. Full object config: {'module': 'keras.metrics', 'class_name': 'function', 'config': 'mse', 'registered_name': 'mse'}
+2025-04-29 22:13:38,563 - INFO - Conexión exitosa a MySQL con SQLAlchemy
+2025-04-29 22:13:38,961 - INFO - Clima actual: Despejado
+2025-04-29 22:13:39,203 - ERROR - Error en la optimización: Unable to reconstruct an instance of 'CustomAccuracy' because the class is missing a `from_config()` method. Full object config: {'class_name': 'CustomAccuracy', 'config': {'name': 'custom_accuracy', 'dtype': 'float32'}}
+2025-04-29 22:15:21,358 - INFO - Conexión exitosa a MySQL con SQLAlchemy
+2025-04-29 22:15:21,977 - INFO - Clima actual: Despejado
+2025-04-29 22:15:21,979 - ERROR - Error en la optimización: module 'tensorflow.keras' has no attribute 'saving'
+2025-04-29 22:16:10,238 - INFO - Conexión exitosa a MySQL con SQLAlchemy
+2025-04-29 22:16:10,507 - INFO - Clima actual: Despejado
+2025-04-29 22:16:10,509 - ERROR - Error en la optimización: module 'tensorflow.keras' has no attribute 'saving'
+2025-04-29 22:19:11,412 - INFO - Conexión exitosa a MySQL con SQLAlchemy
+2025-04-29 22:19:11,982 - INFO - Clima actual: Despejado
+2025-04-29 22:19:11,984 - ERROR - Error en la optimización: module 'tensorflow.keras' has no attribute 'saving'
+2025-04-29 22:20:22,042 - INFO - Conexión exitosa a MySQL con SQLAlchemy
+2025-04-29 22:20:22,540 - INFO - Clima actual: Despejado
+2025-04-29 22:20:22,795 - WARNING - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-04-29 22:20:22,844 - INFO - Modelo y preprocesadores cargados
+2025-04-29 22:20:24,375 - INFO - Usando caché para geocodificación: Cl. 85 #47-10, Barranquilla, Atlántico
+2025-04-29 22:20:24,648 - INFO - Usando caché para geocodificación: Cl. 82 #55-20, Barranquilla, Atlántico
+2025-04-29 22:20:24,909 - INFO - Usando caché para geocodificación: Cl. 84 #50-15, Barranquilla, Atlántico
+2025-04-29 22:20:25,174 - INFO - Usando caché para geocodificación: Cl. 85 #51B-30, Barranquilla, Atlántico
+2025-04-29 22:20:25,466 - INFO - Usando caché para geocodificación: Cl. 17 #38-25, Barranquilla, Atlántico
+2025-04-29 22:20:25,762 - INFO - Usando caché para geocodificación: Cl. 19 #35-40, Barranquilla, Atlántico
+2025-04-29 22:20:26,051 - INFO - Usando caché para geocodificación: Cl. 92 #51B-12, Barranquilla, Atlántico
+2025-04-29 22:20:26,334 - INFO - Usando caché para geocodificación: Cl. 92 #65-18, Barranquilla, Atlántico
+2025-04-29 22:20:26,605 - INFO - Usando caché para geocodificación: Cl. 79 #42F-22, Barranquilla, Atlántico
+2025-04-29 22:20:27,074 - INFO - Usando caché para geocodificación: Cl. 84 #43-35, Barranquilla, Atlántico
+2025-04-29 22:20:27,533 - INFO - Usando caché para geocodificación: Cl. 91 #50-28, Barranquilla, Atlántico
+2025-04-29 22:20:27,957 - INFO - Usando caché para geocodificación: Cl. 92 #52-16, Barranquilla, Atlántico
+2025-04-29 22:20:27,960 - ERROR - Error en la optimización: cannot access local variable 'cluster_addresses' where it is not associated with a value
+2025-04-29 22:32:03,918 - INFO - Conexión exitosa a MySQL con SQLAlchemy
+2025-04-29 22:32:04,485 - INFO - Clima actual: Despejado
+2025-04-29 22:32:04,489 - ERROR - Error en la optimización: module 'tensorflow.keras' has no attribute 'saving'
+2025-04-29 22:34:00,676 - INFO - Conexión exitosa a MySQL con SQLAlchemy
+2025-04-29 22:34:01,287 - INFO - Clima actual: Despejado
+2025-04-29 22:34:01,518 - WARNING - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-04-29 22:34:01,531 - INFO - Modelo y preprocesadores cargados
+2025-04-29 22:34:04,300 - ERROR - Error en la optimización: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'None' ([Errno 11001] getaddrinfo failed)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-04-29 22:35:21,591 - INFO - Conexión exitosa a MySQL con SQLAlchemy
+2025-04-29 22:35:21,895 - INFO - Clima actual: Despejado
+2025-04-29 22:35:21,897 - ERROR - Error en la optimización: module 'tensorflow.keras' has no attribute 'saving'
+2025-04-29 22:36:07,053 - INFO - Conexión exitosa a MySQL con SQLAlchemy
+2025-04-29 22:36:07,330 - INFO - Clima actual: Despejado
+2025-04-29 22:36:07,459 - WARNING - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-04-29 22:36:07,466 - INFO - Modelo y preprocesadores cargados
+2025-04-29 22:36:08,770 - INFO - Usando caché para geocodificación: Cl. 85 #47-10, Barranquilla, Atlántico
+2025-04-29 22:36:09,069 - INFO - Usando caché para geocodificación: Cl. 82 #55-20, Barranquilla, Atlántico
+2025-04-29 22:36:09,324 - INFO - Usando caché para geocodificación: Cl. 84 #50-15, Barranquilla, Atlántico
+2025-04-29 22:36:09,631 - INFO - Usando caché para geocodificación: Cl. 85 #51B-30, Barranquilla, Atlántico
+2025-04-29 22:36:09,881 - INFO - Usando caché para geocodificación: Cl. 17 #38-25, Barranquilla, Atlántico
+2025-04-29 22:36:10,137 - INFO - Usando caché para geocodificación: Cl. 19 #35-40, Barranquilla, Atlántico
+2025-04-29 22:36:10,461 - INFO - Usando caché para geocodificación: Cl. 92 #51B-12, Barranquilla, Atlántico
+2025-04-29 22:36:11,056 - INFO - Usando caché para geocodificación: Cl. 92 #65-18, Barranquilla, Atlántico
+2025-04-29 22:36:11,617 - INFO - Usando caché para geocodificación: Cl. 79 #42F-22, Barranquilla, Atlántico
+2025-04-29 22:36:11,979 - INFO - Usando caché para geocodificación: Cl. 84 #43-35, Barranquilla, Atlántico
+2025-04-29 22:36:12,234 - INFO - Usando caché para geocodificación: Cl. 91 #50-28, Barranquilla, Atlántico
+2025-04-29 22:36:12,523 - INFO - Usando caché para geocodificación: Cl. 92 #52-16, Barranquilla, Atlántico
+2025-04-29 22:36:12,526 - ERROR - Error en la optimización: cannot access local variable 'cluster_addresses' where it is not associated with a value
+2025-04-30 13:18:59,326 - INFO - Conexión exitosa a MySQL con SQLAlchemy
+2025-04-30 13:19:01,238 - INFO - Clima actual: Lluvia
+2025-04-30 13:19:01,535 - WARNING - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-04-30 13:19:01,600 - INFO - Modelo y preprocesadores cargados
+2025-04-30 13:19:11,479 - INFO - Usando caché para geocodificación: Cl. 85 #47-10, Barranquilla, Atlántico
+2025-04-30 13:19:12,480 - INFO - Usando caché para geocodificación: Cl. 82 #55-20, Barranquilla, Atlántico
+2025-04-30 13:19:14,673 - INFO - Usando caché para geocodificación: Cl. 84 #50-15, Barranquilla, Atlántico
+2025-04-30 13:19:16,990 - INFO - Usando caché para geocodificación: Cl. 85 #51B-30, Barranquilla, Atlántico
+2025-04-30 13:19:19,035 - INFO - Usando caché para geocodificación: Cl. 17 #38-25, Barranquilla, Atlántico
+2025-04-30 13:19:20,062 - INFO - Usando caché para geocodificación: Cl. 19 #35-40, Barranquilla, Atlántico
+2025-04-30 13:19:20,677 - INFO - Usando caché para geocodificación: Cl. 92 #51B-12, Barranquilla, Atlántico
+2025-04-30 13:19:22,298 - INFO - Usando caché para geocodificación: Cl. 92 #65-18, Barranquilla, Atlántico
+2025-04-30 13:19:23,230 - INFO - Usando caché para geocodificación: Cl. 79 #42F-22, Barranquilla, Atlántico
+2025-04-30 13:19:23,666 - INFO - Usando caché para geocodificación: Cl. 84 #43-35, Barranquilla, Atlántico
+2025-04-30 13:19:24,135 - INFO - Usando caché para geocodificación: Cl. 91 #50-28, Barranquilla, Atlántico
+2025-04-30 13:19:24,410 - INFO - Usando caché para geocodificación: Cl. 92 #52-16, Barranquilla, Atlántico
+2025-04-30 13:19:24,416 - ERROR - Error en la optimización: cannot access local variable 'cluster_addresses' where it is not associated with a value
+2025-04-30 13:56:45,143 - INFO - Conexión exitosa a MySQL con SQLAlchemy
+2025-04-30 13:56:45,864 - INFO - Clima actual: Lluvia
+2025-04-30 13:56:45,999 - WARNING - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-04-30 13:56:46,007 - INFO - Modelo y preprocesadores cargados
+2025-04-30 13:56:47,329 - INFO - Usando caché para geocodificación: Cl. 85 #47-10, Barranquilla, Atlántico
+2025-04-30 13:56:47,608 - INFO - Usando caché para geocodificación: Cl. 82 #55-20, Barranquilla, Atlántico
+2025-04-30 13:56:47,877 - INFO - Usando caché para geocodificación: Cl. 84 #50-15, Barranquilla, Atlántico
+2025-04-30 13:56:48,518 - INFO - Usando caché para geocodificación: Cl. 85 #51B-30, Barranquilla, Atlántico
+2025-04-30 13:56:48,915 - INFO - Usando caché para geocodificación: Cl. 17 #38-25, Barranquilla, Atlántico
+2025-04-30 13:56:49,190 - INFO - Usando caché para geocodificación: Cl. 19 #35-40, Barranquilla, Atlántico
+2025-04-30 13:56:49,519 - INFO - Usando caché para geocodificación: Cl. 92 #51B-12, Barranquilla, Atlántico
+2025-04-30 13:56:49,827 - INFO - Usando caché para geocodificación: Cl. 92 #65-18, Barranquilla, Atlántico
+2025-04-30 13:56:50,323 - INFO - Usando caché para geocodificación: Cl. 79 #42F-22, Barranquilla, Atlántico
+2025-04-30 13:56:50,602 - INFO - Usando caché para geocodificación: Cl. 84 #43-35, Barranquilla, Atlántico
+2025-04-30 13:56:50,869 - INFO - Usando caché para geocodificación: Cl. 91 #50-28, Barranquilla, Atlántico
+2025-04-30 13:56:51,150 - INFO - Usando caché para geocodificación: Cl. 92 #52-16, Barranquilla, Atlántico
+2025-04-30 13:56:51,153 - ERROR - Error en la optimización: cannot access local variable 'cluster_addresses' where it is not associated with a value
+2025-05-01 16:13:23,571 - INFO - Conexión exitosa a MySQL con SQLAlchemy
+2025-05-01 16:13:25,996 - INFO - Clima actual: Despejado
+2025-05-01 16:13:26,240 - WARNING - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-05-01 16:13:26,320 - INFO - Modelo y preprocesadores cargados
+2025-05-01 16:13:36,467 - ERROR - Error al consultar api_cache para Cl. 85 #47-10, Barranquilla, Atlántico: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'database-pf.c3o66we46u60.us-east-1.rds.amazonaws.com' (timed out)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-05-01 16:13:46,933 - ERROR - Error al consultar api_cache para Cl. 82 #55-20, Barranquilla, Atlántico: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'database-pf.c3o66we46u60.us-east-1.rds.amazonaws.com' (timed out)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-05-01 16:13:56,966 - ERROR - Error al consultar api_cache para Cl. 84 #50-15, Barranquilla, Atlántico: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'database-pf.c3o66we46u60.us-east-1.rds.amazonaws.com' (timed out)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-05-01 16:14:07,003 - ERROR - Error al consultar api_cache para Cl. 85 #51B-30, Barranquilla, Atlántico: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'database-pf.c3o66we46u60.us-east-1.rds.amazonaws.com' (timed out)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-05-01 16:14:17,051 - ERROR - Error al consultar api_cache para Cl. 17 #38-25, Barranquilla, Atlántico: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'database-pf.c3o66we46u60.us-east-1.rds.amazonaws.com' (timed out)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-05-01 16:14:27,085 - ERROR - Error al consultar api_cache para Cl. 19 #35-40, Barranquilla, Atlántico: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'database-pf.c3o66we46u60.us-east-1.rds.amazonaws.com' (timed out)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-05-01 16:14:37,149 - ERROR - Error al consultar api_cache para Cl. 92 #51B-12, Barranquilla, Atlántico: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'database-pf.c3o66we46u60.us-east-1.rds.amazonaws.com' (timed out)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-05-01 16:14:47,185 - ERROR - Error al consultar api_cache para Cl. 92 #65-18, Barranquilla, Atlántico: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'database-pf.c3o66we46u60.us-east-1.rds.amazonaws.com' (timed out)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-05-01 16:14:57,279 - ERROR - Error al consultar api_cache para Cl. 79 #42F-22, Barranquilla, Atlántico: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'database-pf.c3o66we46u60.us-east-1.rds.amazonaws.com' (timed out)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-05-01 16:15:07,875 - ERROR - Error al consultar api_cache para Cl. 84 #43-35, Barranquilla, Atlántico: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'database-pf.c3o66we46u60.us-east-1.rds.amazonaws.com' (timed out)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-05-01 16:15:17,908 - ERROR - Error al consultar api_cache para Cl. 91 #50-28, Barranquilla, Atlántico: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'database-pf.c3o66we46u60.us-east-1.rds.amazonaws.com' (timed out)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-05-01 16:15:27,960 - ERROR - Error al consultar api_cache para Cl. 92 #52-16, Barranquilla, Atlántico: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'database-pf.c3o66we46u60.us-east-1.rds.amazonaws.com' (timed out)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-05-01 16:15:38,019 - ERROR - Error al consultar historical_data_simulated: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'database-pf.c3o66we46u60.us-east-1.rds.amazonaws.com' (timed out)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-05-01 16:15:48,367 - ERROR - Error al consultar api_cache para Universidad del Norte, Barranquilla, Atlántico: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'database-pf.c3o66we46u60.us-east-1.rds.amazonaws.com' (timed out)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-05-01 16:15:48,372 - ERROR - Error al geocodificar Universidad del Norte, Barranquilla, Atlántico: Error al consultar api_cache para Universidad del Norte, Barranquilla, Atlántico: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'database-pf.c3o66we46u60.us-east-1.rds.amazonaws.com' (timed out)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-05-01 16:15:48,374 - ERROR - Error en la optimización: Error al consultar api_cache para Universidad del Norte, Barranquilla, Atlántico: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server on 'database-pf.c3o66we46u60.us-east-1.rds.amazonaws.com' (timed out)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-05-01 16:18:15,523 - INFO - Conexión exitosa a MySQL con SQLAlchemy
+2025-05-01 16:18:17,436 - INFO - Clima actual: Despejado
+2025-05-01 16:18:17,646 - WARNING - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-05-01 16:18:17,659 - INFO - Modelo y preprocesadores cargados
+2025-05-01 16:18:24,233 - INFO - Usando caché para geocodificación: Cl. 85 #47-10, Barranquilla, Atlántico
+2025-05-01 16:18:26,010 - INFO - Usando caché para geocodificación: Cl. 82 #55-20, Barranquilla, Atlántico
+2025-05-01 16:18:27,470 - INFO - Usando caché para geocodificación: Cl. 84 #50-15, Barranquilla, Atlántico
+2025-05-01 16:18:29,296 - INFO - Usando caché para geocodificación: Cl. 85 #51B-30, Barranquilla, Atlántico
+2025-05-01 16:18:32,899 - INFO - Usando caché para geocodificación: Cl. 17 #38-25, Barranquilla, Atlántico
+2025-05-01 16:18:34,489 - INFO - Usando caché para geocodificación: Cl. 19 #35-40, Barranquilla, Atlántico
+2025-05-01 16:18:37,059 - INFO - Usando caché para geocodificación: Cl. 92 #51B-12, Barranquilla, Atlántico
+2025-05-01 16:18:37,657 - INFO - Usando caché para geocodificación: Cl. 92 #65-18, Barranquilla, Atlántico
+2025-05-01 16:18:39,052 - INFO - Usando caché para geocodificación: Cl. 79 #42F-22, Barranquilla, Atlántico
+2025-05-01 16:18:39,938 - INFO - Usando caché para geocodificación: Cl. 84 #43-35, Barranquilla, Atlántico
+2025-05-01 16:18:40,275 - INFO - Usando caché para geocodificación: Cl. 91 #50-28, Barranquilla, Atlántico
+2025-05-01 16:18:40,562 - INFO - Usando caché para geocodificación: Cl. 92 #52-16, Barranquilla, Atlántico
+2025-05-01 16:18:41,411 - INFO - Clústeres creados con GMM: 2 clústeres para 8 direcciones
+2025-05-01 16:18:41,745 - INFO - No se encontró geocodificación para Universidad del Norte, Barranquilla, Atlántico en caché. Consultando Google Geocoding API.
+2025-05-01 16:18:42,185 - ERROR - Error al guardar en api_cache para Universidad del Norte, Barranquilla, Atlántico: List argument must consist only of tuples or dictionaries
+2025-05-01 16:18:42,471 - INFO - Usando caché para geocodificación: Cra. 54 #55-127, Barranquilla, Atlántico
+2025-05-01 16:18:42,774 - INFO - Usando caché para geocodificación: Cra. 42 #51-35, Barranquilla, Atlántico
+2025-05-01 16:18:43,061 - INFO - Usando caché para geocodificación: Cl. 45D #17-12, Barranquilla, Atlántico
+2025-05-01 16:18:43,352 - INFO - Usando caché para geocodificación: Cl. 85 #53-25, Barranquilla, Atlántico
+2025-05-01 16:18:43,642 - INFO - Usando caché para geocodificación: Cra. 17 #80-10, Soledad, Atlántico
+2025-05-01 16:18:43,926 - INFO - Usando caché para geocodificación: Cra. 51B #135-01, Barranquilla, Atlántico
+2025-05-01 16:18:44,636 - INFO - Usando caché para geocodificación: Cl. 58 #45-30, Barranquilla, Atlántico
+2025-05-01 16:18:45,396 - INFO - Usando caché para geocodificación: Cra. 26B #74B-52, Barranquilla, Atlántico
+2025-05-01 16:18:46,105 - INFO - No se encontró geocodificación para Colegio Karl C. Parrish, Barranquilla, Atlántico en caché. Consultando Google Geocoding API.
+2025-05-01 16:18:47,786 - ERROR - Error al guardar en api_cache para Colegio Karl C. Parrish, Barranquilla, Atlántico: List argument must consist only of tuples or dictionaries
+2025-05-01 16:18:48,069 - INFO - Usando caché para geocodificación: Cl. 85 #47-10, Barranquilla, Atlántico
+2025-05-01 16:18:48,921 - INFO - Usando caché para geocodificación: Cl. 82 #55-20, Barranquilla, Atlántico
+2025-05-01 16:18:50,010 - INFO - Usando caché para geocodificación: Cl. 84 #50-15, Barranquilla, Atlántico
+2025-05-01 16:18:50,731 - INFO - Usando caché para geocodificación: Cl. 85 #51B-30, Barranquilla, Atlántico
+2025-05-01 16:18:52,416 - INFO - Usando caché para geocodificación: Cl. 17 #38-25, Barranquilla, Atlántico
+2025-05-01 16:18:54,261 - INFO - Usando caché para geocodificación: Cl. 19 #35-40, Barranquilla, Atlántico
+2025-05-01 16:18:55,087 - INFO - Usando caché para geocodificación: Cl. 92 #51B-12, Barranquilla, Atlántico
+2025-05-01 16:18:56,665 - INFO - Usando caché para geocodificación: Cl. 92 #65-18, Barranquilla, Atlántico
+2025-05-01 16:18:57,097 - INFO - Usando caché para geocodificación: Cl. 79 #42F-22, Barranquilla, Atlántico
+2025-05-01 16:18:57,975 - INFO - Usando caché para geocodificación: Cl. 84 #43-35, Barranquilla, Atlántico
+2025-05-01 16:18:59,011 - INFO - Usando caché para geocodificación: Cl. 91 #50-28, Barranquilla, Atlántico
+2025-05-01 16:19:00,136 - INFO - Usando caché para geocodificación: Cl. 92 #52-16, Barranquilla, Atlántico
+2025-05-01 16:19:00,203 - ERROR - Error en la optimización: 'OneHotEncoder' object has no attribute '_infrequent_enabled'
+2025-05-01 16:50:53,005 - INFO - Conexión exitosa a MySQL con SQLAlchemy
+2025-05-01 16:50:56,970 - INFO - Clima actual: Despejado
+2025-05-01 16:50:57,353 - WARNING - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-05-01 16:50:57,377 - INFO - Modelo y preprocesadores cargados
+2025-05-01 16:51:00,908 - INFO - Conexión directa a MySQL exitosa
+2025-05-01 16:51:02,191 - INFO - Usando caché para geocodificación: Cl. 85 #47-10, Barranquilla, Atlántico
+2025-05-01 16:51:02,600 - INFO - Usando caché para geocodificación: Cl. 82 #55-20, Barranquilla, Atlántico
+2025-05-01 16:51:03,258 - INFO - Usando caché para geocodificación: Cl. 84 #50-15, Barranquilla, Atlántico
+2025-05-01 16:51:03,421 - INFO - Usando caché para geocodificación: Cl. 85 #51B-30, Barranquilla, Atlántico
+2025-05-01 16:51:03,627 - INFO - Usando caché para geocodificación: Cl. 17 #38-25, Barranquilla, Atlántico
+2025-05-01 16:51:04,129 - INFO - Usando caché para geocodificación: Cl. 19 #35-40, Barranquilla, Atlántico
+2025-05-01 16:51:04,546 - INFO - Usando caché para geocodificación: Cl. 92 #51B-12, Barranquilla, Atlántico
+2025-05-01 16:51:04,751 - INFO - Usando caché para geocodificación: Cl. 92 #65-18, Barranquilla, Atlántico
+2025-05-01 16:51:05,264 - INFO - Usando caché para geocodificación: Cl. 79 #42F-22, Barranquilla, Atlántico
+2025-05-01 16:51:05,781 - INFO - Usando caché para geocodificación: Cl. 84 #43-35, Barranquilla, Atlántico
+2025-05-01 16:51:06,562 - INFO - Usando caché para geocodificación: Cl. 91 #50-28, Barranquilla, Atlántico
+2025-05-01 16:51:07,016 - INFO - Usando caché para geocodificación: Cl. 92 #52-16, Barranquilla, Atlántico
+2025-05-01 16:51:15,165 - INFO - Clústeres creados con GMM: 2 clústeres para 8 direcciones
+2025-05-01 16:51:17,347 - INFO - Conexión directa a MySQL exitosa
+2025-05-01 16:51:17,516 - INFO - Consultando Geocoding API para: Universidad del Norte, Barranquilla, Atlántico
+2025-05-01 16:51:19,900 - INFO - Guardado en api_cache para: Universidad del Norte, Barranquilla, Atlántico
+2025-05-01 16:51:20,335 - INFO - Usando caché para geocodificación: Cra. 54 #55-127, Barranquilla, Atlántico
+2025-05-01 16:51:20,773 - INFO - Usando caché para geocodificación: Cra. 42 #51-35, Barranquilla, Atlántico
+2025-05-01 16:51:21,199 - INFO - Usando caché para geocodificación: Cl. 45D #17-12, Barranquilla, Atlántico
+2025-05-01 16:51:21,340 - INFO - Usando caché para geocodificación: Cl. 85 #53-25, Barranquilla, Atlántico
+2025-05-01 16:51:21,584 - INFO - Usando caché para geocodificación: Cra. 17 #80-10, Soledad, Atlántico
+2025-05-01 16:51:21,972 - INFO - Usando caché para geocodificación: Cra. 51B #135-01, Barranquilla, Atlántico
+2025-05-01 16:51:22,477 - INFO - Usando caché para geocodificación: Cl. 58 #45-30, Barranquilla, Atlántico
+2025-05-01 16:51:22,962 - INFO - Usando caché para geocodificación: Cra. 26B #74B-52, Barranquilla, Atlántico
+2025-05-01 16:51:23,344 - INFO - Consultando Geocoding API para: Colegio Karl C. Parrish, Barranquilla, Atlántico
+2025-05-01 16:51:25,338 - INFO - Guardado en api_cache para: Colegio Karl C. Parrish, Barranquilla, Atlántico
+2025-05-01 16:51:25,640 - INFO - Usando caché para geocodificación: Cl. 85 #47-10, Barranquilla, Atlántico
+2025-05-01 16:51:26,050 - INFO - Usando caché para geocodificación: Cl. 82 #55-20, Barranquilla, Atlántico
+2025-05-01 16:51:26,774 - INFO - Usando caché para geocodificación: Cl. 84 #50-15, Barranquilla, Atlántico
+2025-05-01 16:51:27,186 - INFO - Usando caché para geocodificación: Cl. 85 #51B-30, Barranquilla, Atlántico
+2025-05-01 16:51:27,366 - INFO - Usando caché para geocodificación: Cl. 17 #38-25, Barranquilla, Atlántico
+2025-05-01 16:51:27,490 - INFO - Usando caché para geocodificación: Cl. 19 #35-40, Barranquilla, Atlántico
+2025-05-01 16:51:27,647 - INFO - Usando caché para geocodificación: Cl. 92 #51B-12, Barranquilla, Atlántico
+2025-05-01 16:51:27,778 - INFO - Usando caché para geocodificación: Cl. 92 #65-18, Barranquilla, Atlántico
+2025-05-01 16:51:27,901 - INFO - Usando caché para geocodificación: Cl. 79 #42F-22, Barranquilla, Atlántico
+2025-05-01 16:51:28,020 - INFO - Usando caché para geocodificación: Cl. 84 #43-35, Barranquilla, Atlántico
+2025-05-01 16:51:28,140 - INFO - Usando caché para geocodificación: Cl. 91 #50-28, Barranquilla, Atlántico
+2025-05-01 16:51:28,295 - INFO - Usando caché para geocodificación: Cl. 92 #52-16, Barranquilla, Atlántico
+2025-05-01 16:51:28,303 - ERROR - Error en preprocess_input: OneHotEncoder.__init__() got an unexpected keyword argument 'sparse'
+2025-05-01 16:51:28,303 - ERROR - Error en predict_traffic: OneHotEncoder.__init__() got an unexpected keyword argument 'sparse'
+2025-05-01 16:51:28,303 - ERROR - Error en la optimización: OneHotEncoder.__init__() got an unexpected keyword argument 'sparse'
+2025-05-01 17:35:25,904 - INFO - Conexión exitosa a MySQL con SQLAlchemy
+2025-05-01 17:35:26,641 - INFO - Clima actual: Lluvia
+2025-05-01 17:35:26,984 - WARNING - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-05-01 17:35:26,996 - INFO - Modelo y preprocesadores cargados
+2025-05-01 17:35:28,151 - INFO - Conexión directa a MySQL exitosa
+2025-05-01 17:35:28,398 - INFO - Usando caché para geocodificación: Cl. 85 #47-10, Barranquilla, Atlántico
+2025-05-01 17:35:28,525 - INFO - Usando caché para geocodificación: Cl. 82 #55-20, Barranquilla, Atlántico
+2025-05-01 17:35:28,645 - INFO - Usando caché para geocodificación: Cl. 84 #50-15, Barranquilla, Atlántico
+2025-05-01 17:35:28,765 - INFO - Usando caché para geocodificación: Cl. 85 #51B-30, Barranquilla, Atlántico
+2025-05-01 17:35:28,926 - INFO - Usando caché para geocodificación: Cl. 17 #38-25, Barranquilla, Atlántico
+2025-05-01 17:35:29,259 - INFO - Usando caché para geocodificación: Cl. 19 #35-40, Barranquilla, Atlántico
+2025-05-01 17:35:29,380 - INFO - Usando caché para geocodificación: Cl. 92 #51B-12, Barranquilla, Atlántico
+2025-05-01 17:35:29,755 - INFO - Usando caché para geocodificación: Cl. 92 #65-18, Barranquilla, Atlántico
+2025-05-01 17:35:29,879 - INFO - Usando caché para geocodificación: Cl. 79 #42F-22, Barranquilla, Atlántico
+2025-05-01 17:35:30,166 - INFO - Usando caché para geocodificación: Cl. 84 #43-35, Barranquilla, Atlántico
+2025-05-01 17:35:30,374 - INFO - Usando caché para geocodificación: Cl. 91 #50-28, Barranquilla, Atlántico
+2025-05-01 17:35:30,495 - INFO - Usando caché para geocodificación: Cl. 92 #52-16, Barranquilla, Atlántico
+2025-05-01 17:35:32,537 - INFO - Clústeres creados con GMM: 2 clústeres para 8 direcciones
+2025-05-01 17:35:32,925 - INFO - Conexión directa a MySQL exitosa
+2025-05-01 17:35:33,104 - INFO - Usando caché para geocodificación: Universidad del Norte, Barranquilla, Atlántico
+2025-05-01 17:35:33,254 - INFO - Usando caché para geocodificación: Cra. 54 #55-127, Barranquilla, Atlántico
+2025-05-01 17:35:33,404 - INFO - Usando caché para geocodificación: Cra. 42 #51-35, Barranquilla, Atlántico
+2025-05-01 17:35:33,554 - INFO - Usando caché para geocodificación: Cl. 45D #17-12, Barranquilla, Atlántico
+2025-05-01 17:35:33,668 - INFO - Usando caché para geocodificación: Cl. 85 #53-25, Barranquilla, Atlántico
+2025-05-01 17:35:33,785 - INFO - Usando caché para geocodificación: Cra. 17 #80-10, Soledad, Atlántico
+2025-05-01 17:35:33,950 - INFO - Usando caché para geocodificación: Cra. 51B #135-01, Barranquilla, Atlántico
+2025-05-01 17:35:34,064 - INFO - Usando caché para geocodificación: Cl. 58 #45-30, Barranquilla, Atlántico
+2025-05-01 17:35:34,178 - INFO - Usando caché para geocodificación: Cra. 26B #74B-52, Barranquilla, Atlántico
+2025-05-01 17:35:34,291 - INFO - Usando caché para geocodificación: Colegio Karl C. Parrish, Barranquilla, Atlántico
+2025-05-01 17:35:34,399 - INFO - Usando caché para geocodificación: Cl. 85 #47-10, Barranquilla, Atlántico
+2025-05-01 17:35:34,514 - INFO - Usando caché para geocodificación: Cl. 82 #55-20, Barranquilla, Atlántico
+2025-05-01 17:35:34,634 - INFO - Usando caché para geocodificación: Cl. 84 #50-15, Barranquilla, Atlántico
+2025-05-01 17:35:34,746 - INFO - Usando caché para geocodificación: Cl. 85 #51B-30, Barranquilla, Atlántico
+2025-05-01 17:35:34,859 - INFO - Usando caché para geocodificación: Cl. 17 #38-25, Barranquilla, Atlántico
+2025-05-01 17:35:35,278 - INFO - Usando caché para geocodificación: Cl. 19 #35-40, Barranquilla, Atlántico
+2025-05-01 17:35:35,386 - INFO - Usando caché para geocodificación: Cl. 92 #51B-12, Barranquilla, Atlántico
+2025-05-01 17:35:35,503 - INFO - Usando caché para geocodificación: Cl. 92 #65-18, Barranquilla, Atlántico
+2025-05-01 17:35:35,615 - INFO - Usando caché para geocodificación: Cl. 79 #42F-22, Barranquilla, Atlántico
+2025-05-01 17:35:35,725 - INFO - Usando caché para geocodificación: Cl. 84 #43-35, Barranquilla, Atlántico
+2025-05-01 17:35:35,835 - INFO - Usando caché para geocodificación: Cl. 91 #50-28, Barranquilla, Atlántico
+2025-05-01 17:35:35,944 - INFO - Usando caché para geocodificación: Cl. 92 #52-16, Barranquilla, Atlántico
+2025-05-01 17:35:35,964 - ERROR - Error en preprocess_input: Encoders require their input argument must be uniformly strings or numbers. Got ['ndarray']
+2025-05-01 17:35:35,964 - ERROR - Error en predict_traffic: Encoders require their input argument must be uniformly strings or numbers. Got ['ndarray']
+2025-05-01 17:35:35,967 - ERROR - Error en la optimización: Encoders require their input argument must be uniformly strings or numbers. Got ['ndarray']
+2025-05-01 18:14:46,455 - INFO - Conexión exitosa a MySQL con SQLAlchemy
+2025-05-01 18:14:48,465 - INFO - Clima actual: Lluvia
+2025-05-01 18:14:48,786 - WARNING - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-05-01 18:14:48,803 - INFO - Modelo y preprocesadores cargados
+2025-05-01 18:14:51,487 - INFO - Conexión directa a MySQL exitosa
+2025-05-01 18:14:51,732 - INFO - Usando caché para geocodificación: Cl. 85 #47-10, Barranquilla, Atlántico
+2025-05-01 18:14:51,940 - INFO - Usando caché para geocodificación: Cl. 82 #55-20, Barranquilla, Atlántico
+2025-05-01 18:14:52,791 - INFO - Usando caché para geocodificación: Cl. 84 #50-15, Barranquilla, Atlántico
+2025-05-01 18:14:53,216 - INFO - Usando caché para geocodificación: Cl. 85 #51B-30, Barranquilla, Atlántico
+2025-05-01 18:14:53,468 - INFO - Usando caché para geocodificación: Cl. 17 #38-25, Barranquilla, Atlántico
+2025-05-01 18:14:54,002 - INFO - Usando caché para geocodificación: Cl. 19 #35-40, Barranquilla, Atlántico
+2025-05-01 18:14:54,349 - INFO - Usando caché para geocodificación: Cl. 92 #51B-12, Barranquilla, Atlántico
+2025-05-01 18:14:54,905 - INFO - Usando caché para geocodificación: Cl. 92 #65-18, Barranquilla, Atlántico
+2025-05-01 18:14:55,388 - INFO - Usando caché para geocodificación: Cl. 79 #42F-22, Barranquilla, Atlántico
+2025-05-01 18:14:55,598 - INFO - Usando caché para geocodificación: Cl. 84 #43-35, Barranquilla, Atlántico
+2025-05-01 18:14:55,781 - INFO - Usando caché para geocodificación: Cl. 91 #50-28, Barranquilla, Atlántico
+2025-05-01 18:14:56,017 - INFO - Usando caché para geocodificación: Cl. 92 #52-16, Barranquilla, Atlántico
+2025-05-01 18:14:59,372 - INFO - Clústeres creados con GMM: 2 clústeres para 8 direcciones
+2025-05-01 18:15:02,075 - INFO - Conexión directa a MySQL exitosa
+2025-05-01 18:15:02,213 - INFO - Usando caché para geocodificación: Universidad del Norte, Barranquilla, Atlántico
+2025-05-01 18:15:02,393 - INFO - Usando caché para geocodificación: Cra. 54 #55-127, Barranquilla, Atlántico
+2025-05-01 18:15:02,778 - INFO - Usando caché para geocodificación: Cra. 42 #51-35, Barranquilla, Atlántico
+2025-05-01 18:15:06,587 - INFO - Usando caché para geocodificación: Cl. 45D #17-12, Barranquilla, Atlántico
+2025-05-01 18:15:06,965 - INFO - Usando caché para geocodificación: Cl. 85 #53-25, Barranquilla, Atlántico
+2025-05-01 18:15:07,305 - INFO - Usando caché para geocodificación: Cra. 17 #80-10, Soledad, Atlántico
+2025-05-01 18:15:08,123 - INFO - Usando caché para geocodificación: Cra. 51B #135-01, Barranquilla, Atlántico
+2025-05-01 18:15:08,796 - INFO - Usando caché para geocodificación: Cl. 58 #45-30, Barranquilla, Atlántico
+2025-05-01 18:15:08,946 - INFO - Usando caché para geocodificación: Cra. 26B #74B-52, Barranquilla, Atlántico
+2025-05-01 18:15:09,147 - INFO - Usando caché para geocodificación: Colegio Karl C. Parrish, Barranquilla, Atlántico
+2025-05-01 18:15:09,449 - INFO - Usando caché para geocodificación: Cl. 85 #47-10, Barranquilla, Atlántico
+2025-05-01 18:15:10,326 - INFO - Usando caché para geocodificación: Cl. 82 #55-20, Barranquilla, Atlántico
+2025-05-01 18:15:11,031 - INFO - Usando caché para geocodificación: Cl. 84 #50-15, Barranquilla, Atlántico
+2025-05-01 18:15:11,948 - INFO - Usando caché para geocodificación: Cl. 85 #51B-30, Barranquilla, Atlántico
+2025-05-01 18:15:12,217 - INFO - Usando caché para geocodificación: Cl. 17 #38-25, Barranquilla, Atlántico
+2025-05-01 18:15:12,986 - INFO - Usando caché para geocodificación: Cl. 19 #35-40, Barranquilla, Atlántico
+2025-05-01 18:15:13,291 - INFO - Usando caché para geocodificación: Cl. 92 #51B-12, Barranquilla, Atlántico
+2025-05-01 18:15:13,596 - INFO - Usando caché para geocodificación: Cl. 92 #65-18, Barranquilla, Atlántico
+2025-05-01 18:15:14,341 - INFO - Usando caché para geocodificación: Cl. 79 #42F-22, Barranquilla, Atlántico
+2025-05-01 18:15:14,778 - INFO - Usando caché para geocodificación: Cl. 84 #43-35, Barranquilla, Atlántico
+2025-05-01 18:15:15,076 - INFO - Usando caché para geocodificación: Cl. 91 #50-28, Barranquilla, Atlántico
+2025-05-01 18:15:15,247 - INFO - Usando caché para geocodificación: Cl. 92 #52-16, Barranquilla, Atlántico
+2025-05-01 18:15:16,057 - INFO - Ruta optimizada por Tiempo:
+2025-05-01 18:15:16,057 - INFO - Polilínea: wegbAffzgMxcAknE{{@|zGtyCkvLtXzJ`gA|cCn_KxGydGcwB}|Cgh@g}Ej`I
+2025-05-01 18:15:16,057 - INFO - Direcciones en orden: ['Universidad del Norte, Barranquilla, Atlántico', 'Cl. 85 #53-25, Barranquilla, Atlántico', 'Cra. 51B #135-01, Barranquilla, Atlántico', 'Cra. 54 #55-127, Barranquilla, Atlántico', 'Cl. 58 #45-30, Barranquilla, Atlántico', 'Cra. 26B #74B-52, Barranquilla, Atlántico', 'Cra. 17 #80-10, Soledad, Atlántico', 'Cl. 45D #17-12, Barranquilla, Atlántico', 'Cra. 42 #51-35, Barranquilla, Atlántico', 'Colegio Karl C. Parrish, Barranquilla, Atlántico']
+2025-05-01 18:15:16,057 - INFO - Tiempo total estimado: 93.54 minutos
+2025-05-01 18:15:16,057 - INFO - Ruta optimizada por Tráfico:
+2025-05-01 18:15:16,057 - INFO - Polilínea: wegbAffzgMxcAknE{{@|zGtyCkvLfaNrxCwbLk`Dyc@rR`gA|cCtyBinBe{JbwG
+2025-05-01 18:15:16,057 - INFO - Direcciones en orden: ['Universidad del Norte, Barranquilla, Atlántico', 'Cl. 85 #53-25, Barranquilla, Atlántico', 'Cra. 51B #135-01, Barranquilla, Atlántico', 'Cra. 54 #55-127, Barranquilla, Atlántico', 'Cra. 17 #80-10, Soledad, Atlántico', 'Cra. 42 #51-35, Barranquilla, Atlántico', 'Cl. 58 #45-30, Barranquilla, Atlántico', 'Cra. 26B #74B-52, Barranquilla, Atlántico', 'Cl. 45D #17-12, Barranquilla, Atlántico', 'Colegio Karl C. Parrish, Barranquilla, Atlántico']
+2025-05-01 18:15:16,057 - INFO - Nivel de tráfico total estimado: 4.69
+2025-05-01 18:15:16,057 - INFO - Ruta optimizada por Clima:
+2025-05-01 18:15:16,057 - INFO - Polilínea: wegbAffzgMxcAknE{{@|zGtyCkvLtXzJ`gA|cCn_KxGydGcwB}|Cgh@g}Ej`I
+2025-05-01 18:15:16,057 - INFO - Direcciones en orden: ['Universidad del Norte, Barranquilla, Atlántico', 'Cl. 85 #53-25, Barranquilla, Atlántico', 'Cra. 51B #135-01, Barranquilla, Atlántico', 'Cra. 54 #55-127, Barranquilla, Atlántico', 'Cl. 58 #45-30, Barranquilla, Atlántico', 'Cra. 26B #74B-52, Barranquilla, Atlántico', 'Cra. 17 #80-10, Soledad, Atlántico', 'Cl. 45D #17-12, Barranquilla, Atlántico', 'Cra. 42 #51-35, Barranquilla, Atlántico', 'Colegio Karl C. Parrish, Barranquilla, Atlántico']
+2025-05-01 18:15:16,057 - INFO - Tiempo total estimado: inf minutos
+2025-05-01 18:27:34,487 - INFO - Conexión exitosa a MySQL con SQLAlchemy
+2025-05-01 18:27:38,607 - INFO - Clima actual: Lluvia
+2025-05-01 18:27:38,797 - WARNING - Compiled the loaded model, but the compiled metrics have yet to be built. `model.compile_metrics` will be empty until you train or evaluate the model.
+2025-05-01 18:27:38,806 - INFO - Modelo y preprocesadores cargados
+2025-05-01 18:27:40,975 - INFO - Conexión directa a MySQL exitosa
+2025-05-01 18:27:41,637 - INFO - Usando caché para geocodificación: Cl. 85 #47-10, Barranquilla, Atlántico
+2025-05-01 18:27:41,762 - INFO - Usando caché para geocodificación: Cl. 82 #55-20, Barranquilla, Atlántico
+2025-05-01 18:27:41,886 - INFO - Usando caché para geocodificación: Cl. 84 #50-15, Barranquilla, Atlántico
+2025-05-01 18:27:42,026 - INFO - Usando caché para geocodificación: Cl. 85 #51B-30, Barranquilla, Atlántico
+2025-05-01 18:27:42,148 - INFO - Usando caché para geocodificación: Cl. 17 #38-25, Barranquilla, Atlántico
+2025-05-01 18:27:42,265 - INFO - Usando caché para geocodificación: Cl. 19 #35-40, Barranquilla, Atlántico
+2025-05-01 18:27:42,387 - INFO - Usando caché para geocodificación: Cl. 92 #51B-12, Barranquilla, Atlántico
+2025-05-01 18:27:42,510 - INFO - Usando caché para geocodificación: Cl. 92 #65-18, Barranquilla, Atlántico
+2025-05-01 18:27:42,637 - INFO - Usando caché para geocodificación: Cl. 79 #42F-22, Barranquilla, Atlántico
+2025-05-01 18:27:42,776 - INFO - Usando caché para geocodificación: Cl. 84 #43-35, Barranquilla, Atlántico
+2025-05-01 18:27:42,907 - INFO - Usando caché para geocodificación: Cl. 91 #50-28, Barranquilla, Atlántico
+2025-05-01 18:27:43,036 - INFO - Usando caché para geocodificación: Cl. 92 #52-16, Barranquilla, Atlántico
+2025-05-01 18:27:45,695 - INFO - Clústeres creados con GMM: 2 clústeres para 8 direcciones
+2025-05-01 18:27:47,356 - INFO - Conexión directa a MySQL exitosa
+2025-05-01 18:27:47,840 - INFO - Usando caché para geocodificación: Universidad del Norte, Barranquilla, Atlántico
+2025-05-01 18:27:48,338 - INFO - Usando caché para geocodificación: Cra. 54 #55-127, Barranquilla, Atlántico
+2025-05-01 18:27:48,577 - INFO - Usando caché para geocodificación: Cra. 42 #51-35, Barranquilla, Atlántico
+2025-05-01 18:27:49,057 - INFO - Usando caché para geocodificación: Cl. 45D #17-12, Barranquilla, Atlántico
+2025-05-01 18:27:49,541 - INFO - Usando caché para geocodificación: Cl. 85 #53-25, Barranquilla, Atlántico
+2025-05-01 18:27:49,738 - INFO - Usando caché para geocodificación: Cra. 17 #80-10, Soledad, Atlántico
+2025-05-01 18:27:50,157 - INFO - Usando caché para geocodificación: Cra. 51B #135-01, Barranquilla, Atlántico
+2025-05-01 18:27:50,787 - INFO - Usando caché para geocodificación: Cl. 58 #45-30, Barranquilla, Atlántico
+2025-05-01 18:27:50,919 - INFO - Usando caché para geocodificación: Cra. 26B #74B-52, Barranquilla, Atlántico
+2025-05-01 18:27:51,293 - INFO - Usando caché para geocodificación: Colegio Karl C. Parrish, Barranquilla, Atlántico
+2025-05-01 18:27:51,606 - INFO - Usando caché para geocodificación: Cl. 85 #47-10, Barranquilla, Atlántico
+2025-05-01 18:27:52,118 - INFO - Usando caché para geocodificación: Cl. 82 #55-20, Barranquilla, Atlántico
+2025-05-01 18:27:52,327 - INFO - Usando caché para geocodificación: Cl. 84 #50-15, Barranquilla, Atlántico
+2025-05-01 18:27:52,731 - INFO - Usando caché para geocodificación: Cl. 85 #51B-30, Barranquilla, Atlántico
+2025-05-01 18:27:53,056 - INFO - Usando caché para geocodificación: Cl. 17 #38-25, Barranquilla, Atlántico
+2025-05-01 18:27:53,654 - INFO - Usando caché para geocodificación: Cl. 19 #35-40, Barranquilla, Atlántico
+2025-05-01 18:27:53,777 - INFO - Usando caché para geocodificación: Cl. 92 #51B-12, Barranquilla, Atlántico
+2025-05-01 18:27:53,896 - INFO - Usando caché para geocodificación: Cl. 92 #65-18, Barranquilla, Atlántico
+2025-05-01 18:27:54,016 - INFO - Usando caché para geocodificación: Cl. 79 #42F-22, Barranquilla, Atlántico
+2025-05-01 18:27:54,137 - INFO - Usando caché para geocodificación: Cl. 84 #43-35, Barranquilla, Atlántico
+2025-05-01 18:27:54,269 - INFO - Usando caché para geocodificación: Cl. 91 #50-28, Barranquilla, Atlántico
+2025-05-01 18:27:54,385 - INFO - Usando caché para geocodificación: Cl. 92 #52-16, Barranquilla, Atlántico
+2025-05-01 18:27:54,757 - INFO - Ruta optimizada por Tiempo:
+2025-05-01 18:27:54,757 - INFO - Polilínea: wegbAffzgMxcAknE{{@|zGtyCkvLtXzJ`gA|cCn_KxGydGcwB}|Cgh@g}Ej`I
+2025-05-01 18:27:54,757 - INFO - Direcciones en orden: ['Universidad del Norte, Barranquilla, Atlántico', 'Cl. 85 #53-25, Barranquilla, Atlántico', 'Cra. 51B #135-01, Barranquilla, Atlántico', 'Cra. 54 #55-127, Barranquilla, Atlántico', 'Cl. 58 #45-30, Barranquilla, Atlántico', 'Cra. 26B #74B-52, Barranquilla, Atlántico', 'Cra. 17 #80-10, Soledad, Atlántico', 'Cl. 45D #17-12, Barranquilla, Atlántico', 'Cra. 42 #51-35, Barranquilla, Atlántico', 'Colegio Karl C. Parrish, Barranquilla, Atlántico']
+2025-05-01 18:27:54,757 - INFO - Tiempo total estimado: 93.54 minutos
+2025-05-01 18:27:54,765 - INFO - 
+2025-05-01 18:27:54,766 - INFO - Ruta optimizada por Tráfico:
+2025-05-01 18:27:54,766 - INFO - Polilínea: wegbAffzgMxcAknE{{@|zGtyCkvLfaNrxCwbLk`Dyc@rR`gA|cCtyBinBe{JbwG
+2025-05-01 18:27:54,766 - INFO - Direcciones en orden: ['Universidad del Norte, Barranquilla, Atlántico', 'Cl. 85 #53-25, Barranquilla, Atlántico', 'Cra. 51B #135-01, Barranquilla, Atlántico', 'Cra. 54 #55-127, Barranquilla, Atlántico', 'Cra. 17 #80-10, Soledad, Atlántico', 'Cra. 42 #51-35, Barranquilla, Atlántico', 'Cl. 58 #45-30, Barranquilla, Atlántico', 'Cra. 26B #74B-52, Barranquilla, Atlántico', 'Cl. 45D #17-12, Barranquilla, Atlántico', 'Colegio Karl C. Parrish, Barranquilla, Atlántico']
+2025-05-01 18:27:54,766 - INFO - Nivel de tráfico total estimado: 4.69
+2025-05-01 18:27:54,766 - INFO - 
+2025-05-01 18:27:54,766 - INFO - Ruta optimizada por Clima:
+2025-05-01 18:27:54,766 - INFO - Polilínea: wegbAffzgMxcAknE{{@|zGtyCkvLtXzJ`gA|cCn_KxGydGcwB}|Cgh@g}Ej`I
+2025-05-01 18:27:54,766 - INFO - Direcciones en orden: ['Universidad del Norte, Barranquilla, Atlántico', 'Cl. 85 #53-25, Barranquilla, Atlántico', 'Cra. 51B #135-01, Barranquilla, Atlántico', 'Cra. 54 #55-127, Barranquilla, Atlántico', 'Cl. 58 #45-30, Barranquilla, Atlántico', 'Cra. 26B #74B-52, Barranquilla, Atlántico', 'Cra. 17 #80-10, Soledad, Atlántico', 'Cl. 45D #17-12, Barranquilla, Atlántico', 'Cra. 42 #51-35, Barranquilla, Atlántico', 'Colegio Karl C. Parrish, Barranquilla, Atlántico']
+2025-05-01 18:27:54,766 - INFO - Tiempo total estimado: 1216.93 minutos
+2025-05-01 18:27:54,770 - INFO - 
