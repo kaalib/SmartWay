@@ -356,7 +356,7 @@ def check_arroyo_in_route(origin_coords, dest_coords, arroyo_coords, weather_con
 
 def select_route_pairs(addresses, current_hour, is_peak_hour):
     all_pairs = [(o, d) for i, o in enumerate(addresses) for j, d in enumerate(addresses) if i != j]
-    return random.sample(all_pairs, min(100, len(all_pairs)))  # 100 pares de rutas
+    return random.sample(all_pairs, min(101, len(all_pairs)))  # 101 pares de rutas
 
 def collect_real_data():
     logger.info("Iniciando recolección de datos reales")
