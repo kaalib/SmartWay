@@ -81,48 +81,6 @@ ADDRESSES = [
     "Cra. 59 #70-45, Barranquilla, Atlántico",
     "Cl. 64 #50-25, Barranquilla, Atlántico"
 ]
-ADDRESSES = [
-    "Cra. 54 #55-127, Barranquilla, Atlántico",
-    "Cra. 41 # 57-18, Barranquilla, Atlántico",
-    "Cl. 45D #17-12, Barranquilla, Atlántico",
-    "Cra. 21 #56-78, Soledad, Atlántico",
-    "Cl. 50 #33-22, Barranquilla, Atlántico",
-    "Cl. 90 #44-12, Barranquilla, Atlántico",
-    "Cl. 38 #29-76, Barranquilla, Atlántico",
-    "Cra. 10 #22-40, Soledad, Atlántico",
-    "Cra. 32 #26-95, Soledad, Atlántico",
-    "Cl. 81 #19A-28, Soledad, Atlántico",
-    "Cl. 32 #7D-66, Barranquilla, Atlántico",
-    "Cra. 13 #63B-42, Barranquilla, Atlántico",
-    "Cra. 67 #76-122, Barranquilla, Atlántico",
-    "Cl. 70 #38-15, Barranquilla, Atlántico",
-    "Cl. 22 #25-30, Barranquilla, Atlántico",
-    "Cl. 45 #23-55, Barranquilla, Atlántico",
-    "Cl. 85 #53-25, Barranquilla, Atlántico",
-    "Cra. 17 #80-10, Soledad, Atlántico",
-    "Cra. 51B #135-01, Barranquilla, Atlántico",
-    "Cl. 58 #45-30, Barranquilla, Atlántico",
-    "Cra. 26B #74B-52, Barranquilla, Atlántico",
-    "Cl. 76 #46-20, Barranquilla, Atlántico",
-    "Cra. 38 #48-22, Barranquilla, Atlántico",
-    "Cl. 84 #42F-15, Barranquilla, Atlántico",
-    "Cra. 14 #54-25, Soledad, Atlántico",
-    "Cl. 63 #23-40, Barranquilla, Atlántico",
-    "Cra. 49C #76-120, Barranquilla, Atlántico",
-    "Cl. 93 #49C-130, Barranquilla, Atlántico",
-    "Carrera 53 #68-70, Barranquilla, Atlántico",
-    "Cl. 47 #20-50, Barranquilla, Atlántico",
-    "Cra. 53 #75-90, Barranquilla, Atlántico",
-    "Carrera 18 #76D-10, Soledad, Atlántico",
-    "Cra. 65 #84-60, Barranquilla, Atlántico",
-    "Cl. 55 #27-35, Barranquilla, Atlántico",
-    "Cra. 24 #60-15, Barranquilla, Atlántico",
-    "Carrera 29 # 35-50, Soledad, Atlántico",
-    "Cra. 46 #82-106, Barranquilla, Atlántico",
-    "Cl. 18 #10-20, Soledad, Atlántico",
-    "Cra. 59 #70-45, Barranquilla, Atlántico",
-    "Cl. 64 #50-25, Barranquilla, Atlántico"
-]
 
 
 # Direcciones de arroyos
