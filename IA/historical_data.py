@@ -43,7 +43,7 @@ ADDRESSES = [
     "Cra. 54 #55-127, Barranquilla, Atlántico",
     "Cra. 41 # 57-18, Barranquilla, Atlántico",
     "Cl. 45D #17-12, Barranquilla, Atlántico",
-    "Cra. 21 #56-78, Soledad, Atlántico",
+    "Cra. 21 #68-56, Soledad, Atlántico",
     "Cl. 50 #33-22, Barranquilla, Atlántico",
     "Cl. 90 #44-12, Barranquilla, Atlántico",
     "Cl. 38 #29-76, Barranquilla, Atlántico",
