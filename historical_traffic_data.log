@@ -1,0 +1,3 @@
+2025-05-05 20:35:34,379 - INFO - Iniciando recolección de datos reales
+2025-05-05 20:35:34,463 - ERROR - Error al conectar a MySQL: 2017 (HY000): Can't open named pipe to host: .  pipe: MySQL (2)
+2025-05-05 20:35:34,463 - ERROR - Error general en la recolección: 2017 (HY000): Can't open named pipe to host: .  pipe: MySQL (2)
