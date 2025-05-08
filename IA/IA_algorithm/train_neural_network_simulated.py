@@ -180,5 +180,13 @@ if __name__ == "__main__":
     try:
         model, history = train_model()
         logger.info("Entrenamiento completado")
+        # Evaluación final
+        val_accuracy = history.history['val_custom_accuracy'][-1]  # Última época
+        print(f"\nVal Custom Accuracy: {val_accuracy:.4f}")
+
+        if val_accuracy >= 0.8:
+            print("✅ Modelo listo para producción (no es necesario reentrenar).")
+        else:
+            print("⚠️ Modelo con baja precisión. Reentrena con ajustes.")
     except Exception as e:
         logger.error(f"Error en el entrenamiento: {e}")
