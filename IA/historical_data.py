@@ -34,7 +34,6 @@ MYSQL_PASSWORD = os.getenv('db_password')
 MYSQL_DATABASE = os.getenv('db_name')
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 TOMTOM_API_KEY = os.getenv('TOMTOM_API_KEY')
-TOMTOM_API_KEY_ACCIDENTS = os.getenv('TOMTOM_API_KEY_ACCIDENTS')
 OPENWEATHER_API_KEY = os.getenv('OPENWEATHER_API_KEY')
 
 # Lista de direcciones (40 direcciones)
@@ -164,17 +163,57 @@ def geocode_address(address, connection):
     finally:
         cursor.close()
 
+def get_tomtom_traffic_data(origin, destination, distance_meters, connection):
+    """Obtiene tiempos de viaje con y sin tráfico usando TomTom Routing API."""
+    #logger.info(f"Consultando TomTom Routing API para tráfico de {origin} a {destination}")
+    
+    # Obtener coordenadas desde la caché o Google Geocoding
+    origin_lat, origin_lng = geocode_address(origin, connection)
+    dest_lat, dest_lng = geocode_address(destination, connection)
+    
+    if not origin_lat or not origin_lng or not dest_lat or not dest_lng:
+        logger.warning(f"No se pudieron geocodificar las direcciones para TomTom: {origin} a {destination}")
+        return None, None, None
+    
+    origin_coords = f"{origin_lat},{origin_lng}"
+    dest_coords = f"{dest_lat},{dest_lng}"
+    
+    # Llamar a Routing API con tráfico
+    url = f"https://api.tomtom.com/routing/1/calculateRoute/{origin_coords}:{dest_coords}/json"
+    params = {
+        "key": TOMTOM_API_KEY,
+        "travelMode": "car",
+        "traffic": "true",
+        "computeTravelTimeFor": "all"
+    }
+    
+    try:
+        response = requests.get(url, params=params, timeout=15)
+        data = response.json()
+        if response.status_code == 200 and "routes" in data and data["routes"]:
+            route = data["routes"][0]
+            summary = route["summary"]
+            live_traffic_time = summary.get("liveTrafficIncidentsTravelTime", summary["travelTimeInSeconds"])
+            no_traffic_time = summary.get("noTrafficTravelTimeInSeconds", live_traffic_time)
+            # Calcular velocidad actual (km/h) usando la distancia de Google Routes
+            current_speed = (distance_meters / 1000) / (live_traffic_time / 3600) if live_traffic_time > 0 else None
+            return live_traffic_time, no_traffic_time, current_speed
+        else:
+            logger.error(f"Error en TomTom Routing API: {data.get('error', 'Unknown error')}")
+            return None, None, None
+    except Exception as e:
+        logger.error(f"Error en TomTom Routing API: {e}")
+        return None, None, None
+
 def get_route_data(origin, destination, connection):
-    """Usa Google Routes API estándar para obtener datos de tráfico.
-    Asegúrate de que la Routes API esté habilitada en Google Cloud Console.
-    """
+    """Usa Google Routes API estándar para obtener distancia y duración con tráfico."""
     logger.info(f"Consultando Google Routes API para {origin} a {destination}")
     
     url = "https://routes.googleapis.com/directions/v2:computeRoutes"
     headers = {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": GOOGLE_API_KEY,
-        "X-Goog-FieldMask": "routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline"
+        "X-Goog-FieldMask": "routes.duration,routes.distanceMeters"
     }
     
     body = {
@@ -288,7 +327,7 @@ def select_route_pairs(addresses):
         available_pairs = all_possible_pairs
     
     # Seleccionar 50 pares únicos aleatoriamente
-    selected_pairs = random.sample(available_pairs, min(50, len(available_pairs)))  #solo genera 50 pares
+    selected_pairs = random.sample(available_pairs, min(100, len(available_pairs)))  #solo genera 50 pares
     
     # Actualizar los pares usados y guardar en el archivo
     last_used_pairs = set(selected_pairs)
@@ -300,22 +339,27 @@ def select_route_pairs(addresses):
     
     return pairs
 
-def process_route_data(route, address_coords, arroyo_coords, weather_condition, current_time, origin, destination):
-    """Procesa los datos de la ruta para extraer información de tráfico y verifica arroyos."""
+def process_route_data(route, address_coords, arroyo_coords, weather_condition, current_time, origin, destination, connection):
+    """Procesa los datos de la ruta para extraer distancia y duración de Google Routes y congestión de TomTom."""
     try:
-        # Duración y distancia
+        # Duración y distancia desde Google Routes
         duration_str = route.get('duration', '0s').replace('s', '')
         distance_meters = route.get('distanceMeters', 0)
         
         travel_time = float(duration_str) / 60  # segundos a minutos
         
-        # Estimar nivel de tráfico basado en duración y distancia
-        avg_speed = (distance_meters / 1000) / (travel_time / 60) if travel_time > 0 else 50.0  # km/h
-        free_flow_speed = 60.0  # Estimación conservadora para flujo libre
-        traffic_level = max(0, min(1, 1 - (avg_speed / free_flow_speed)))
+        # Obtener datos de tráfico desde TomTom
+        live_traffic_time, no_traffic_time, current_speed = get_tomtom_traffic_data(origin, destination, distance_meters, connection)
         
-        if traffic_level == 0.5:
-            logger.warning(f"Ruta {origin} a {destination} usando valor por defecto para tráfico")
+        # Calcular nivel de tráfico (0 a 1) usando la fórmula de TomTom
+        if live_traffic_time and no_traffic_time and no_traffic_time > 0:
+            congestion_ratio = live_traffic_time / no_traffic_time
+            traffic_level = min((congestion_ratio - 1) / 2, 1)
+            traffic_level = max(0, traffic_level)  # Asegurar que esté entre 0 y 1
+        else:
+            traffic_level = 0.5  # Valor por defecto si no hay datos
+            current_speed = None
+            logger.warning(f"No se pudieron obtener datos de tráfico de TomTom para {origin} a {destination}, usando valor por defecto")
 
         # Verificar impacto de arroyos
         weather_index = 0
@@ -327,7 +371,6 @@ def process_route_data(route, address_coords, arroyo_coords, weather_condition, 
                 weather_condition
             ):
                 weather_index = 1
-                
                 break
 
         # Preparar datos para inserción
@@ -339,7 +382,7 @@ def process_route_data(route, address_coords, arroyo_coords, weather_condition, 
             'travel_time': round(travel_time, 2),
             'distance': round(distance_meters, 2),
             'traffic_level': round(traffic_level, 2),
-            'current_speed': round(avg_speed, 2) if avg_speed else None,
+            'current_speed': round(current_speed, 2) if current_speed else None,
             'day_of_week': current_time.strftime('%A'),
             'is_holiday': 1 if current_time.strftime("%Y-%m-%d") in HOLIDAYS_2025 else 0,
             'weather_condition': weather_condition,
@@ -393,7 +436,7 @@ def collect_real_data():
             route = get_route_data(origin, destination, connection)
             if route:
                 processed_data = process_route_data(
-                    route, address_coords, arroyo_coords, weather_condition, current_time, origin, destination
+                    route, address_coords, arroyo_coords, weather_condition, current_time, origin, destination, connection
                 )
                 if processed_data:
                     route_data.append(processed_data)
