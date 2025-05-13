@@ -20,7 +20,7 @@ from tensorflow.keras.metrics import Metric # type: ignore
 
 # Configurar logging
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler('route_optimization.log'),
@@ -46,10 +46,7 @@ DESTINATION = "Colegio Karl C. Parrish, Barranquilla, Atlántico"
 # Direcciones intermedias
 ADDRESSES = [
    "Carrera 29 #35-50, Soledad, Atlántico",
-    "Cra. 46 #82-106, Barranquilla, Atlántico",
-    "Cl. 18 #10-20, Soledad, Atlántico",
-    "Cra. 59 #70-45, Barranquilla, Atlántico",
-    "Cl. 64 #50-25, Barranquilla, Atlántico"
+    "Cra. 46 #82-106, Barranquilla, Atlántico"
 ]
 
 # Direcciones de arroyos
@@ -181,43 +178,19 @@ def geocode_address(address, connection, is_critical=False):
             raise
         return None, None
 
-def get_openweather_condition(lat, lng):
-    url = "https://api.openweathermap.org/data/2.5/weather"
-    params = {
-        'lat': lat,
-        'lon': lng,
-        'appid': OPENWEATHER_API_KEY,
-        'units': 'metric'
-    }
-    try:
-        response = requests.get(url, params=params, timeout=5)
-        data = response.json()
-        if response.status_code == 200:
-            weather = data['weather'][0]['main']
-            condition = "Lluvia" if weather in ['Rain', 'Drizzle', 'Thunderstorm'] else "Despejado"
-            logger.info(f"Clima actual: {condition}")
-            return condition
-        else:
-            logger.error(f"Error en OpenWeather API: {data.get('message', 'Desconocido')}")
-            return "Despejado"
-    except Exception as e:
-        logger.error(f"Error al consultar OpenWeather: {e}")
-        return "Despejado"
-
 def get_google_directions_route(origin_addr, dest_addr, connection):
     cache_key = f"{origin_addr}|{dest_addr}|google_directions"
     cursor = connection.cursor()
     query = """
         SELECT response_json, distance_meters
         FROM api_cache
-        WHERE origin = %s AND api_type = 'google_directions' AND timestamp > NOW() - INTERVAL 30 DAY
+        WHERE origin = %s AND api_type = 'google_directions' AND timestamp > NOW() - INTERVAL 7 DAY
     """
     try:
         cursor.execute(query, (cache_key,))
         result = cursor.fetchone()
         
         if result:
-            #logger.info(f"Usando caché para Google Directions: {cache_key}")
             data = json.loads(result['response_json'])
             distance_meters = result['distance_meters'] or sum(leg['distance']['value'] for leg in data['routes'][0]['legs'])
             points = [(step['start_location']['lat'], step['start_location']['lng']) for leg in data['routes'][0]['legs'] for step in leg['steps']] + \
@@ -234,7 +207,7 @@ def get_google_directions_route(origin_addr, dest_addr, connection):
             'mode': 'driving'
         }
         
-        for attempt in range(3):
+        for attempt in range(2):
             try:
                 response = requests.get(url, params=params, timeout=5)
                 data = response.json()
@@ -251,18 +224,63 @@ def get_google_directions_route(origin_addr, dest_addr, connection):
                     cursor.close()
                     return {'distance_meters': distance_meters, 'points': points}
                 else:
-                    logger.error(f"Error en Google Directions API: {data.get('status', 'Desconocido')}")
                     time.sleep(2 ** attempt)
             except Exception as e:
-                logger.error(f"Intento {attempt + 1} fallido para Google Directions: {e}")
                 time.sleep(2 ** attempt)
         cursor.close()
-        logger.error(f"No se pudo obtener distancia para {cache_key} tras 3 intentos")
         return None
     except Exception as e:
-        logger.error(f"Error en get_google_directions_route: {e}")
         cursor.close()
         return None
+
+def get_openweather_condition(lat, lng):
+    cache_key = f"{lat}|{lng}|openweather"
+    cursor = get_db_connection().cursor()
+    query = """
+        SELECT response_json
+        FROM api_cache
+        WHERE origin = %s AND api_type = 'openweather' AND timestamp > NOW() - INTERVAL 1 HOUR
+    """
+    try:
+        cursor.execute(query, (cache_key,))
+        result = cursor.fetchone()
+        
+        if result:
+            data = json.loads(result['response_json'])
+            cursor.close()
+            return 'Lluvia' if data['weather'][0]['main'] in ['Rain', 'Drizzle', 'Thunderstorm'] else 'Despejado'
+        
+        logger.info(f"Consultando OpenWeather API para: {cache_key}")
+        url = "https://api.openweathermap.org/data/2.5/weather"
+        params = {
+            'lat': lat,
+            'lon': lng,
+            'appid': OPENWEATHER_API_KEY,
+            'units': 'metric'
+        }
+        
+        for attempt in range(2):
+            try:
+                response = requests.get(url, params=params, timeout=5)
+                data = response.json()
+                if response.status_code == 200:
+                    cursor.execute("""
+                        INSERT INTO api_cache (origin, api_type, timestamp, response_json)
+                        VALUES (%s, %s, NOW(), %s)
+                    """, (cache_key, 'openweather', json.dumps(data)))
+                    get_db_connection().commit()
+                    logger.info(f"Guardado en api_cache para: {cache_key}")
+                    cursor.close()
+                    return 'Lluvia' if data['weather'][0]['main'] in ['Rain', 'Drizzle', 'Thunderstorm'] else 'Despejado'
+                else:
+                    time.sleep(2 ** attempt)
+            except Exception as e:
+                time.sleep(2 ** attempt)
+        cursor.close()
+        return 'Despejado'
+    except Exception as e:
+        cursor.close()
+        return 'Despejado'
 
 def check_arroyo_in_route(route_points, arroyo_coords, weather_condition):
     if weather_condition != "Lluvia":
