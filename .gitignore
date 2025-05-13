@@ -5,6 +5,7 @@ hardware/interfaz_gui/var_config.h
 *.ini
 *.env
 IA/IA_algorithm/APIs.env
+IA/IA_algorithm/route_optimization.log
 scripts/env.js
 # Ignorar archivos compilados de Arduino
 *.elf
