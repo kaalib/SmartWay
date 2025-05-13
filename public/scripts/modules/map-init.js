@@ -61,7 +61,7 @@ function initMap() {
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
-        mapId: 'a8e469502b0f35f7',
+        mapId: '79036388cdbd6072',
         styles: [
             {
                 featureType: "poi",

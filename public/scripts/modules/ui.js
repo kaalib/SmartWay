@@ -75,6 +75,7 @@ async function restaurarEstado() {
     const btnInicio = document.getElementById('btnInicio');
     const btnSeleccionRuta = document.getElementById('btnSeleccionRuta');
     const btnFin = document.getElementById('btnFin');
+    const btnNavegacion = document.getElementById('btnNavegacion');
 
     // Leer estado desde localStorage
     const rutaEnProgreso = localStorage.getItem('rutaEnProgreso') === 'true';
@@ -82,11 +83,14 @@ async function restaurarEstado() {
     const btnInicioHabilitado = localStorage.getItem('btnInicioHabilitado') !== 'false';
     const btnSeleccionRutaHabilitado = localStorage.getItem('btnSeleccionRutaHabilitado') === 'true';
     const btnFinHabilitado = localStorage.getItem('btnFinHabilitado') === 'true';
+    const navegacionActiva = localStorage.getItem('navegacionActiva') === 'true';
+    const btnNavegacionHabilitado = localStorage.getItem('btnNavegacionHabilitado') === 'true';
 
     // Aplicar estado de botones desde localStorage
     btnInicio.disabled = !btnInicioHabilitado;
     btnSeleccionRuta.disabled = !btnSeleccionRutaHabilitado;
     btnFin.disabled = !btnFinHabilitado;
+    btnNavegacion.disabled = !btnNavegacionHabilitado || !rutaEnProgreso;
 
     // Sincronizar con el servidor
     try {
@@ -160,11 +164,13 @@ function limpiarEstado() {
 
     // Limpiar localStorage (excepto userRole, que ya se maneja en el evento click)
     localStorage.removeItem('rutaEnProgreso');
+    localStorage.removeItem('navegacionActiva');
     localStorage.removeItem('rutaSeleccionada');
     localStorage.removeItem('rutaDistancia');
     localStorage.removeItem('rutaTrafico');
     localStorage.setItem('btnInicioHabilitado', 'true');
     localStorage.setItem('btnSeleccionRutaHabilitado', 'false');
+    localStorage.setItem('btnNavegacionHabilitado', 'false');
     localStorage.setItem('btnFinHabilitado', 'false');
 
     console.log("🧹 Estado global y localStorage limpiados (excepto userRole)");
@@ -357,35 +363,40 @@ function setupUIEvents() {
         } finally {
             const btnInicio = document.getElementById("btnInicio");
             const btnSeleccionRuta = document.getElementById("btnSeleccionRuta");
+            const btnNavegacion = document.getElementById("btnNavegacion");
             const btnFin = document.getElementById("btnFin");
-    
+
             if (success) {
                 btnInicio.disabled = true;
                 btnSeleccionRuta.disabled = false;
+                btnNavegacion.disabled = true;
                 btnFin.disabled = true;
-    
+
                 localStorage.setItem('btnInicioHabilitado', 'false');
                 localStorage.setItem('btnSeleccionRutaHabilitado', 'true');
+                localStorage.setItem('btnNavegacionHabilitado', 'false');
                 localStorage.setItem('btnFinHabilitado', 'false');
             } else {
                 btnInicio.disabled = true;
                 btnSeleccionRuta.disabled = false;
+                btnNavegacion.disabled = true;
                 btnFin.disabled = true;
-    
+
                 localStorage.setItem('btnInicioHabilitado', 'false');
                 localStorage.setItem('btnSeleccionRutaHabilitado', 'true');
+                localStorage.setItem('btnNavegacionHabilitado', 'false');
                 localStorage.setItem('btnFinHabilitado', 'false');
                 localStorage.setItem('rutaEnProgreso', 'false');
             }
-    
+
             const esLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
             if (!esLocalhost && success) {
                 const socket = setupSocket();
                 socket.emit("solicitar_mensajes_tcp");
             }
-    
+
             await cerrarLoader();
-        }
+                }
     });
     
     // Simular la respuesta de fetch("/messages") para pruebas locales
@@ -495,22 +506,30 @@ function setupUIEvents() {
         detenerEnvioActualizacion();
         detenerActualizacionRuta();
         limpiarEstado();
+        detenerNavegacionConductor();
+        
 
         // Actualizar botones
         const btnInicio = document.getElementById("btnInicio");
-        btnInicio.disabled = false;
-        btnInicio.classList.remove("btn-disabled");
-        btnInicio.classList.add("btn-enabled");
+    const btnSeleccionRuta = document.getElementById("btnSeleccionRuta");
+    const btnNavegacion = document.getElementById("btnNavegacion");
+    const btnFin = document.getElementById("btnFin");
 
-        const btnSeleccionRuta = document.getElementById("btnSeleccionRuta");
-        btnSeleccionRuta.disabled = true;
-        btnSeleccionRuta.classList.remove("btn-enabled");
-        btnSeleccionRuta.classList.add("btn-disabled");
+    btnInicio.disabled = false;
+    btnInicio.classList.remove("btn-disabled");
+    btnInicio.classList.add("btn-enabled");
 
-        const btnFin = document.getElementById("btnFin");
-        btnFin.disabled = true;
-        btnFin.classList.remove("btn-enabled");
-        btnFin.classList.add("btn-disabled");
+    btnSeleccionRuta.disabled = true;
+    btnSeleccionRuta.classList.remove("btn-enabled");
+    btnSeleccionRuta.classList.add("btn-disabled");
+
+    btnNavegacion.disabled = true;
+    btnNavegacion.classList.remove("btn-enabled");
+    btnNavegacion.classList.add("btn-disabled");
+
+    btnFin.disabled = true;
+    btnFin.classList.remove("btn-enabled");
+    btnFin.classList.add("btn-disabled");
 
         // Limpiar localStorage para Conductores y Empleados, pero no para Administradores
         const userRole = localStorage.getItem("userRole");
@@ -553,11 +572,13 @@ function setupUIEvents() {
 
         cerrarRutaModal();
         document.getElementById("btnSeleccionRuta").disabled = true;
+        document.getElementById("btnNavegacion").disabled = false;
         document.getElementById("btnFin").disabled = false;
-
+    
         localStorage.setItem('rutaEnProgreso', 'true');
-        localStorage.setItem('rutaSeleccionada', window.rutaSeleccionada);
+        localStorage.setItem('rutaSeleccionada', JSON.stringify(window.rutaSeleccionada));
         localStorage.setItem('btnSeleccionRutaHabilitado', 'false');
+        localStorage.setItem('btnNavegacionHabilitado', 'true');
         localStorage.setItem('btnFinHabilitado', 'true');
 
         // Limpiar solo las polilíneas (mantener los marcadores)
@@ -587,6 +608,15 @@ function setupUIEvents() {
         // Iniciar la actualización periódica vía WebSocket
         const socket = setupSocket();
         iniciarActualizacionRuta(socket);
+    });
+
+    document.getElementById("btnNavegacion").addEventListener("click", async () => {
+        const navegacionActiva = localStorage.getItem('navegacionActiva') === 'true';
+        if (!navegacionActiva) {
+            await iniciarNavegacionConductor(); // Espera a que se genere y redirija
+        } else {
+            detenerNavegacionConductor();
+        }
     });
 }
 
