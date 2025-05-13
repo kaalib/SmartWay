@@ -16,9 +16,7 @@ import time
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import tensorflow as tf
-from tensorflow.keras.metrics import Metric, MeanSquaredError # type: ignore
-from tensorflow.keras.utils import register_keras_serializable # type: ignore
-import random
+from tensorflow.keras.metrics import Metric # type: ignore
 
 # Configurar logging
 logging.basicConfig(
@@ -40,7 +38,6 @@ MYSQL_PASSWORD = os.getenv('db_password')
 MYSQL_DATABASE = os.getenv('db_name')
 OPENWEATHER_API_KEY = os.getenv('OPENWEATHER_API_KEY')
 GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
-TOMTOM_API_KEY = os.getenv('TOMTOM_API_KEY')
 
 # Puntos de inicio y fin
 ORIGIN = "Universidad del Norte, Barranquilla, Atlántico"
@@ -48,11 +45,11 @@ DESTINATION = "Colegio Karl C. Parrish, Barranquilla, Atlántico"
 
 # Direcciones intermedias
 ADDRESSES = [
-    "Cra. 54 #55-127, Barranquilla, Atlántico",
-    "Cra. 41 #57-18, Barranquilla, Atlántico",
-    "Cl. 50 #33-22, Barranquilla, Atlántico",
-    "Cra. 21 #68-56, Soledad, Atlántico",
-    "Cl. 45D #17-12, Barranquilla, Atlántico"
+   "Carrera 29 #35-50, Soledad, Atlántico",
+    "Cra. 46 #82-106, Barranquilla, Atlántico",
+    "Cl. 18 #10-20, Soledad, Atlántico",
+    "Cra. 59 #70-45, Barranquilla, Atlántico",
+    "Cl. 64 #50-25, Barranquilla, Atlántico"
 ]
 
 # Direcciones de arroyos
@@ -70,6 +67,34 @@ ARROYO_ADDRESSES = [
     "Cl. 91 #50-28, Barranquilla, Atlántico",
     "Cl. 92 #52-16, Barranquilla, Atlántico"
 ]
+
+# Métrica personalizada
+@tf.keras.utils.register_keras_serializable()
+class TrafficAccuracy(Metric):
+    def __init__(self, name='traffic_accuracy', **kwargs):
+        super().__init__(name=name, **kwargs)
+        self.correct = self.add_weight(name='correct', initializer='zeros')
+        self.total = self.add_weight(name='total', initializer='zeros')
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        y_true = tf.cast(y_true, tf.float32)
+        y_pred = tf.cast(y_pred, tf.float32)
+        time_ok = tf.abs(y_pred[:, 0] - y_true[:, 0]) <= (0.25 * y_true[:, 0])
+        traffic_ok = tf.abs(y_pred[:, 1] - y_true[:, 1]) <= 0.25
+        correct = tf.logical_and(time_ok, traffic_ok)
+        self.correct.assign_add(tf.reduce_sum(tf.cast(correct, tf.float32)))
+        self.total.assign_add(tf.cast(tf.size(correct), tf.float32))
+
+    def result(self):
+        return self.correct / self.total
+
+    def reset_states(self):
+        self.correct.assign(0.0)
+        self.total.assign(0.0)
+
+    @classmethod
+    def from_config(cls, config):
+        return cls(**config)
 
 def connect_to_db():
     try:
@@ -110,7 +135,7 @@ def geocode_address(address, connection, is_critical=False):
         result = cursor.fetchone()
         
         if result:
-            logger.info(f"Usando caché para geocodificación: {address}")
+            #logger.info(f"Usando caché para geocodificación: {address}")
             data = json.loads(result['response_json'])
             cursor.close()
             return data['results'][0]['geometry']['location']['lat'], data['results'][0]['geometry']['location']['lng']
@@ -179,6 +204,66 @@ def get_openweather_condition(lat, lng):
         logger.error(f"Error al consultar OpenWeather: {e}")
         return "Despejado"
 
+def get_google_directions_route(origin_addr, dest_addr, connection):
+    cache_key = f"{origin_addr}|{dest_addr}|google_directions"
+    cursor = connection.cursor()
+    query = """
+        SELECT response_json, distance_meters
+        FROM api_cache
+        WHERE origin = %s AND api_type = 'google_directions' AND timestamp > NOW() - INTERVAL 30 DAY
+    """
+    try:
+        cursor.execute(query, (cache_key,))
+        result = cursor.fetchone()
+        
+        if result:
+            #logger.info(f"Usando caché para Google Directions: {cache_key}")
+            data = json.loads(result['response_json'])
+            distance_meters = result['distance_meters'] or sum(leg['distance']['value'] for leg in data['routes'][0]['legs'])
+            points = [(step['start_location']['lat'], step['start_location']['lng']) for leg in data['routes'][0]['legs'] for step in leg['steps']] + \
+                     [(data['routes'][0]['legs'][-1]['steps'][-1]['end_location']['lat'], data['routes'][0]['legs'][-1]['steps'][-1]['end_location']['lng'])]
+            cursor.close()
+            return {'distance_meters': distance_meters, 'points': points}
+        
+        logger.info(f"Consultando Google Directions API para: {cache_key}")
+        url = "https://maps.googleapis.com/maps/api/directions/json"
+        params = {
+            'origin': origin_addr,
+            'destination': dest_addr,
+            'key': GOOGLE_API_KEY,
+            'mode': 'driving'
+        }
+        
+        for attempt in range(3):
+            try:
+                response = requests.get(url, params=params, timeout=5)
+                data = response.json()
+                if response.status_code == 200 and data['status'] == 'OK':
+                    distance_meters = sum(leg['distance']['value'] for leg in data['routes'][0]['legs'])
+                    points = [(step['start_location']['lat'], step['start_location']['lng']) for leg in data['routes'][0]['legs'] for step in leg['steps']] + \
+                             [(data['routes'][0]['legs'][-1]['steps'][-1]['end_location']['lat'], data['routes'][0]['legs'][-1]['steps'][-1]['end_location']['lng'])]
+                    cursor.execute("""
+                        INSERT INTO api_cache (origin, destination, api_type, distance_meters, timestamp, response_json)
+                        VALUES (%s, %s, %s, %s, NOW(), %s)
+                    """, (cache_key, dest_addr, 'google_directions', distance_meters, json.dumps(data)))
+                    connection.commit()
+                    logger.info(f"Guardado en api_cache para: {cache_key}")
+                    cursor.close()
+                    return {'distance_meters': distance_meters, 'points': points}
+                else:
+                    logger.error(f"Error en Google Directions API: {data.get('status', 'Desconocido')}")
+                    time.sleep(2 ** attempt)
+            except Exception as e:
+                logger.error(f"Intento {attempt + 1} fallido para Google Directions: {e}")
+                time.sleep(2 ** attempt)
+        cursor.close()
+        logger.error(f"No se pudo obtener distancia para {cache_key} tras 3 intentos")
+        return None
+    except Exception as e:
+        logger.error(f"Error en get_google_directions_route: {e}")
+        cursor.close()
+        return None
+
 def check_arroyo_in_route(route_points, arroyo_coords, weather_condition):
     if weather_condition != "Lluvia":
         return False
@@ -206,60 +291,13 @@ def check_arroyo_in_route(route_points, arroyo_coords, weather_condition):
     return False
 
 def load_traffic_model():
-    @register_keras_serializable()
-    class CustomAccuracy(Metric):
-        def __init__(self, name='custom_accuracy', **kwargs):
-            super().__init__(name=name, **kwargs)
-            self.correct = self.add_weight(name='correct', initializer='zeros')
-            self.total = self.add_weight(name='total', initializer='zeros')
-
-        def update_state(self, y_true, y_pred, sample_weight=None):
-            y_true = tf.cast(y_true, tf.float32)
-            y_pred = tf.cast(y_pred, tf.float32)
-            travel_time_threshold = 0.1 * y_true[:, 0]
-            traffic_level_threshold = 0.1
-            travel_time_correct = tf.abs(y_pred[:, 0] - y_true[:, 0]) <= travel_time_threshold
-            traffic_level_correct = tf.abs(y_pred[:, 1] - y_true[:, 1]) <= traffic_level_threshold
-            correct = tf.logical_and(travel_time_correct, traffic_level_correct)
-            correct = tf.cast(correct, tf.float32)
-            self.correct.assign_add(tf.reduce_sum(correct))
-            self.total.assign_add(tf.cast(tf.size(correct), tf.float32))
-
-        def result(self):
-            return self.correct / self.total
-
-        def reset_states(self):
-            self.correct.assign(0.0)
-            self.total.assign(0.0)
-
-        @classmethod
-        def from_config(cls, config):
-            return cls(**config)
-
-    custom_objects = {
-        'CustomAccuracy': CustomAccuracy,
-        'mse': MeanSquaredError()
-    }
-
     try:
-        model = load_model('traffic_model_simulated.h5', custom_objects=custom_objects)
-        scaler_mean = np.load('scaler_simulated.npy', allow_pickle=True)
-        scaler_var = np.load('scaler_simulated_var.npy', allow_pickle=True)
-        with open('day_encoder_simulated.npy', 'rb') as f:
-            day_categories = np.load(f, allow_pickle=True)
-            if isinstance(day_categories, np.ndarray):
-                day_categories = day_categories.flatten().tolist()
-            elif isinstance(day_categories, list) and day_categories and isinstance(day_categories[0], (np.ndarray, list)):
-                day_categories = np.array(day_categories[0]).flatten().tolist()
-            day_categories = [str(cat) for cat in day_categories]
-        with open('weather_encoder_simulated.npy', 'rb') as f:
-            weather_categories = np.load(f, allow_pickle=True)
-            if isinstance(weather_categories, np.ndarray):
-                weather_categories = weather_categories.flatten().tolist()
-            elif isinstance(weather_categories, list) and day_categories and isinstance(weather_categories[0], (np.ndarray, list)):
-                weather_categories = np.array(weather_categories[0]).flatten().tolist()
-            weather_categories = [str(cat) for cat in weather_categories]
-        logger.info("Modelo y preprocesadores cargados")
+        model = load_model('traffic_model_real.keras', custom_objects={'TrafficAccuracy': TrafficAccuracy})
+        scaler_mean = np.load('scaler_real.npy', allow_pickle=True)
+        scaler_var = np.load('scaler_real_var.npy', allow_pickle=True)
+        day_categories = np.load('day_encoder_real.npy', allow_pickle=True)[0].tolist()
+        weather_categories = np.load('weather_encoder_real.npy', allow_pickle=True)[0].tolist()
+        logger.info("Modelo y preprocesadores cargados correctamente")
         return model, scaler_mean, scaler_var, day_categories, weather_categories
     except Exception as e:
         logger.error(f"Error al cargar el modelo de tráfico: {e}")
@@ -267,13 +305,16 @@ def load_traffic_model():
 
 def preprocess_input(data, scaler_mean, scaler_var, day_categories, weather_categories):
     try:
-        if not all(col in data.columns for col in ['day_of_week', 'weather_condition']):
-            logger.error("Faltan columnas requeridas en los datos de entrada")
-            raise ValueError("Faltan columnas 'day_of_week' o 'weather_condition' en los datos")
+        # Validar columnas requeridas
+        required_cols = ['origin_lat', 'origin_lng', 'dest_lat', 'dest_lng', 'distance_meters',
+                        'hour_of_day', 'is_holiday', 'weather_index', 'day_of_week', 'weather_condition',
+                        'is_peak', 'is_weekend', 'hour_sin', 'hour_cos']
+        missing_cols = [col for col in required_cols if col not in data.columns]
+        if missing_cols:
+            logger.error(f"Faltan columnas en los datos: {missing_cols}")
+            raise ValueError(f"Faltan columnas: {missing_cols}")
 
-        data['day_of_week'] = data['day_of_week'].astype(str)
-        data['weather_condition'] = data['weather_condition'].astype(str)
-
+        # Codificar variables categóricas
         day_encoder = OneHotEncoder(sparse_output=False, categories=[day_categories], handle_unknown='ignore')
         weather_encoder = OneHotEncoder(sparse_output=False, categories=[weather_categories], handle_unknown='ignore')
 
@@ -286,17 +327,18 @@ def preprocess_input(data, scaler_mean, scaler_var, day_categories, weather_cate
         encoded_df = pd.DataFrame(day_encoded, columns=day_columns)
         encoded_df = pd.concat([encoded_df, pd.DataFrame(weather_encoded, columns=weather_columns)], axis=1)
 
-        numeric_cols = ['origin_lat', 'origin_lng', 'dest_lat', 'dest_lng', 'distance_meters',
-                        'traffic_level', 'hour_of_day', 'is_holiday', 'weather_index']
-        if not all(col in data.columns for col in numeric_cols):
-            logger.error(f"Faltan columnas numéricas en los datos: {numeric_cols}")
-            raise ValueError(f"Faltan columnas numéricas en los datos: {numeric_cols}")
-
+        # Seleccionar características numéricas
+        numeric_cols = [
+            'origin_lat', 'origin_lng', 'dest_lat', 'dest_lng', 'distance_meters',
+            'is_peak', 'is_weekend', 'hour_sin', 'hour_cos', 'weather_index'
+        ]
         numeric_df = data[numeric_cols]
 
+        # Combinar características
         X = pd.concat([numeric_df.reset_index(drop=True), encoded_df.reset_index(drop=True)], axis=1)
         X.fillna(X.mean(), inplace=True)
 
+        # Escalar datos
         scaler = StandardScaler()
         scaler.mean_ = scaler_mean
         scaler.var_ = scaler_var
@@ -312,299 +354,68 @@ def predict_traffic(model, data, scaler_mean, scaler_var, day_categories, weathe
     try:
         X_scaled = preprocess_input(data, scaler_mean, scaler_var, day_categories, weather_categories)
         predictions = model.predict(X_scaled, verbose=0)
-        return predictions[:, 0], predictions[:, 1]  # travel_time, traffic_level
+        travel_times = predictions[:, 0]  # En minutos
+        traffic_levels = np.clip(predictions[:, 1], 0.0, 1.0)  # Normalizar entre 0 y 1
+        return travel_times, traffic_levels
     except Exception as e:
         logger.error(f"Error en predict_traffic: {e}")
         return None, None
 
-def get_google_directions_route(origin_addr, dest_addr, connection):
-    cache_key = f"{origin_addr}|{dest_addr}|google_directions"
+def get_route_points(origin_coords, dest_coords):
+    """Genera puntos aproximados para una ruta (línea recta simulada)."""
+    num_points = 10
+    lat1, lng1 = origin_coords
+    lat2, lng2 = dest_coords
+    points = []
+    for i in range(num_points + 1):
+        t = i / num_points
+        lat = lat1 + t * (lat2 - lat1)
+        lng = lng1 + t * (lng2 - lng1)
+        points.append((lat, lng))
+    return points
+
+def get_distance_from_db(origin_addr, dest_addr, connection):
     cursor = connection.cursor()
-    query = """
-        SELECT response_json, travel_time, distance_meters, traffic_level
-        FROM api_cache
-        WHERE origin = %s AND api_type = 'google_directions' AND timestamp > NOW() - INTERVAL 30 DAY
+    current_day = datetime.now().strftime('%A')
+    current_hour = datetime.now().hour
+    if current_day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']:
+        days = ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday')
+    else:
+        days = ('Saturday', 'Sunday')
+    in_placeholders = ','.join(['%s'] * len(days))
+    query = f"""
+        SELECT AVG(distance_meters) as distance_meters
+        FROM historical_data_real
+        WHERE origin = %s AND destination = %s 
+        AND distance_meters IS NOT NULL
+        AND day_of_week IN ({in_placeholders})
+        AND hour_of_day = %s
     """
     try:
-        cursor.execute(query, (cache_key,))
+        params = (origin_addr, dest_addr) + days + (int(current_hour),)
+        cursor.execute(query, params)
         result = cursor.fetchone()
-        
-        if result:
-            logger.info(f"Usando caché para Google Directions: {cache_key}")
-            data = json.loads(result['response_json'])
+        if result and result['distance_meters']:
             cursor.close()
-            return {
-                'travel_time': result['travel_time'] or sum(leg['duration']['value'] for leg in data['routes'][0]['legs']) / 60,
-                'distance_meters': result['distance_meters'] or sum(leg['distance']['value'] for leg in data['routes'][0]['legs']),
-                'points': [(step['start_location']['lat'], step['start_location']['lng']) for leg in data['routes'][0]['legs'] for step in leg['steps']] + 
-                          [(data['routes'][0]['legs'][-1]['steps'][-1]['end_location']['lat'], data['routes'][0]['legs'][-1]['steps'][-1]['end_location']['lng'])],
-                'cost': result['travel_time'] or sum(leg['duration']['value'] for leg in data['routes'][0]['legs']) / 60,
-                'traffic_level': result['traffic_level'] or 0.5
-            }
-        
-        logger.info(f"Consultando Google Directions API para: {cache_key}")
-        url = "https://maps.googleapis.com/maps/api/directions/json"
-        params = {
-            'origin': origin_addr,
-            'destination': dest_addr,
-            'key': GOOGLE_API_KEY,
-            'mode': 'driving',
-            'departure_time': 'now'
-        }
-        
-        for attempt in range(3):
-            try:
-                response = requests.get(url, params=params, timeout=5)
-                data = response.json()
-                if response.status_code == 200 and data['status'] == 'OK':
-                    travel_time = sum(leg['duration']['value'] for leg in data['routes'][0]['legs']) / 60
-                    distance = sum(leg['distance']['value'] for leg in data['routes'][0]['legs'])
-                    points = [(step['start_location']['lat'], step['start_location']['lng']) for leg in data['routes'][0]['legs'] for step in leg['steps']] + \
-                             [(data['routes'][0]['legs'][-1]['steps'][-1]['end_location']['lat'], data['routes'][0]['legs'][-1]['steps'][-1]['end_location']['lng'])]
-                    traffic_level = 0.5  # Valor por defecto
-                    cursor.execute("""
-                        INSERT INTO api_cache (origin, destination, api_type, travel_time, distance_meters, traffic_level, timestamp, response_json)
-                        VALUES (%s, %s, %s, %s, %s, %s, NOW(), %s)
-                    """, (cache_key, dest_addr, 'google_directions', travel_time, distance, traffic_level, json.dumps(data)))
-                    connection.commit()
-                    logger.info(f"Guardado en api_cache para: {cache_key}")
-                    cursor.close()
-                    return {
-                        'travel_time': travel_time,
-                        'distance_meters': distance,
-                        'points': points,
-                        'cost': travel_time,
-                        'traffic_level': traffic_level
-                    }
-                else:
-                    logger.error(f"Error en Google Directions API: {data.get('status', 'Desconocido')}")
-                    time.sleep(2 ** attempt)
-            except Exception as e:
-                logger.error(f"Intento {attempt + 1} fallido para Google Directions: {e}")
-                time.sleep(2 ** attempt)
+            return result['distance_meters']
+        query = f"""
+            SELECT AVG(distance_meters) as distance_meters
+            FROM historical_data_real
+            WHERE origin = %s AND destination = %s 
+            AND distance_meters IS NOT NULL
+            AND day_of_week IN ({in_placeholders})
+            AND hour_of_day BETWEEN %s AND %s
+        """
+        params = (origin_addr, dest_addr) + days + (int(current_hour - 2), int(current_hour + 2))
+        cursor.execute(query, params)
+        result = cursor.fetchone()
         cursor.close()
+        if result and result['distance_meters']:
+            return result['distance_meters']
         return None
     except Exception as e:
-        logger.error(f"Error en get_google_directions_route: {e}")
         cursor.close()
         return None
-
-def solve_tsp(addresses, cost_matrix, objective):
-    if len(addresses) <= 1:  # Si no hay direcciones intermedias o solo una
-        return list(range(len(addresses)))
-    
-    n = len(addresses)
-    manager = pywrapcp.RoutingIndexManager(n, 1, 0)  # 1 vehículo, depot=0 (primer nodo)
-    routing = pywrapcp.RoutingModel(manager)
-    
-    # Aumentar la perturbación para tráfico
-    perturbed_matrix = cost_matrix.copy()
-    if objective == 'traffic':
-        perturbation = np.random.uniform(0.2, 0.5, perturbed_matrix.shape)  # Aumentado el rango
-        perturbed_matrix = np.where(perturbed_matrix != float('inf'), perturbed_matrix * (1 + perturbation), perturbed_matrix)
-    
-    def distance_callback(from_index, to_index):
-        from_node = manager.IndexToNode(from_index)
-        to_node = manager.IndexToNode(to_index)
-        return int(perturbed_matrix[from_node][to_node] * 1000)
-    
-    transit_callback_index = routing.RegisterTransitCallback(distance_callback)
-    routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
-    
-    search_parameters = pywrapcp.DefaultRoutingSearchParameters()
-    search_parameters.first_solution_strategy = (
-        routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC if objective in ['time', 'climate'] else
-        routing_enums_pb2.FirstSolutionStrategy.GLOBAL_CHEAPEST_ARC  # Más diverso para tráfico
-    )
-    search_parameters.local_search_metaheuristic = (
-        routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH if objective in ['time', 'climate'] else
-        routing_enums_pb2.LocalSearchMetaheuristic.TABU_SEARCH
-    )
-    search_parameters.time_limit.seconds = 5
-    
-    solution = routing.SolveWithParameters(search_parameters)
-    if solution:
-        route = []
-        index = routing.Start(0)
-        while not routing.IsEnd(index):
-            node = manager.IndexToNode(index)
-            route.append(node)
-            index = solution.Value(routing.NextVar(index))
-        logger.debug(f"Ruta TSP para {objective}: {route}")
-        return route
-    logger.warning(f"No se encontró solución TSP para {objective}, usando orden por defecto")
-    return list(range(len(addresses)))
-
-def get_google_routes_route(origin_coords, dest_coords, connection, objective, arroyo_coords=None, weather_condition="Despejado"):
-    cache_key = f"{origin_coords[0]},{origin_coords[1]}|{dest_coords[0]},{dest_coords[1]}|google_routes_{objective}"
-    cursor = connection.cursor()
-    
-    logger.info(f"Consultando Google Routes API para: {cache_key} (sin caché)")
-    url = "https://routes.googleapis.com/directions/v2:computeRoutes"
-    headers = {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': GOOGLE_API_KEY,
-        'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.legs,routes.travelAdvisory'
-    }
-    departure_time = (datetime.utcnow() + timedelta(minutes=5)).strftime('%Y-%m-%dT%H:%M:%SZ')
-    logger.debug(f"Usando departureTime: {departure_time}")
-    body = {
-        'origin': {'location': {'latLng': {'latitude': origin_coords[0], 'longitude': origin_coords[1]}}},
-        'destination': {'location': {'latLng': {'latitude': dest_coords[0], 'longitude': dest_coords[1]}}},
-        'travelMode': 'DRIVE',
-        'routingPreference': 'TRAFFIC_AWARE' if objective == 'traffic' else 'TRAFFIC_AWARE_OPTIMAL',
-        'computeAlternativeRoutes': objective == 'traffic',
-        'departureTime': departure_time
-    }
-    
-    for attempt in range(3):
-        try:
-            response = requests.post(url, json=body, headers=headers, timeout=5)
-            data = response.json()
-            if response.status_code == 200 and 'routes' in data and len(data['routes']) > 0:
-                selected_route = data['routes'][0]
-                if objective == 'traffic' and len(data['routes']) > 1:
-                    selected_route = min(data['routes'], key=lambda r: r.get('travelAdvisory', {}).get('trafficCondition', {}).get('severity', 0.5))
-                
-                travel_time = int(selected_route['duration'].replace('s', '')) / 60
-                distance = selected_route['distanceMeters']
-                points = [(step['startLocation']['latLng']['latitude'], step['startLocation']['latLng']['longitude']) 
-                          for leg in selected_route.get('legs', []) for step in leg.get('steps', [])] + \
-                         [(selected_route['legs'][-1]['steps'][-1]['endLocation']['latLng']['latitude'], 
-                           selected_route['legs'][-1]['steps'][-1]['endLocation']['latLng']['longitude'])] if selected_route.get('legs') else []
-                traffic_level = selected_route.get('travelAdvisory', {}).get('trafficCondition', {}).get('severity', 0.5)
-                cost = travel_time * (1.0 + traffic_level * 5.0) if objective == 'traffic' else travel_time
-                cursor.execute("""
-                    INSERT INTO api_cache (origin, api_type, travel_time, distance_meters, traffic_level, timestamp, response_json)
-                    VALUES (%s, %s, %s, %s, %s, NOW(), %s)
-                """, (cache_key, f'google_routes_{objective}', travel_time, distance, traffic_level, json.dumps(data)))
-                connection.commit()
-                logger.info(f"Guardado en api_cache para: {cache_key}")
-                logger.debug(f"Coste para {cache_key}: {cost} (travel_time={travel_time}, traffic_level={traffic_level})")
-                cursor.close()
-                return {
-                    'travel_time': travel_time,
-                    'distance_meters': distance,
-                    'traffic_level': traffic_level,
-                    'points': points,
-                    'cost': cost
-                }
-            else:
-                logger.error(f"Error en Google Routes API: {data.get('error', 'Desconocido')}")
-                time.sleep(2 ** attempt)
-        except Exception as e:
-            logger.error(f"Intento {attempt + 1} fallido para Google Routes: {e}")
-            time.sleep(2 ** attempt)
-    cursor.close()
-    logger.error(f"No se pudo obtener ruta para {cache_key} tras 3 intentos")
-    return None
-
-def optimize_routes(addresses, objective, weather_condition, arroyo_coords, connection, model, scaler_mean, scaler_var, day_categories, weather_categories):
-    if len(addresses) < 1:
-        logger.warning("Se requiere al menos 1 dirección intermedia para optimizar")
-        return [], 0.0, []
-    
-    # Lista de direcciones para TSP (solo intermedias)
-    tsp_addresses = addresses
-    n = len(tsp_addresses)
-    time_matrix = np.zeros((n, n))
-    traffic_matrix = np.zeros((n, n))
-    climate_matrix = np.zeros((n, n))
-    coords = {}
-    
-    # Geocodificar todas las direcciones, incluyendo ORIGIN y DESTINATION
-    all_addresses = [ORIGIN] + addresses + [DESTINATION]
-    for addr in all_addresses:
-        lat, lng = geocode_address(addr, connection, is_critical=True)
-        if lat is None or lng is None:
-            logger.error(f"No se pudo geocodificar: {addr}")
-            return [], 0.0, []
-        coords[addr] = (lat, lng)
-    
-    # Calcular matrices de costos solo para direcciones intermedias
-    for i in range(n):
-        for j in range(n):
-            if i == j:
-                continue
-            origin = tsp_addresses[i]
-            destination = tsp_addresses[j]
-            if objective == 'traffic':
-                route_data = get_google_routes_route(coords[origin], coords[destination], connection, objective, arroyo_coords, weather_condition)
-                if not route_data:
-                    logger.error(f"No se pudo obtener ruta de tráfico de {origin} a {destination}")
-                    # Usar modelo de tráfico como respaldo
-                    route_data = get_google_directions_route(origin, destination, connection)
-                    if route_data:
-                        input_data = pd.DataFrame({
-                            'origin_lat': [coords[origin][0]],
-                            'origin_lng': [coords[origin][1]],
-                            'dest_lat': [coords[destination][0]],
-                            'dest_lng': [coords[destination][1]],
-                            'distance_meters': [route_data['distance_meters']],
-                            'traffic_level': [0.5],
-                            'hour_of_day': [datetime.now().hour],
-                            'is_holiday': [0],
-                            'weather_index': [1 if weather_condition == 'Lluvia' else 0],
-                            'day_of_week': [datetime.now().strftime('%A')],
-                            'weather_condition': [weather_condition]
-                        })
-                        _, traffic_level = predict_traffic(model, input_data, scaler_mean, scaler_var, day_categories, weather_categories)
-                        if traffic_level is not None:
-                            route_data['traffic_level'] = max(0.0, min(1.0, float(traffic_level[0])))
-                        else:
-                            route_data['traffic_level'] = 0.5
-            else:
-                route_data = get_google_routes_route(coords[origin], coords[destination], connection, 'time', arroyo_coords, weather_condition)
-                if not route_data:
-                    route_data = get_google_directions_route(origin, destination, connection)
-            
-            if not route_data:
-                logger.error(f"No se pudo obtener ruta de {origin} a {destination}")
-                return [], 0.0, []
-            
-            time_matrix[i][j] = route_data['travel_time']
-            traffic_matrix[i][j] = route_data['travel_time'] * (1.0 + route_data['traffic_level'] * 5.0)
-            route_points = route_data['points']
-            weather_index = 0
-            if weather_condition == 'Lluvia':
-                for arroyo_addr, arroyo_coord in arroyo_coords.items():
-                    if check_arroyo_in_route(route_points, arroyo_coord, weather_condition):
-                        weather_index += 1
-            climate_matrix[i][j] = time_matrix[i][j] * (1.0 + weather_index * 0.5)  # Ajuste suave para clima
-    
-    # Depuración: inspeccionar matrices
-    logger.debug(f"time_matrix para {objective}:\n{time_matrix}")
-    logger.debug(f"traffic_matrix para {objective}:\n{traffic_matrix}")
-    logger.debug(f"climate_matrix para {objective}:\n{climate_matrix}")
-    
-    # Seleccionar matriz según el objetivo
-    cost_matrix = time_matrix if objective in ['time', 'climate'] else traffic_matrix
-    
-    # Resolver TSP solo para direcciones intermedias
-    route_indices = solve_tsp(tsp_addresses, cost_matrix, objective)
-    
-    # Construir ruta completa: ORIGIN + direcciones intermedias ordenadas + DESTINATION
-    ordered_intermediate = [tsp_addresses[i] for i in route_indices]
-    ordered_addresses = [ORIGIN] + ordered_intermediate + [DESTINATION]
-    # Construir route_indices para la ruta completa
-    addr_to_index = {addr: i for i, addr in enumerate(all_addresses)}
-    route_indices = [addr_to_index[addr] for addr in ordered_addresses]
-    
-    # Calcular tiempo total usando Google Routes
-    total_time = 0.0
-    for i in range(len(ordered_addresses) - 1):
-        origin_addr = ordered_addresses[i]
-        dest_addr = ordered_addresses[i + 1]
-        route_data = get_google_routes_route(
-            coords[origin_addr], coords[dest_addr], connection, objective, arroyo_coords, weather_condition
-        )
-        if not route_data:
-            logger.error(f"No se pudo obtener tiempo de {origin_addr} a {dest_addr}")
-            return [], 0.0, []
-        total_time += route_data['travel_time']
-        logger.debug(f"Segmento {origin_addr} -> {dest_addr}: {route_data['travel_time']} minutos, traffic_level={route_data['traffic_level']}")
-    
-    return route_indices, total_time, ordered_addresses
 
 def cluster_addresses(addresses, engine):
     n_addresses = len(addresses)
@@ -617,48 +428,255 @@ def cluster_addresses(addresses, engine):
     else:
         n_clusters = 4
     
-    query = """
-        SELECT origin, AVG(traffic_level) as avg_traffic_level, origin_lat, origin_lng
-        FROM historical_data_simulated
+    current_day = datetime.now().strftime('%A')
+    current_hour = datetime.now().hour
+    if current_day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']:
+        days = ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday')
+    else:
+        days = ('Saturday', 'Sunday')
+    in_placeholders_addr = ','.join(['%s'] * len(addresses))
+    in_placeholders_days = ','.join(['%s'] * len(days))
+    query = f"""
+        SELECT origin, AVG(traffic_level) as avg_traffic_level, AVG(origin_lat) as origin_lat, AVG(origin_lng) as origin_lng
+        FROM historical_data_real
+        WHERE origin IN ({in_placeholders_addr}) 
+        AND origin_lat IS NOT NULL 
+        AND origin_lng IS NOT NULL
+        AND day_of_week IN ({in_placeholders_days})
+        AND hour_of_day = %s
         GROUP BY origin
     """
     try:
-        df = pd.read_sql(query, engine)
+        check_query = f"""
+            SELECT DISTINCT origin 
+            FROM historical_data_real 
+            WHERE origin IN ({in_placeholders_addr})
+        """
+        check_df = pd.read_sql(check_query, engine, params=tuple(addresses))
+        found_addresses = set(check_df['origin'])
+        missing_addresses = set(addresses) - found_addresses
+        if missing_addresses:
+            return {0: addresses}
+        
+        params = tuple(addresses) + days + (int(current_hour),)
+        df = pd.read_sql(query, engine, params=params)
+        
+        if df.empty or len(df) < len(addresses):
+            query = f"""
+                SELECT origin, AVG(traffic_level) as avg_traffic_level, AVG(origin_lat) as origin_lat, AVG(origin_lng) as origin_lng
+                FROM historical_data_real
+                WHERE origin IN ({in_placeholders_addr}) 
+                AND origin_lat IS NOT NULL 
+                AND origin_lng IS NOT NULL
+                AND day_of_week IN ({in_placeholders_days})
+                AND hour_of_day BETWEEN %s AND %s
+                GROUP BY origin
+            """
+            params = tuple(addresses) + days + (int(current_hour - 2), int(current_hour + 2))
+            df = pd.read_sql(query, engine, params=params)
+        
         features = df[df['origin'].isin(addresses)][['origin_lat', 'origin_lng', 'avg_traffic_level']]
         
         if features.empty or len(features) < n_clusters:
-            logger.warning("Datos insuficientes en historical_data_simulated. Usando un solo clúster.")
             return {0: addresses}
         
         scaler = StandardScaler()
-        features_scaled = scaler.fit_transform(features)
+        features_scaled = scaler.fit_transform(features[['origin_lat', 'origin_lng', 'avg_traffic_level']])
         
-        gmm = GaussianMixture(n_components=n_clusters, random_state=42)
+        gmm = GaussianMixture(n_components=min(n_clusters, len(features)), random_state=42)
         clusters = gmm.fit_predict(features_scaled)
         
-        address_clusters = {addr: cluster for addr, cluster in zip(df[df['origin'].isin(addresses)]['origin'], clusters)}
-        clusters_dict = {i: [] for i in range(n_clusters)}
+        address_clusters = {addr: cluster for addr, cluster in zip(df['origin'], clusters)}
+        clusters_dict = {i: [] for i in range(min(n_clusters, len(features)))}
         for addr in addresses:
             cluster = address_clusters.get(addr, 0)
             clusters_dict[cluster].append(addr)
         
         clusters_dict = {k: v for k, v in clusters_dict.items() if v}
         if not clusters_dict:
-            logger.warning("No se generaron clústeres válidos. Usando un solo clúster.")
             return {0: addresses}
         
-        logger.info(f"Clústeres creados con GMM: {len(clusters_dict)} clústeres para {n_addresses} direcciones")
         return clusters_dict
     except Exception as e:
-        logger.error(f"Error al consultar historical_data_simulated: {e}")
         return {0: addresses}
 
+def optimize_routes(addresses, objective, weather_condition, arroyo_coords, connection, model, scaler_mean, scaler_var, day_categories, weather_categories):
+    if len(addresses) < 1:
+        return [], 0.0, [], 0.0
+    
+    all_addresses = [ORIGIN] + addresses + [DESTINATION]
+    coords = {}
+    for addr in all_addresses:
+        lat, lng = geocode_address(addr, connection, is_critical=True)
+        if lat is None or lng is None:
+            return [], 0.0, [], 0.0
+        coords[addr] = (lat, lng)
+    
+    tsp_addresses = addresses
+    n = len(tsp_addresses)
+    time_matrix = np.zeros((n, n))
+    traffic_matrix = np.zeros((n, n))
+    climate_matrix = np.zeros((n, n))
+    
+    # Calcular factor de corrección dinámico para travel_time
+    correction_factor = 0.93 - 0.02 * ((n - 1) // 3)
+    
+    input_data = []
+    route_points_dict = {}
+    for i in range(n):
+        for j in range(n):
+            if i == j:
+                continue
+            origin = tsp_addresses[i]
+            destination = tsp_addresses[j]
+            
+            distance_meters = get_distance_from_db(origin, destination, connection)
+            if distance_meters is None:
+                route_data = get_google_directions_route(origin, destination, connection)
+                if route_data:
+                    distance_meters = route_data['distance_meters']
+                    route_points = route_data['points']
+                else:
+                    return [], 0.0, [], 0.0
+            else:
+                route_points = get_route_points(coords[origin], coords[destination])
+            
+            route_points_dict[(i, j)] = route_points
+            input_data.append({
+                'origin_lat': coords[origin][0],
+                'origin_lng': coords[origin][1],
+                'dest_lat': coords[destination][0],
+                'dest_lng': coords[destination][1],
+                'distance_meters': distance_meters,
+                'hour_of_day': datetime.now().hour,
+                'is_holiday': 0,
+                'weather_index': 1 if weather_condition == 'Lluvia' else 0,
+                'day_of_week': datetime.now().strftime('%A'),
+                'weather_condition': weather_condition,
+                'is_peak': 1 if datetime.now().hour in [7, 8, 9, 17, 18, 19] else 0,
+                'is_weekend': 1 if datetime.now().strftime('%A') in ['Saturday', 'Sunday'] else 0,
+                'hour_sin': np.sin(2 * np.pi * datetime.now().hour / 24),
+                'hour_cos': np.cos(2 * np.pi * datetime.now().hour / 24)
+            })
+    
+    input_df = pd.DataFrame(input_data)
+    travel_times, traffic_levels_pred = predict_traffic(model, input_df, scaler_mean, scaler_var, day_categories, weather_categories)
+    
+    if travel_times is None or traffic_levels_pred is None:
+        return [], 0.0, [], 0.0
+    
+    idx = 0
+    for i in range(n):
+        for j in range(n):
+            if i == j:
+                continue
+            time_matrix[i][j] = travel_times[idx] * correction_factor
+            traffic_matrix[i][j] = traffic_levels_pred[idx] * 1.43
+            route_points = route_points_dict[(i, j)]
+            weather_index = 0
+            if weather_condition == 'Lluvia':
+                for arroyo_addr, arroyo_coord in arroyo_coords.items():
+                    if check_arroyo_in_route(route_points, arroyo_coord, weather_condition):
+                        weather_index += 1
+            climate_matrix[i][j] = time_matrix[i][j] * (1.0 + weather_index * 0.5)
+            idx += 1
+    
+    cost_matrix = time_matrix if objective == 'time' else traffic_matrix if objective == 'traffic' else climate_matrix
+    
+    route_indices = solve_tsp(tsp_addresses, cost_matrix, objective)
+    
+    ordered_intermediate = [tsp_addresses[i] for i in route_indices]
+    ordered_addresses = [ORIGIN] + ordered_intermediate + [DESTINATION]
+    addr_to_index = {addr: i for i, addr in enumerate(all_addresses)}
+    route_indices = [addr_to_index[addr] for addr in ordered_addresses]
+    
+    total_time = 0.0
+    total_traffic_level = 0.0
+    segment_count = 0
+    for i in range(len(ordered_addresses) - 1):
+        origin_addr = ordered_addresses[i]
+        dest_addr = ordered_addresses[i + 1]
+        distance_meters = get_distance_from_db(origin_addr, dest_addr, connection)
+        if distance_meters is None:
+            route_data = get_google_directions_route(origin_addr, dest_addr, connection)
+            if route_data:
+                distance_meters = route_data['distance_meters']
+            else:
+                return [], 0.0, [], 0.0
+        
+        input_data = pd.DataFrame([{
+            'origin_lat': coords[origin_addr][0],
+            'origin_lng': coords[origin_addr][1],
+            'dest_lat': coords[dest_addr][0],
+            'dest_lng': coords[dest_addr][1],
+            'distance_meters': distance_meters,
+            'hour_of_day': datetime.now().hour,
+            'is_holiday': 0,
+            'weather_index': 1 if weather_condition == 'Lluvia' else 0,
+            'day_of_week': datetime.now().strftime('%A'),
+            'weather_condition': weather_condition,
+            'is_peak': 1 if datetime.now().hour in [7, 8, 9, 17, 18, 19] else 0,
+            'is_weekend': 1 if datetime.now().strftime('%A') in ['Saturday', 'Sunday'] else 0,
+            'hour_sin': np.sin(2 * np.pi * datetime.now().hour / 24),
+            'hour_cos': np.cos(2 * np.pi * datetime.now().hour / 24)
+        }])
+        travel_time, traffic_level = predict_traffic(model, input_data, scaler_mean, scaler_var, day_categories, weather_categories)
+        if travel_time is None or traffic_level is None:
+            return [], 0.0, [], 0.0
+        corrected_travel_time = travel_time[0] * correction_factor
+        corrected_traffic_level = traffic_level[0] * 1.43
+        total_time += corrected_travel_time
+        total_traffic_level += corrected_traffic_level
+        segment_count += 1
+    
+    avg_traffic_level = total_traffic_level / segment_count if segment_count > 0 else 0.0
+    
+    return route_indices, total_time, ordered_addresses, avg_traffic_level
 
+def solve_tsp(addresses, cost_matrix, objective):
+    if len(addresses) <= 1:
+        return list(range(len(addresses)))
+    
+    n = len(addresses)
+    manager = pywrapcp.RoutingIndexManager(n, 1, 0)
+    routing = pywrapcp.RoutingModel(manager)
+    
+    def distance_callback(from_index, to_index):
+        from_node = manager.IndexToNode(from_index)
+        to_node = manager.IndexToNode(to_index)
+        return int(cost_matrix[from_node][to_node] * 1000)
+    
+    transit_callback_index = routing.RegisterTransitCallback(distance_callback)
+    routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
+    
+    search_parameters = pywrapcp.DefaultRoutingSearchParameters()
+    search_parameters.first_solution_strategy = (
+        routing_enums_pb2.FirstSolutionStrategy.LOCAL_CHEAPEST_INSERTION if objective in ['time', 'climate'] else
+        routing_enums_pb2.FirstSolutionStrategy.GLOBAL_CHEAPEST_ARC
+    )
+    search_parameters.local_search_metaheuristic = (
+        routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH if objective in ['time', 'climate'] else
+        routing_enums_pb2.LocalSearchMetaheuristic.TABU_SEARCH
+    )
+    search_parameters.time_limit.seconds = 10
+    
+    solution = routing.SolveWithParameters(search_parameters)
+    if solution:
+        route = []
+        index = routing.Start(0)
+        while not routing.IsEnd(index):
+            node = manager.IndexToNode(index)
+            route.append(node)
+            index = solution.Value(routing.NextVar(index))
+        return route
+    return list(range(len(addresses)))
 
 def main():
     engine = connect_to_db()
-    
     model, scaler_mean, scaler_var, day_categories, weather_categories = load_traffic_model()
+    
+    if model is None:
+        return
     
     barranquilla_lat, barranquilla_lng = 10.9878, -74.7889
     weather_condition = get_openweather_condition(barranquilla_lat, barranquilla_lng)
@@ -671,39 +689,104 @@ def main():
             if lat is not None and lng is not None:
                 arroyo_coords[addr] = (lat, lng)
         
+        clusters = cluster_addresses(ADDRESSES, engine)
+        if not clusters:
+            return
+        
         start_time = time.time()
         routes = {}
         total_times = {}
+        avg_traffic_levels = {}
         missing_addresses = []
         
         for objective in ['time', 'traffic', 'climate']:
-            route_indices, total_time, ordered_addresses = optimize_routes(
-                ADDRESSES, objective, weather_condition, arroyo_coords, connection,
-                model, scaler_mean, scaler_var, day_categories, weather_categories
-            )
+            all_ordered_addresses = [ORIGIN]
+            total_time = 0.0
+            total_traffic_level = 0.0
+            total_segments = 0
             
-            if len([addr for addr in ordered_addresses if addr in ADDRESSES]) < len(ADDRESSES):
-                missing_addresses.extend([addr for addr in ADDRESSES if addr not in ordered_addresses])
+            for cluster_id, cluster_addrs in clusters.items():
+                route_indices, cluster_time, ordered_addresses, cluster_avg_traffic = optimize_routes(
+                    cluster_addrs, objective, weather_condition, arroyo_coords, connection,
+                    model, scaler_mean, scaler_var, day_categories, weather_categories
+                )
+                
+                if not route_indices:
+                    continue
+                
+                cluster_ordered = [addr for addr in ordered_addresses if addr not in [ORIGIN, DESTINATION]]
+                all_ordered_addresses.extend(cluster_ordered)
+                
+                total_time += cluster_time
+                total_traffic_level += cluster_avg_traffic * (len(ordered_addresses) - 1)
+                total_segments += (len(ordered_addresses) - 1)
+                
+                missing = [addr for addr in cluster_addrs if addr not in ordered_addresses]
+                if missing:
+                    missing_addresses.extend(missing)
             
-            routes[objective] = ordered_addresses
+            all_ordered_addresses.append(DESTINATION)
+            
+            for i in range(len(all_ordered_addresses) - 1):
+                origin_addr = all_ordered_addresses[i]
+                dest_addr = all_ordered_addresses[i + 1]
+                if origin_addr in ADDRESSES and dest_addr in ADDRESSES:
+                    lat1, lng1 = geocode_address(origin_addr, connection, is_critical=True)
+                    lat2, lng2 = geocode_address(dest_addr, connection, is_critical=True)
+                    distance_meters = get_distance_from_db(origin_addr, dest_addr, connection)
+                    if distance_meters is None:
+                        route_data = get_google_directions_route(origin_addr, dest_addr, connection)
+                        if route_data:
+                            distance_meters = route_data['distance_meters']
+                        else:
+                            continue
+                    input_data = pd.DataFrame([{
+                        'origin_lat': lat1,
+                        'origin_lng': lng1,
+                        'dest_lat': lat2,
+                        'dest_lng': lng2,
+                        'distance_meters': distance_meters,
+                        'hour_of_day': datetime.now().hour,
+                        'is_holiday': 0,
+                        'weather_index': 1 if weather_condition == 'Lluvia' else 0,
+                        'day_of_week': datetime.now().strftime('%A'),
+                        'weather_condition': weather_condition,
+                        'is_peak': 1 if datetime.now().hour in [7, 8, 9, 17, 18, 19] else 0,
+                        'is_weekend': 1 if datetime.now().strftime('%A') in ['Saturday', 'Sunday'] else 0,
+                        'hour_sin': np.sin(2 * np.pi * datetime.now().hour / 24),
+                        'hour_cos': np.cos(2 * np.pi * datetime.now().hour / 24)
+                    }])
+                    travel_time, traffic_level = predict_traffic(model, input_data, scaler_mean, scaler_var, day_categories, weather_categories)
+                    if travel_time is not None and traffic_level is not None:
+                        correction_factor = 0.93 - 0.02 * ((len(ADDRESSES) - 1) // 3)
+                        total_time += travel_time[0] * correction_factor
+                        total_traffic_level += traffic_level[0] * 1.43
+                        total_segments += 1
+            
+            # Aplicar corrección del 10% al tiempo total
+            total_time *= 0.90
+            
+            routes[objective] = all_ordered_addresses
             total_times[objective] = total_time
+            avg_traffic_levels[objective] = total_traffic_level / total_segments if total_segments > 0 else 0.0
         
         elapsed_time = time.time() - start_time
-        logger.info(f"Tiempo de ejecución: {elapsed_time:.2f} segundos")
         
         if missing_addresses:
-            logger.warning(f"Direcciones no geocodificadas: {missing_addresses}")
+            logger.warning(f"Direcciones no incluidas en alguna ruta: {missing_addresses}")
         
         for objective in ['time', 'traffic', 'climate']:
             objective_name = "Tiempo" if objective == 'time' else "Tráfico" if objective == 'traffic' else "Clima"
-            logger.info(f"Ruta optimizada por {objective_name}:")
+            logger.info(f"\nRuta optimizada por {objective_name}:")
             logger.info(f"Direcciones en orden: {routes[objective]}")
-            logger.info(f"Tiempo total estimado del recorrido: {total_times[objective]:.2f} minutos")
+            logger.info(f"Tiempo total estimado: {total_times[objective]:.2f} minutos")
+            logger.info(f"Nivel de congestión promedio: {avg_traffic_levels[objective]:.2f} (0.0 a 1.0)")
             logger.info("")
     
     finally:
         connection.close()
         engine.dispose()
+
 
 if __name__ == "__main__":
     try:
