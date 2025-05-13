@@ -6,6 +6,7 @@
     padding: 0;
     box-sizing: border-box;
     font-family: 'Poppins', sans-serif;
+    text-align: justify;
 }
 
 body {
@@ -14,6 +15,11 @@ body {
     line-height: 1.6;
     min-height: 100vh;
     width: 100%;
+}
+
+  
+h1{
+    text-align: center;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -607,6 +613,121 @@ footer {
     color: #aaa;
 }
 
+/* Estilos específicos para la página de equipo */
+.team-intro {
+    text-align: center;
+    max-width: 1000px;
+    margin: 0 auto 50px;
+    padding: 0 20px;
+}
+
+.team-members {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 30px;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.team-card {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    /* Sin animación como solicitaste */
+}
+
+.team-photo {
+    width: 100%;
+    height: 500px;
+    background-color: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.team-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.team-photo i {
+    font-size: 80px;
+    color: #ccc;
+}
+
+.team-info {
+    padding: 20px;
+}
+
+.team-info h3 {
+    margin: 0 0 5px;
+    color: #0059FF;
+}
+
+.team-role {
+    color: #666;
+    font-weight: 500;
+    margin-bottom: 15px;
+    display: block;
+}
+
+.team-description {
+    color: #555;
+    line-height: 1.6;
+}
+
+.team-social {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.team-social a {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #0059FF;
+    transition: all 0.3s ease;
+}
+
+.team-social a:hover {
+    background-color: #0059FF;
+    color: #fff;
+}
+
+.team-section {
+    padding: 80px 0;
+}
+
+.team-section h2 {
+    text-align: center;
+    margin-bottom: 50px;
+    color: #0059FF;
+}
+
+.team-categories {
+    margin-top: 60px;
+}
+
+.team-category {
+    margin-bottom: 60px;
+}
+
+.team-category h2 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #0059FF;
+}
+
+
 /* Responsive Design */
 @media (max-width: 992px) {
     .hero {
@@ -699,3 +820,26 @@ footer {
         min-width: 100%;
     }
 }
+
+@media (max-width: 992px) {
+    .team-members {
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .team-members {
+        grid-template-columns: 1fr;
+    }
+    
+    .team-photo {
+        height: 350px;
+    }
+}
+
+@media (max-width: 480px) {
+    .team-photo {
+        height: 300px;
+    }
+}
+

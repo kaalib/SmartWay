@@ -1,8 +1,8 @@
 // /sw-cloud.js
-const CACHE_NAME = 'smartway-app-v3';
+const CACHE_NAME = 'smartway-app-v4';
 const urlsToCache = [
-    '/index.html',
-    '/map.html',
+    //'/index.html',
+    //'/map.html',
     '/login.html',
     '/historial.html',
     '/styles/comun.css',

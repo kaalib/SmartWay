@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartWay - Nuestro Equipo</title>
+    <link rel="icon" type="image/svg+xml" href="media/favicon.svg">
+    <link rel="stylesheet" href="styles/sweetalert-custom.css">
+    <link rel="stylesheet" href="styles/index.css">
+    <link rel="stylesheet" href="styles/sidebar.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Estilos específicos para la página de equipo */
+        .team-intro {
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 50px;
+            padding: 0 20px;
+        }
+        
+        .team-members {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .team-card {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            /* Eliminada la transición y animación */
+        }
+        
+        /* Eliminado el hover effect */
+        
+        .team-photo {
+            width: 100%;
+            height: 300px;
+            background-color: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .team-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .team-photo i {
+            font-size: 80px;
+            color: #ccc;
+        }
+        
+        .team-info {
+            padding: 20px;
+        }
+        
+        .team-info h3 {
+            margin: 0 0 5px;
+            color: #0059FF;
+        }
+        
+        .team-role {
+            color: #666;
+            font-weight: 500;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .team-description {
+            color: #555;
+            line-height: 1.6;
+        }
+        
+        .team-social {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .team-social a {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #0059FF;
+            transition: all 0.3s ease;
+        }
+        
+        .team-social a:hover {
+            background-color: #0059FF;
+            color: #fff;
+        }
+        
+        .team-section {
+            padding: 80px 0;
+        }
+        
+        .team-section h2 {
+            text-align: center;
+            margin-bottom: 50px;
+            color: #0059FF;
+        }
+        
+        .team-categories {
+            margin-top: 60px;
+        }
+        
+        .team-category {
+            margin-bottom: 60px;
+        }
+        
+        .team-category h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #0059FF;
+        }
+        
+        @media (max-width: 768px) {
+            .team-members {
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            }
+            
+            .team-photo {
+                height: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Barra de navegación -->
+    <div class="nav-container">
+        <nav>
+            <a href="index.html" class="logo">
+                <span>Smart</span><span class="way-text">Way</span>
+            </a>
+            <div class="nav-links">
+                <a href="index.html">Inicio</a>
+                <a href="index.html#soluciones">Soluciones</a>
+                <a href="index.html#beneficios">Beneficios</a>
+                <a href="equipo.html" class="active">Equipo</a>
+                <a href="index.html#contacto">Contacto</a>
+                <a href="javascript:void(0)" onclick="clearLoginSelection()" class="login-btn">Iniciar Sesión</a>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Menú móvil -->
+    <div class="menu-icon" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </div>
+
+    <!-- Sidebar -->
+    <div id="sidebar" class="sidebar">
+        <a href="javascript:void(0)" class="close-btn" onclick="toggleSidebar()">
+            <i class="fas fa-times"></i>
+        </a>
+        <a href="index.html" class="sidebar-logo">
+            <span class="smart-text">Smart</span><span class="way-text">Way</span>
+        </a>
+        
+        <a href="index.html">
+            <i class="fas fa-home"></i> Inicio
+        </a>
+        <a href="index.html#soluciones">
+            <i class="fas fa-lightbulb"></i> Soluciones
+        </a>
+        <a href="index.html#beneficios">
+            <i class="fas fa-check-circle"></i> Beneficios
+        </a>
+        <a href="equipo.html" class="active">
+            <i class="fas fa-users"></i> Equipo
+        </a>
+        <a href="index.html#contacto">
+            <i class="fas fa-envelope"></i> Contacto
+        </a>
+        
+        <div class="sidebar-divider"></div>
+        
+        <a href="javascript:void(0)" onclick="clearLoginSelection()">
+            <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+        </a>
+    </div>
+
+    <!-- Team Section -->
+    <section class="team-section">
+        <div class="container">
+            <h2>Nuestro Equipo</h2>
+            
+            <div class="team-intro">
+                <p>Este proyecto, creado por estudiantes de Ingeniería como trabajo final de grado, combina hardware y software para mejorar el transporte empresarial. Incorpora un dispositivo portátil de reconocimiento biométrico que envía datos a la nube y una plataforma web para mostrar rutas en tiempo real. Usa inteligencia artificial para planificar rutas rápidamente, organizando hasta 40 direcciones en 2 minutos. La IA analiza datos de Barranquilla para estimar tiempos de viaje, evitar tráfico y considerar arroyos o el clima, creando rutas que ahorran tiempo o evitan congestión. Una base de datos agiliza el proceso. Esta solución optimiza el despacho de empleados, garantiza su seguridad y ofrece a las empresas una herramienta moderna de gestión.
+                    </p>
+            </div>
+            
+            <div class="team-category">
+                <h2>Miembros del Proyecto</h2>
+                <div class="team-members">
+                    <div class="team-card">
+                        <div class="team-photo">
+                            
+                        <img src="media/orlando.jpeg" alt="Orlando Arroyo">
+                        </div>
+                        <div class="team-info">
+                            <h3>Orlando Arroyo</h3>
+                            <span class="team-role">Ingeniero Electrónico</span>
+                            <p class="team-description">Estudiante de noveno semestre de Ingeniería Electrónica con especialización en desarrollo web e infraestructura en la nube. En el proyecto SmartWay, fue responsable del diseño e implementación de la plataforma web, integrando servicios AWS, bases de datos y protocolos de comunicación para garantizar una experiencia fluida y segura.</p>
+                            <div class="team-social">
+                                <a href="https://www.linkedin.com/in/orlando-arroyo-b88461341/"><i class="fab fa-linkedin-in"></i></a>
+                                <a href="#"><i class="fab fa-instagram"></i></a>
+                                <a href="#"><i class="fas fa-envelope"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="team-card">
+                        <div class="team-photo">
+                            <img src="media/karen.jpeg" alt="Karen Barros" >    
+                        </div>
+                        <div class="team-info">
+                            <h3>Karen Barros</h3>
+                            <span class="team-role">Ingeniera Electrónica</span>
+                            <p class="team-description">Estudiante de noveno semestre de Ingeniería Electrónica con enfoque en sistemas embebidos e inteligencia artificial. En SmartWay, lideró el desarrollo del hardware biométrico portátil y colaboró en la lógica de reorganización de rutas, asegurando una interacción precisa entre sensores, algoritmos y conectividad en tiempo real.</p>
+                            <div class="team-social">
+                                <a href="https://www.linkedin.com/in/karen-barros1/"><i class="fab fa-linkedin-in"></i></a>
+                                <a href="#"><i class="fab fa-instagram"></i></a>
+                                <a href="#"><i class="fas fa-envelope"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="team-category">
+                <h2>Asesoras del Proyecto</h2>
+                <div class="team-members">
+                    <div class="team-card">
+                        <div class="team-photo">
+                            <img src="media/diana.jpeg" alt="Diana Rueda">  </div>
+                        <div class="team-info">
+                            <h3>Diana Rueda</h3>
+                            <span class="team-role">Doctora en Ingeniería</span>
+                            <p class="team-description">Doctora en Ingeniería con amplia experiencia en hardware, microcontroladores, procesadores y gestión de proyectos. En SmartWay, brindó asesoría técnica en el diseño electrónico y validación del sistema embebido, asegurando la solidez y eficiencia del componente físico del proyecto.</p>
+                            <div class="team-social">
+                                <a href="https://www.linkedin.com/in/dianaruedadelgado/"><i class="fab fa-linkedin-in"></i></a>
+                                <a href="#"><i class="fab fa-instagram"></i></a>
+                                <a href="#"><i class="fas fa-envelope"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="team-card">
+                        <div class="team-photo">
+                            <img src="media/daniela.jpg" alt="Daniela Charris">  </div>
+                        <div class="team-info">
+                            <h3>Daniela Charris</h3>
+                            <span class="team-role">Magister en ingeniería</span>
+                            <p class="team-description">Magíster en Ingeniería, especializada en inteligencia artificial y ciencia de datos. En el proyecto SmartWay, asesoró el desarrollo de los algoritmos de optimización de rutas y análisis de datos, aportando su experiencia para fortalecer la lógica inteligente y el tratamiento eficiente de la información.</p>
+                            <div class="team-social">
+                                <a href="https://www.linkedin.com/in/danielamcharris/"><i class="fab fa-linkedin-in"></i></a>
+                                <a href="#"><i class="fab fa-instagram"></i></a>
+                                <a href="#"><i class="fas fa-envelope"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-logo">
+                <a href="index.html" class="logo">
+                    <span>Smart</span><span class="way-text">Way</span>
+                </a>
+                <p>Soluciones inteligentes para el transporte empresarial</p>
+            </div>
+            <div class="footer-links">
+                <div class="footer-column">
+                    <h4>Empresa</h4>
+                    <a href="#">Sobre Nosotros</a>
+                    <a href="equipo.html">Equipo</a>
+                    <a href="#">Carreras</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Soluciones</h4>
+                    <a href="#">Hardware Biométrico</a>
+                    <a href="#">Algoritmos de IA</a>
+                    <a href="#">Análisis de Datos</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Soporte</h4>
+                    <a href="#">Centro de Ayuda</a>
+                    <a href="#">Documentación</a>
+                    <a href="#">Contacto</a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 SmartWay. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="scripts/index.js"></script>
+    <script>
+        // Funciones para abrir/cerrar sidebars
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar.style.width === '280px') {
+                sidebar.style.width = '0';
+                sidebar.classList.remove('open');
+            } else {
+                sidebar.style.width = '280px';
+                sidebar.classList.add('open');
+            }
+        }
+        
+        // Función para limpiar la selección de login
+        function clearLoginSelection() {
+            localStorage.removeItem('selectedCompany');
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html>

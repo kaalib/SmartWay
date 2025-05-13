@@ -11,6 +11,7 @@ import { iniciarNavegacionConductor, detenerNavegacionConductor } from './module
 window.rutaSeleccionada = null;
 window.rutaDistancia = null;
 window.rutaTrafico = null;
+window.rutaTiempo = null;
 //window.marcadorBus = null;
 window.ultimaUbicacionBus = null;
 window.intervalID = null;
