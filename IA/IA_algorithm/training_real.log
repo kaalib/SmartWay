@@ -1,0 +1,17 @@
+2025-05-12 12:07:39,579 - INFO - 
+Distribución de datos:
+traffic_level  weather_condition
+0.50           Nublado              6068
+0.00           Nublado              4392
+               Lluvia               2572
+               Despejado            2542
+0.50           Despejado             921
+                                    ... 
+0.87           Lluvia                  1
+0.90           Nublado                 1
+0.93           Lluvia                  1
+0.99           Lluvia                  1
+1.00           Lluvia                  1
+Name: count, Length: 840, dtype: int64
+2025-05-12 12:09:05,719 - INFO - 
+Mejor val_accuracy: 0.8245
