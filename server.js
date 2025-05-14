@@ -665,7 +665,7 @@ app.get('/pasajeros', (req, res) => {
     const offset = (page - 1) * limit;
 
     let query = `
-        SELECT li.id_empleado, e.nombre, e.apellido, li.fecha_hora as fecha, 
+        SELECT li.id_empleado, e.nombre, e.apellido, DATE(li.fecha_hora) as fecha, 
                DATE_FORMAT(li.fecha_hora, '%H:%i') as hora, 
                COUNT(*) as frecuencia
         FROM logs_ingresos li
@@ -677,7 +677,7 @@ app.get('/pasajeros', (req, res) => {
         query += ` WHERE li.fecha_hora >= ? AND li.fecha_hora <= ?`;
         params.push(`${fechaInicio} 00:00:00`, `${fechaFin} 23:59:59`);
     }
-    query += ` GROUP BY li.id_empleado, e.nombre, e.apellido, li.fecha_hora
+    query += ` GROUP BY li.id_empleado, e.nombre, e.apellido, DATE(li.fecha_hora)
               ORDER BY li.fecha_hora DESC
               LIMIT ? OFFSET ?`;
     params.push(limit, offset);
@@ -699,7 +699,7 @@ app.get('/pasajeros', (req, res) => {
             res.json({
                 pasajeros: results.map(r => ({
                     nombre: `${r.nombre} ${r.apellido}`,
-                    fecha: r.fecha.split(' ')[0],
+                    fecha: r.fecha, // Ahora es un string como "2025-05-14" gracias a DATE()
                     hora: r.hora,
                     frecuencia: r.frecuencia >= 10 ? 'Alta' : r.frecuencia >= 5 ? 'Media' : 'Baja'
                 })),

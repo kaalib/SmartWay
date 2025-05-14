@@ -1,12 +1,42 @@
 // scripts/historial.js
 const CONFIG = {
-    SERVER_URL: 'https://smartway.ddns.net',
+    SERVER_URL: 'https://smartway.ddns.net', // Mantengo tu URL actual
     WEBSOCKET_URL: 'https://smartway.ddns.net',
-}
+};
 
 let currentPage = 1;
 let pasajerosChartInstance = null;
 let duracionChartInstance = null;
+
+// Plugin para dibujar líneas punteadas de promedio en las gráficas
+const promedioLinePlugin = {
+    id: 'promedioLine',
+    afterDraw: (chart, args, options) => {
+        const { ctx, scales } = chart;
+        const yScale = scales['y'];
+        const xStart = scales['x'].left;
+        const xEnd = scales['x'].right;
+
+        // Obtener los promedios desde las opciones del plugin
+        const promedios = options.promedios || [];
+
+        promedios.forEach(({ value, color }) => {
+            const yValue = yScale.getPixelForValue(value);
+            ctx.save();
+            ctx.beginPath();
+            ctx.setLineDash([5, 5]); // Línea punteada
+            ctx.moveTo(xStart, yValue);
+            ctx.lineTo(xEnd, yValue);
+            ctx.strokeStyle = color; // Usar el color del dataset
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.restore();
+        });
+    }
+};
+
+// Registrar el plugin globalmente
+Chart.register(promedioLinePlugin);
 
 async function cargarEstadisticas(fechaInicio = '', fechaFin = '') {
     try {
@@ -115,8 +145,8 @@ async function cargarPasajerosPorDia(fechaInicio = '', fechaFin = '') {
                 datasets: [{
                     label: 'Pasajeros por Día',
                     data: data.pasajeros,
-                    borderColor: '#0059ff',
-                    backgroundColor: 'rgba(0, 89, 255, 0.2)',
+                    borderColor: '#0059ff', // Azul
+                    backgroundColor: 'rgba(0, 89, 255, 0.1)', // Fondo más suave
                     fill: true,
                     tension: 0.4,
                     pointRadius: 5,
@@ -130,23 +160,10 @@ async function cargarPasajerosPorDia(fechaInicio = '', fechaFin = '') {
                 },
                 plugins: {
                     legend: { display: true, position: 'top' },
-                    // Plugin para dibujar la línea de promedio
-                    afterDatasetDraw: (chart) => {
-                        const ctx = chart.ctx;
-                        const yScale = chart.scales['y'];
-                        const yValue = yScale.getPixelForValue(promedioPasajeros);
-                        const xStart = chart.scales['x'].left;
-                        const xEnd = chart.scales['x'].right;
-
-                        ctx.save();
-                        ctx.beginPath();
-                        ctx.setLineDash([5, 5]); // Línea punteada
-                        ctx.moveTo(xStart, yValue);
-                        ctx.lineTo(xEnd, yValue);
-                        ctx.strokeStyle = '#0059ff'; // Mismo color que el dataset
-                        ctx.lineWidth = 2;
-                        ctx.stroke();
-                        ctx.restore();
+                    promedioLine: {
+                        promedios: [
+                            { value: promedioPasajeros, color: '#0059ff' }
+                        ]
                     }
                 }
             }
@@ -193,22 +210,22 @@ async function cargarDuracionPorDia(fechaInicio = '', fechaFin = '') {
                     {
                         label: 'Duración por Día (min)',
                         data: data.duraciones,
-                        borderColor: '#FF9900',
-                        backgroundColor: 'rgba(255, 153, 0, 0.2)',
+                        borderColor: '#28A745', // Verde oscuro
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)', // Fondo más suave
                         fill: true,
                         tension: 0.4,
                         pointRadius: 5,
-                        pointBackgroundColor: '#FF9900'
+                        pointBackgroundColor: '#28A745'
                     },
                     {
                         label: 'Distancia por Día (km)',
                         data: data.distancias,
-                        borderColor: '#FF4444',
-                        backgroundColor: 'rgba(255, 68, 68, 0.2)',
+                        borderColor: '#FFC107', // Amarillo mostaza
+                        backgroundColor: 'rgba(255, 193, 7, 0.1)', // Fondo más suave
                         fill: true,
                         tension: 0.4,
                         pointRadius: 5,
-                        pointBackgroundColor: '#FF4444'
+                        pointBackgroundColor: '#FFC107'
                     }
                 ]
             },
@@ -219,36 +236,11 @@ async function cargarDuracionPorDia(fechaInicio = '', fechaFin = '') {
                 },
                 plugins: {
                     legend: { display: true, position: 'top' },
-                    // Plugin para dibujar las líneas de promedio
-                    afterDatasetsDraw: (chart) => {
-                        const ctx = chart.ctx;
-                        const yScale = chart.scales['y'];
-                        const xStart = chart.scales['x'].left;
-                        const xEnd = chart.scales['x'].right;
-
-                        // Línea punteada para duración promedio
-                        const yDuracion = yScale.getPixelForValue(promedioDuracion);
-                        ctx.save();
-                        ctx.beginPath();
-                        ctx.setLineDash([5, 5]);
-                        ctx.moveTo(xStart, yDuracion);
-                        ctx.lineTo(xEnd, yDuracion);
-                        ctx.strokeStyle = '#FF9900'; // Mismo color que el dataset de duración
-                        ctx.lineWidth = 2;
-                        ctx.stroke();
-                        ctx.restore();
-
-                        // Línea punteada para distancia promedio
-                        const yDistancia = yScale.getPixelForValue(promedioDistancia);
-                        ctx.save();
-                        ctx.beginPath();
-                        ctx.setLineDash([5, 5]);
-                        ctx.moveTo(xStart, yDistancia);
-                        ctx.lineTo(xEnd, yDistancia);
-                        ctx.strokeStyle = '#FF4444'; // Mismo color que el dataset de distancia
-                        ctx.lineWidth = 2;
-                        ctx.stroke();
-                        ctx.restore();
+                    promedioLine: {
+                        promedios: [
+                            { value: promedioDuracion, color: '#28A745' }, // Línea para duración
+                            { value: promedioDistancia, color: '#FFC107' } // Línea para distancia
+                        ]
                     }
                 }
             }
