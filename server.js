@@ -607,6 +607,158 @@ app.post("/login", (req, res) => {
     });
 });
 
+// Ruta de historial
+
+// Ruta para estadísticas
+app.get('/estadisticas', (req, res) => {
+    const { fechaInicio, fechaFin } = req.query;
+    let query = `
+        SELECT 
+            COUNT(DISTINCT li.id_empleado) as totalPasajeros,
+            COUNT(*) as totalRutas,
+            AVG(h.tiempo) as tiempoPromedio,
+            COUNT(*) as destinosVisitados,
+            AVG(h.distancia) as distanciaPromedio
+        FROM logs_ingresos li
+        LEFT JOIN historial_rutas h ON li.id_empleado = h.conductor
+    `;
+    const params = [];
+
+    if (fechaInicio && fechaFin) {
+        query += ` WHERE li.fecha_hora >= ? AND li.fecha_hora <= ?`;
+        params.push(`${fechaInicio} 00:00:00`, `${fechaFin} 23:59:59`);
+    }
+
+    db.query(query, params, (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        const conductoresQuery = `
+            SELECT e.id, CONCAT(e.nombre, ' ', e.apellido) as nombre, COUNT(h.conductor) as viajes
+            FROM empleados e
+            LEFT JOIN historial_rutas h ON e.id = h.conductor
+            WHERE e.id BETWEEN 41 AND 45
+            GROUP BY e.id, e.nombre, e.apellido
+        `;
+        db.query(conductoresQuery, (err2, conductores) => {
+            if (err2) return res.status(500).json({ error: err2.message });
+
+            res.json({
+                totalPasajeros: results[0].totalPasajeros || 0,
+                totalRutas: results[0].totalRutas || 0,
+                tiempoPromedio: Math.round(results[0].tiempoPromedio) || 0,
+                destinosVisitados: results[0].destinosVisitados || 0,
+                distanciaPromedio: Math.round(results[0].distanciaPromedio) || 0, // Redondeado a km
+                conductores: conductores.map(c => ({
+                    id: c.id,
+                    nombre: c.nombre,
+                    viajes: c.viajes || 0
+                }))
+            });
+        });
+    });
+});
+
+// Ruta para pasajeros (sin cambios necesarios)
+app.get('/pasajeros', (req, res) => {
+    const { fechaInicio, fechaFin, page = 1 } = req.query;
+    const limit = 5;
+    const offset = (page - 1) * limit;
+
+    let query = `
+        SELECT li.id_empleado, e.nombre, e.apellido, li.fecha_hora as fecha, 
+               DATE_FORMAT(li.fecha_hora, '%H:%i') as hora, 
+               COUNT(*) as frecuencia
+        FROM logs_ingresos li
+        JOIN empleados e ON li.id_empleado = e.id
+    `;
+    const params = [];
+
+    if (fechaInicio && fechaFin) {
+        query += ` WHERE li.fecha_hora >= ? AND li.fecha_hora <= ?`;
+        params.push(`${fechaInicio} 00:00:00`, `${fechaFin} 23:59:59`);
+    }
+    query += ` GROUP BY li.id_empleado, e.nombre, e.apellido, li.fecha_hora
+              ORDER BY li.fecha_hora DESC
+              LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
+
+    db.query(query, params, (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        const countQuery = `
+            SELECT COUNT(DISTINCT li.id_empleado) as total
+            FROM logs_ingresos li
+            ${fechaInicio && fechaFin ? `WHERE li.fecha_hora >= ? AND li.fecha_hora <= ?` : ''}
+        `;
+        const countParams = fechaInicio && fechaFin ? [`${fechaInicio} 00:00:00`, `${fechaFin} 23:59:59`] : [];
+
+        db.query(countQuery, countParams, (err2, countResults) => {
+            if (err2) return res.status(500).json({ error: err2.message });
+
+            const totalPages = Math.ceil(countResults[0].total / limit);
+            res.json({
+                pasajeros: results.map(r => ({
+                    nombre: `${r.nombre} ${r.apellido}`,
+                    fecha: r.fecha.split(' ')[0],
+                    hora: r.hora,
+                    frecuencia: r.frecuencia >= 10 ? 'Alta' : r.frecuencia >= 5 ? 'Media' : 'Baja'
+                })),
+                totalPages
+            });
+        });
+    });
+});
+
+// Nuevo endpoint: Pasajeros por día
+app.get('/pasajeros-por-dia', (req, res) => {
+    const { fechaInicio, fechaFin } = req.query;
+    let query = `
+        SELECT DATE(li.fecha_hora) as dia, COUNT(DISTINCT li.id_empleado) as pasajeros
+        FROM logs_ingresos li
+    `;
+    const params = [];
+
+    if (fechaInicio && fechaFin) {
+        query += ` WHERE li.fecha_hora >= ? AND li.fecha_hora <= ?`;
+        params.push(`${fechaInicio} 00:00:00`, `${fechaFin} 23:59:59`);
+    }
+    query += ` GROUP BY DATE(li.fecha_hora) ORDER BY dia`;
+
+    db.query(query, params, (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        res.json({
+            dias: results.map(r => r.dia),
+            pasajeros: results.map(r => r.pasajeros)
+        });
+    });
+});
+
+// Nuevo endpoint: Duración por día
+app.get('/duracion-por-dia', (req, res) => {
+    const { fechaInicio, fechaFin } = req.query;
+    let query = `
+        SELECT DATE(fecha) as dia, AVG(tiempo) as duracionPromedio
+        FROM historial_rutas
+    `;
+    const params = [];
+
+    if (fechaInicio && fechaFin) {
+        query += ` WHERE fecha >= ? AND fecha <= ?`;
+        params.push(`${fechaInicio} 00:00:00`, `${fechaFin} 23:59:59`);
+    }
+    query += ` GROUP BY DATE(fecha) ORDER BY dia`;
+
+    db.query(query, params, (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        res.json({
+            dias: results.map(r => r.dia),
+            duraciones: results.map(r => Math.round(r.duracionPromedio))
+        });
+    });
+});
+
 
 app.post('/messages', async (req, res) => {
     try {

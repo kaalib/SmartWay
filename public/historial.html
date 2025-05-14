@@ -47,7 +47,7 @@
         <a href="map.html">
             <i class="fas fa-map-marked-alt"></i> Mapa
         </a>
-        <a href="seguridad.html" >
+        <a href="seguridad.html">
             <i class="fas fa-shield-alt"></i> Seguridad
         </a>
     </div>
@@ -58,8 +58,10 @@
             <h1><i class="fas fa-history"></i> Historial de Rutas</h1>
             <div class="header-actions">
                 <div class="date-filter">
-                    <label for="dateFilter">Filtrar por fecha:</label>
-                    <input type="date" id="dateFilter" onchange="filtrarPorFecha(this.value)">
+                    <label for="dateFilter1">Fecha de inicio:</label>
+                    <input type="date" id="dateFilter1" onchange="filtrarPorFecha()">
+                    <label for="dateFilter2">Fecha de fin:</label>
+                    <input type="date" id="dateFilter2" onchange="filtrarPorFecha()">
                 </div>
                 <button class="btn primary-btn"><i class="fas fa-file-export"></i> Exportar Datos</button>
             </div>
@@ -71,28 +73,35 @@
                 <div class="stat-icon"><i class="fas fa-users"></i></div>
                 <div class="stat-info">
                     <h3>Total Pasajeros</h3>
-                    <p id="totalPasajeros">0</p>
+                    <p id="totalPasajeros">{totalPasajeros}</p>
                 </div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon"><i class="fas fa-route"></i></div>
                 <div class="stat-info">
                     <h3>Rutas Completadas</h3>
-                    <p id="totalRutas">0</p>
+                    <p id="totalRutas">{totalRutas}</p>
                 </div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon"><i class="fas fa-clock"></i></div>
                 <div class="stat-info">
                     <h3>Tiempo Promedio</h3>
-                    <p id="tiempoPromedio">0 min</p>
+                    <p id="tiempoPromedio">{tiempoPromedio} min</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-road"></i></div>
+                <div class="stat-info">
+                    <h3>Distancia Promedio</h3>
+                    <p id="distanciaPromedio">{distanciaPromedio} km</p>
                 </div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon"><i class="fas fa-map-marker-alt"></i></div>
                 <div class="stat-info">
                     <h3>Destinos Visitados</h3>
-                    <p id="destinosVisitados">0</p>
+                    <p id="destinosVisitados">{destinosVisitados}</p>
                 </div>
             </div>
         </div>
@@ -101,24 +110,6 @@
         <div class="main-layout">
             <!-- Columna izquierda -->
             <div class="left-column">
-                <!-- Mapa histórico -->
-                <div class="history-map-container">
-                    <h3><i class="fas fa-map"></i> Ruta Histórica</h3>
-                    <div class="route-selector">
-                        <label for="routeSelect">Seleccionar ruta:</label>
-                        <select id="routeSelect">
-                            <option value="ruta1">Ruta #1 - Centro Comercial</option>
-                            <option value="ruta2">Ruta #2 - Universidad</option>
-                            <option value="ruta3">Ruta #3 - Zona Industrial</option>
-                        </select>
-                    </div>
-                    <div id="historyMap" class="history-map"></div>
-                    <div class="map-controls">
-                        <button id="btnPlayRoute" class="btn primary-btn"><i class="fas fa-play"></i> Reproducir Ruta</button>
-                        <button id="btnResetRoute" class="btn secondary-btn"><i class="fas fa-undo"></i> Reiniciar</button>
-                    </div>
-                </div>
-
                 <!-- Gráficas en la columna izquierda -->
                 <div class="charts-container">
                     <!-- Gráfica de pasajeros por día -->
@@ -154,60 +145,24 @@
                                     <th>Nombre</th>
                                     <th>Fecha</th>
                                     <th>Hora</th>
-                                    <th>Ruta</th>
                                     <th>Frecuencia</th>
                                 </tr>
                             </thead>
                             <tbody id="pasajerosTableBody">
-                                <!-- Datos de ejemplo -->
-                                <tr>
-                                    <td>Juan Pérez</td>
-                                    <td>12/04/2023</td>
-                                    <td>08:15</td>
-                                    <td>Ruta #1</td>
-                                    <td><span class="frequency-badge frequency-high">Alta</span></td>
-                                </tr>
-                                <tr>
-                                    <td>María López</td>
-                                    <td>12/04/2023</td>
-                                    <td>08:30</td>
-                                    <td>Ruta #2</td>
-                                    <td><span class="frequency-badge frequency-medium">Media</span></td>
-                                </tr>
-                                <tr>
-                                    <td>Carlos Gómez</td>
-                                    <td>12/04/2023</td>
-                                    <td>09:00</td>
-                                    <td>Ruta #1</td>
-                                    <td><span class="frequency-badge frequency-low">Baja</span></td>
-                                </tr>
-                                <tr>
-                                    <td>Ana Martínez</td>
-                                    <td>12/04/2023</td>
-                                    <td>09:15</td>
-                                    <td>Ruta #3</td>
-                                    <td><span class="frequency-badge frequency-high">Alta</span></td>
-                                </tr>
-                                <tr>
-                                    <td>Roberto Díaz</td>
-                                    <td>12/04/2023</td>
-                                    <td>10:00</td>
-                                    <td>Ruta #2</td>
-                                    <td><span class="frequency-badge frequency-medium">Media</span></td>
-                                </tr>
+                                <!-- Datos se llenarán dinámicamente desde el backend -->
                             </tbody>
                         </table>
                     </div>
                     <div class="table-pagination">
                         <button id="prevPage" class="btn secondary-btn" disabled><i class="fas fa-chevron-left"></i> Anterior</button>
                         <span id="pageInfo">Página 1 de 1</span>
-                        <button id="nextPage" class="btn secondary-btn">Siguiente <i class="fas fa-chevron-right"></i></button>
+                        <button id="nextPage" class="btn secondary-btn" disabled><i class="fas fa-chevron-right"></i> Siguiente</button>
                     </div>
                 </div>
 
                 <!-- Sección de conductores -->
                 <div class="drivers-section">
-                    <h3><i class="fas fa-id-card"></i> Conductores por Ruta</h3>
+                    <h3><i class="fas fa-id-card"></i> Conductores</h3>
                     <div class="drivers-container" id="driversContainer">
                         <!-- Datos de ejemplo de conductores -->
                         <div class="driver-card">
@@ -215,11 +170,9 @@
                                 <i class="fas fa-user"></i>
                             </div>
                             <div class="driver-info">
-                                <h4>Pedro Ramírez</h4>
-                                <p>Ruta #1 - Centro Comercial</p>
+                                <h4>{conductor1Nombre}</h4>
                                 <div class="driver-stats">
-                                    <span class="driver-stat"><i class="fas fa-route"></i> 120 viajes</span>
-                                    <span class="driver-stat"><i class="fas fa-users"></i> 1,450 pasajeros</span>
+                                    <span class="driver-stat"><i class="fas fa-route"></i> {conductor1Viajes} viajes</span>
                                 </div>
                             </div>
                         </div>
@@ -228,11 +181,9 @@
                                 <i class="fas fa-user"></i>
                             </div>
                             <div class="driver-info">
-                                <h4>Laura Sánchez</h4>
-                                <p>Ruta #2 - Universidad</p>
+                                <h4>{conductor2Nombre}</h4>
                                 <div class="driver-stats">
-                                    <span class="driver-stat"><i class="fas fa-route"></i> 95 viajes</span>
-                                    <span class="driver-stat"><i class="fas fa-users"></i> 1,280 pasajeros</span>
+                                    <span class="driver-stat"><i class="fas fa-route"></i> {conductor2Viajes} viajes</span>
                                 </div>
                             </div>
                         </div>
@@ -241,11 +192,31 @@
                                 <i class="fas fa-user"></i>
                             </div>
                             <div class="driver-info">
-                                <h4>Miguel Torres</h4>
-                                <p>Ruta #3 - Zona Industrial</p>
+                                <h4>{conductor3Nombre}</h4>
                                 <div class="driver-stats">
-                                    <span class="driver-stat"><i class="fas fa-route"></i> 85 viajes</span>
-                                    <span class="driver-stat"><i class="fas fa-users"></i> 980 pasajeros</span>
+                                    <span class="driver-stat"><i class="fas fa-route"></i> {conductor3Viajes} viajes</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="driver-card">
+                            <div class="driver-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="driver-info">
+                                <h4>{conductor4Nombre}</h4>
+                                <div class="driver-stats">
+                                    <span class="driver-stat"><i class="fas fa-route"></i> {conductor4Viajes} viajes</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="driver-card">
+                            <div class="driver-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="driver-info">
+                                <h4>{conductor5Nombre}</h4>
+                                <div class="driver-stats">
+                                    <span class="driver-stat"><i class="fas fa-route"></i> {conductor5Viajes} viajes</span>
                                 </div>
                             </div>
                         </div>
@@ -260,45 +231,5 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="scripts/env.js"></script>
     <script type="module" src="scripts/historial.js"></script>
-    <script>
-        // Funciones para abrir/cerrar sidebars
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            if (sidebar.style.width === '280px') {
-                sidebar.style.width = '0';
-                sidebar.classList.remove('open');
-            } else {
-                sidebar.style.width = '280px';
-                sidebar.classList.add('open');
-            }
-        }
-
-        // Función para filtrar la tabla de pasajeros
-        function filtrarTabla() {
-            const input = document.getElementById('searchInput');
-            const filter = input.value.toUpperCase();
-            const table = document.getElementById('pasajerosTable');
-            const tr = table.getElementsByTagName('tr');
-
-            for (let i = 1; i < tr.length; i++) {
-                const td = tr[i].getElementsByTagName('td')[0];
-                if (td) {
-                    const txtValue = td.textContent || td.innerText;
-                    if (txtValue.toUpperCase().indexOf(filter) > -1) {
-                        tr[i].style.display = '';
-                    } else {
-                        tr[i].style.display = 'none';
-                    }
-                }
-            }
-        }
-
-        // Función para filtrar por fecha
-        function filtrarPorFecha(fecha) {
-            console.log("Filtrando por fecha:", fecha);
-            // Aquí implementarías la lógica para filtrar los datos por la fecha seleccionada
-            // Esta función se conectaría con tu backend para obtener los datos filtrados
-        }
-    </script>
 </body>
 </html>
