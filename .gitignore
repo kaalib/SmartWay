@@ -7,6 +7,7 @@ hardware/interfaz_gui/var_config.h
 IA/IA_algorithm/APIs.env
 IA/IA_algorithm/route_optimization.log
 scripts/env.js
+route_optimization.log
 # Ignorar archivos compilados de Arduino
 *.elf
 *.bin
