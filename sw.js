@@ -4,7 +4,7 @@ const urlsToCache = [
     //'/public/index.html',
     //'/public/map.html',
     '/public/login.html',
-    '/public/historial.html',
+    //'/public/historial.html',
     '/public/styles/comun.css',
     '/public/styles/historial.css',
     '/public/styles/index.css',

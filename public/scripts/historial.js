@@ -1,5 +1,8 @@
 // scripts/historial.js
-import CONFIG from '../config.js';
+const CONFIG = {
+    SERVER_URL: 'https://smartway.ddns.net',
+    WEBSOCKET_URL: 'https://smartway.ddns.net',
+}
 
 let currentPage = 1;
 let pasajerosChartInstance = null;
