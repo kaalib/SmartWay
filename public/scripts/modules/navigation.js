@@ -66,7 +66,7 @@ async function generarEnlaceNavegacion() {
 async function iniciarNavegacionConductor() {
     const url = await generarEnlaceNavegacion();
     if (url) {
-        window.location.href = url; // Redirige directamente a la URL
+        window.open(url, '_blank'); // Abre el enlace en una nueva pestaña
         console.log("🚗 Navegación iniciada con URL:", url);
         localStorage.setItem('navegacionActiva', 'true');
         document.getElementById('btnNavegacion').classList.add('btn-enabled');
