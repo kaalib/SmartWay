@@ -86,6 +86,10 @@ async function restaurarEstado() {
     const navegacionActiva = localStorage.getItem('navegacionActiva') === 'true';
     const btnNavegacionHabilitado = localStorage.getItem('btnNavegacionHabilitado') === 'true';
 
+    // Leer la última ruta seleccionada desde localStorage
+    const ultimaRutaSeleccionada = JSON.parse(localStorage.getItem('ultimaRutaSeleccionada') || '[]');
+    const ultimaRutaColor = localStorage.getItem('ultimaRutaColor') || '#00CC66'; // Color por defecto si no está guardado
+
     // Aplicar estado de botones desde localStorage
     btnInicio.disabled = !btnInicioHabilitado;
     btnSeleccionRuta.disabled = !btnSeleccionRutaHabilitado;
@@ -122,6 +126,15 @@ async function restaurarEstado() {
             window.tiempoTotalMin = data.rutasIA.tiempo_total_min;
 
             await actualizarMapa({ mejor_ruta_distancia: window.rutaDistancia, mejor_ruta_trafico: window.rutaTrafico });
+        } else if (ultimaRutaSeleccionada.length > 0) {
+            // Caso: Restaurar la última ruta seleccionada desde localStorage
+            console.log("📦 Restaurando última ruta seleccionada desde localStorage:", ultimaRutaSeleccionada);
+            window.rutaSeleccionada = rutaSeleccionada || 'mejor_ruta_distancia';
+            window.primeraActualizacionMapa = false;
+            window.primeraVez = false;
+
+            await actualizarMapaConRutaSeleccionada(ultimaRutaSeleccionada, ultimaRutaColor);
+            console.log("🗺️ Última ruta seleccionada dibujada desde localStorage");
         } else {
             // Caso: Sin ruta activa
             console.log("📡 Sin ruta activa, inicializando botones");
@@ -137,8 +150,16 @@ async function restaurarEstado() {
         }
     } catch (error) {
         console.error("❌ Error al sincronizar con el servidor:", error);
-        // Fallback limitado: solo si no hay ruta activa
-        if (btnSeleccionRutaHabilitado) {
+        // Fallback: Restaurar desde localStorage si hay datos
+        if (ultimaRutaSeleccionada.length > 0) {
+            console.log("📦 Restaurando última ruta seleccionada desde localStorage (fallback):", ultimaRutaSeleccionada);
+            window.rutaSeleccionada = rutaSeleccionada || 'mejor_ruta_distancia';
+            window.primeraActualizacionMapa = false;
+            window.primeraVez = false;
+
+            await actualizarMapaConRutaSeleccionada(ultimaRutaSeleccionada, ultimaRutaColor);
+            console.log("🗺️ Última ruta seleccionada dibujada desde localStorage (fallback)");
+        } else if (btnSeleccionRutaHabilitado) {
             window.rutaDistancia = JSON.parse(localStorage.getItem('rutaDistancia') || '[]');
             window.rutaTrafico = JSON.parse(localStorage.getItem('rutaTrafico') || '[]');
             if (window.rutaDistancia.length > 0 && window.rutaTrafico.length > 0) {
@@ -172,6 +193,8 @@ function limpiarEstado() {
     localStorage.setItem('btnSeleccionRutaHabilitado', 'false');
     localStorage.setItem('btnNavegacionHabilitado', 'false');
     localStorage.setItem('btnFinHabilitado', 'false');
+    localStorage.removeItem('ultimaRutaSeleccionada'); 
+    localStorage.removeItem('ultimaRutaColor'); 
 
     console.log("🧹 Estado global y localStorage limpiados (excepto userRole)");
 }
@@ -602,6 +625,10 @@ function setupUIEvents() {
                 console.log("✅ Ruta seleccionada enviada al servidor:", data);
                 const color = window.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
                 actualizarMapaConRutaSeleccionada(data.locations, color);
+
+                // Guardar rutaseleccionada y el color en localStorage
+                localStorage.setItem('ultimaRutaSeleccionada', JSON.stringify(data.locations));
+                localStorage.setItem('ultimaRutaColor', color);
             })
             .catch(err => console.error("❌ Error enviando selección de ruta:", err));
 
@@ -612,10 +639,11 @@ function setupUIEvents() {
 
     document.getElementById("btnNavegacion").addEventListener("click", async () => {
         const navegacionActiva = localStorage.getItem('navegacionActiva') === 'true';
+        btnNavegacion.disabled = true;
         if (!navegacionActiva) {
             await iniciarNavegacionConductor(); // Espera a que se genere y redirija
         } else {
-            detenerNavegacionConductor();
+           
         }
     });
 }
