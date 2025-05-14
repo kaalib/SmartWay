@@ -28,13 +28,13 @@
     </div>
 
     <!-- Menú móvil -->
-    <div class="menu-icon" onclick="toggleSidebar()">
+    <div class="menu-icon">
         <i class="fas fa-bars"></i>
     </div>
 
     <!-- Sidebar -->
     <div id="sidebar" class="sidebar">
-        <a href="javascript:void(0)" class="close-btn" onclick="toggleSidebar()">
+        <a href="javascript:void(0)" class="close-btn">
             <i class="fas fa-times"></i>
         </a>
         <a href="index.html" class="sidebar-logo">
@@ -59,11 +59,10 @@
             <div class="header-actions">
                 <div class="date-filter">
                     <label for="dateFilter1">Fecha de inicio:</label>
-                    <input type="date" id="dateFilter1" onchange="filtrarPorFecha()">
+                    <input type="date" id="dateFilter1">
                     <label for="dateFilter2">Fecha de fin:</label>
-                    <input type="date" id="dateFilter2" onchange="filtrarPorFecha()">
+                    <input type="date" id="dateFilter2">
                 </div>
-                <button class="btn primary-btn"><i class="fas fa-file-export"></i> Exportar Datos</button>
             </div>
         </div>
 
@@ -122,7 +121,7 @@
                     
                     <!-- Gráfica de duración de trayectos -->
                     <div class="chart-card">
-                        <h3><i class="fas fa-clock"></i> Duración de Trayectos</h3>
+                        <h3><i class="fas fa-file"></i> Datos de Trayectos por Día</h3>
                         <div class="chart-wrapper">
                             <canvas id="duracionChart"></canvas>
                         </div>
@@ -136,7 +135,7 @@
                 <div class="history-table-container">
                     <h3><i class="fas fa-table"></i> Registro de Pasajeros</h3>
                     <div class="table-filter">
-                        <input type="text" id="searchInput" placeholder="Buscar pasajero..." onkeyup="filtrarTabla()">
+                        <input type="text" id="searchInput" placeholder="Buscar pasajero...">
                     </div>
                     <div class="table-wrapper">
                         <table id="pasajerosTable">
@@ -170,9 +169,9 @@
                                 <i class="fas fa-user"></i>
                             </div>
                             <div class="driver-info">
-                                <h4>{conductor1Nombre}</h4>
+                                <h4 id="conductor41Nombre">{conductor41Nombre}</h4>
                                 <div class="driver-stats">
-                                    <span class="driver-stat"><i class="fas fa-route"></i> {conductor1Viajes} viajes</span>
+                                    <span class="driver-stat"><i class="fas fa-route"></i> <span id="conductor41Viajes">{conductor41Viajes}</span> viajes</span>
                                 </div>
                             </div>
                         </div>
@@ -181,9 +180,9 @@
                                 <i class="fas fa-user"></i>
                             </div>
                             <div class="driver-info">
-                                <h4>{conductor2Nombre}</h4>
+                                <h4 id="conductor42Nombre">{conductor42Nombre}</h4>
                                 <div class="driver-stats">
-                                    <span class="driver-stat"><i class="fas fa-route"></i> {conductor2Viajes} viajes</span>
+                                    <span class="driver-stat"><i class="fas fa-route"></i> <span id="conductor42Viajes">{conductor42Viajes}</span> viajes</span>
                                 </div>
                             </div>
                         </div>
@@ -192,9 +191,9 @@
                                 <i class="fas fa-user"></i>
                             </div>
                             <div class="driver-info">
-                                <h4>{conductor3Nombre}</h4>
+                                <h4 id="conductor43Nombre">{conductor43Nombre}</h4>
                                 <div class="driver-stats">
-                                    <span class="driver-stat"><i class="fas fa-route"></i> {conductor3Viajes} viajes</span>
+                                    <span class="driver-stat"><i class="fas fa-route"></i> <span id="conductor43Viajes">{conductor43Viajes}</span> viajes</span>
                                 </div>
                             </div>
                         </div>
@@ -203,9 +202,9 @@
                                 <i class="fas fa-user"></i>
                             </div>
                             <div class="driver-info">
-                                <h4>{conductor4Nombre}</h4>
+                                <h4 id="conductor44Nombre">{conductor44Nombre}</h4>
                                 <div class="driver-stats">
-                                    <span class="driver-stat"><i class="fas fa-route"></i> {conductor4Viajes} viajes</span>
+                                    <span class="driver-stat"><i class="fas fa-route"></i> <span id="conductor44Viajes">{conductor44Viajes}</span> viajes</span>
                                 </div>
                             </div>
                         </div>
@@ -214,9 +213,9 @@
                                 <i class="fas fa-user"></i>
                             </div>
                             <div class="driver-info">
-                                <h4>{conductor5Nombre}</h4>
+                                <h4 id="conductor45Nombre">{conductor45Nombre}</h4>
                                 <div class="driver-stats">
-                                    <span class="driver-stat"><i class="fas fa-route"></i> {conductor5Viajes} viajes</span>
+                                    <span class="driver-stat"><i class="fas fa-route"></i> <span id="conductor45Viajes">{conductor45Viajes}</span> viajes</span>
                                 </div>
                             </div>
                         </div>
