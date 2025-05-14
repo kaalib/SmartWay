@@ -390,34 +390,7 @@ table tbody tr:hover {
   color: #0066cc;
 }
 
-/* Ajuste específico para el rango 1200px a 1600px */
-@media (min-width: 1201px) and (max-width: 1600px) {
-    .main-layout {
-        grid-template-columns: 1fr 1fr;
-        gap: 15px; /* Reducir el gap para evitar superposición */
-    }
 
-    .chart-card {
-        width: 100%;
-        min-width: 0; /* Permite que se encoja si es necesario */
-    }
-
-    .chart-wrapper {
-        min-width: 0; /* Elimina el min-width fijo para evitar desbordamiento */
-        width: 100%; /* Asegura que no exceda el contenedor */
-        min-height: 400px; /* Ajuste de altura para este rango */
-    }
-
-    .stats-container {
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Reducir el ancho mínimo para más espacio */
-        gap: 15px; /* Reducir el gap para evitar superposición */
-    }
-
-    .left-column,
-    .right-column {
-        overflow-x: hidden; /* Evita desbordamiento horizontal */
-    }
-}
 
 /* Responsive para pantallas grandes (>1600px) */
 @media (min-width: 1601px) {

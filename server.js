@@ -629,7 +629,7 @@ app.get('/estadisticas', (req, res) => {
             COUNT(DISTINCT li.id_empleado) as totalPasajeros,
             (SELECT COUNT(*) FROM historial_rutas h2 WHERE 1=1 ${fechaInicio && fechaFin ? 'AND h2.fecha >= ? AND h2.fecha <= ?' : ''}) as totalRutas,
             AVG(h.tiempo) as tiempoPromedio,
-            COUNT(DISTINCT h.id) as destinosVisitados,
+            COUNT(*) as destinosVisitados,
             AVG(h.distancia) as distanciaPromedio
         FROM logs_ingresos li
         LEFT JOIN historial_rutas h ON li.id_empleado = h.conductor
@@ -648,12 +648,12 @@ app.get('/estadisticas', (req, res) => {
             return res.status(500).json({ error: err.message });
         }
 
-        const conductoresQuery = `
+        let conductoresQuery = `
             SELECT e.id, CONCAT(e.nombre, ' ', e.apellido) as nombre, COUNT(h.conductor) as viajes
             FROM empleados e
             LEFT JOIN historial_rutas h ON e.id = h.conductor
-            ${fechaInicio && fechaFin ? 'WHERE h.fecha >= ? AND h.fecha <= ?' : ''}
             WHERE e.id BETWEEN 41 AND 45
+            ${fechaInicio && fechaFin ? 'AND h.fecha >= ? AND h.fecha <= ?' : ''}
             GROUP BY e.id, e.nombre, e.apellido
         `;
         const conductoresParams = fechaInicio && fechaFin ? [`${fechaInicio} 00:00:00`, `${fechaFin} 23:59:59`] : [];
