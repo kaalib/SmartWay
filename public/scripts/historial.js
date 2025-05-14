@@ -40,7 +40,15 @@ Chart.register(promedioLinePlugin);
 
 async function cargarEstadisticas(fechaInicio = '', fechaFin = '') {
     try {
-        const response = await fetch(`${CONFIG.SERVER_URL}/estadisticas?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`, {
+        // Construir la URL solo con parámetros si tienen valor
+        let url = `${CONFIG.SERVER_URL}/estadisticas`;
+        const params = [];
+        if (fechaInicio) params.push(`fechaInicio=${fechaInicio}`);
+        if (fechaFin) params.push(`fechaFin=${fechaFin}`);
+        if (params.length > 0) url += `?${params.join('&')}`;
+
+        console.log('Solicitando:', url); // Depuración
+        const response = await fetch(url, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }
         });
