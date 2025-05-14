@@ -117,11 +117,13 @@
 }
 
 .chart-card {
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  height: 100%; /* Asegura que todas las tarjetas tengan la misma altura */
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    height: 100%;
+    width: 100%; /* Asegura que ocupe todo el ancho disponible */
+    margin: 0 auto; /* Centra el card dentro de la columna */
 }
 
 .chart-card h3 {
@@ -134,8 +136,10 @@
 }
 
 .chart-wrapper {
-  height: 300px;
-  position: relative;
+    width: 100%; /* Ocupa todo el ancho del chart-card */
+    min-height: 400px; /* Alto mínimo "grandesito" para buena visibilidad */
+    position: relative;
+    margin: 0 auto; /* Centrar si el contenedor padre es más ancho */
 }
 
 /* Contenedor de mapa histórico */
@@ -385,117 +389,134 @@ table tbody tr:hover {
   }
 }
 
-@media (max-width: 768px) {
-  .dashboard-header {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding-top: 40px; /* Espacio para evitar superposición con el icono del menú */
-  }
-  
-  .dashboard-header h1 {
-    margin-bottom: 15px;
-    margin-right: 0;
-  }
-  
-  .header-actions {
-    width: 100%;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-  }
-  
-  .date-filter {
-    max-width: 250px; /* Más angosta en móvil */
-    margin: 0 auto 10px;
-    width: 100%;
-  }
+/* Responsive para tablets y pantallas medianas (hasta 1200px) */
+@media (max-width: 1200px) {
+    .main-layout {
+        grid-template-columns: 1fr; /* Una sola columna */
+    }
 
-  .stats-container {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  }
-
-  .stat-card {
-    flex-direction: column;
-    text-align: center;
-    padding: 15px;
-  }
-
-  .stat-icon {
-    margin-right: 0;
-    margin-bottom: 10px;
-    width: 40px;
-    height: 40px;
-    font-size: 16px;
-  }
-
-  .stat-info p {
-    font-size: 20px;
-  }
-
-  .map-controls {
-    flex-direction: column;
-    width: 100%;
-  }
-
-  .map-controls .btn {
-    width: 100%;
-  }
-
-  .history-map {
-    height: 300px; /* Mapa más pequeño en móvil */
-  }
-
-  .chart-wrapper {
-    height: 250px; /* Gráficas más pequeñas en móvil */
-  }
-
-  .table-pagination {
-    flex-direction: column;
-    gap: 10px;
-    align-items: center;
-  }
-
-  .table-pagination .btn {
-    width: 100%;
-  }
-
-  .route-selector {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .route-selector select {
-    width: 100%;
-  }
+    .chart-wrapper {
+        min-height: 400px; /* Mantener alto razonable */
+    }
 }
 
+/* Responsive para móviles (hasta 768px) */
+@media (max-width: 768px) {
+    .dashboard-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding-top: 40px;
+    }
+    
+    .dashboard-header h1 {
+        margin-bottom: 15px;
+        margin-right: 0;
+    }
+    
+    .header-actions {
+        width: 100%;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .date-filter {
+        max-width: 250px;
+        margin: 0 auto 10px;
+        width: 100%;
+    }
+
+    .stats-container {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+
+    .stat-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 15px;
+    }
+
+    .stat-icon {
+        margin-right: 0;
+        margin-bottom: 10px;
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+    }
+
+    .stat-info p {
+        font-size: 20px;
+    }
+
+    .map-controls {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .map-controls .btn {
+        width: 100%;
+    }
+
+    .history-map {
+        height: 300px;
+    }
+
+    .chart-wrapper {
+        min-height: 350px; /* Alto ajustado para móviles, pero manteniendo visibilidad */
+    }
+
+    .table-pagination {
+        flex-direction: column;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .table-pagination .btn {
+        width: 100%;
+    }
+
+    .route-selector {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .route-selector select {
+        width: 100%;
+    }
+}
+
+/* Responsive para pantallas muy pequeñas (hasta 576px) */
 @media (max-width: 576px) {
-  .stats-container {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
+    .stats-container {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
 
-  .driver-card {
-    flex-direction: column;
-    text-align: center;
-  }
+    .driver-card {
+        flex-direction: column;
+        text-align: center;
+    }
 
-  .driver-avatar {
-    margin-right: 0;
-    margin-bottom: 10px;
-  }
+    .driver-avatar {
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
 
-  .driver-stats {
-    flex-direction: column;
-    gap: 5px;
-    align-items: center;
-  }
+    .driver-stats {
+        flex-direction: column;
+        gap: 5px;
+        align-items: center;
+    }
 
-  .chart-card h3,
-  .history-map-container h3,
-  .history-table-container h3,
-  .drivers-section h3 {
-    font-size: 16px;
-  }
+    .chart-card h3,
+    .history-map-container h3,
+    .history-table-container h3,
+    .drivers-section h3 {
+        font-size: 16px;
+    }
+
+    .chart-wrapper {
+        min-height: 300px; /* Alto mínimo en pantallas muy pequeñas */
+    }
 }

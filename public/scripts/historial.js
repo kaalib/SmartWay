@@ -94,9 +94,11 @@ async function cargarPasajeros(fechaInicio = '', fechaFin = '', page = 1) {
 
         data.pasajeros.forEach(pasajero => {
             const row = document.createElement('tr');
+            // Formatear la fecha a "YYYY-MM-DD" si viene como ISO
+            const fechaFormateada = new Date(pasajero.fecha).toISOString().split('T')[0];
             row.innerHTML = `
                 <td>${pasajero.nombre || 'N/A'}</td>
-                <td>${pasajero.fecha || 'N/A'}</td>
+                <td>${fechaFormateada || 'N/A'}</td>
                 <td>${pasajero.hora || 'N/A'}</td>
                 <td><span class="frequency-badge ${pasajero.frecuencia === 'Alta' ? 'frequency-high' : pasajero.frecuencia === 'Media' ? 'frequency-medium' : 'frequency-low'}">${pasajero.frecuencia || 'N/A'}</span></td>
             `;
@@ -304,6 +306,43 @@ function filtrarTabla() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    const dateFilter1 = document.getElementById('dateFilter1');
+    const dateFilter2 = document.getElementById('dateFilter2');
+    const today = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+
+    // Establecer el máximo como la fecha actual
+    dateFilter1.max = today;
+    dateFilter2.max = today;
+
+    // Función para deshabilitar clics inválidos
+    function updateDateLimits() {
+        const startDate = dateFilter1.value;
+        dateFilter2.min = startDate || '2020-01-01'; // Mantengo tu fecha por defecto (2020-01-01)
+        if (startDate && new Date(startDate) > new Date(dateFilter2.value)) {
+            dateFilter2.value = startDate; // Forzar que fin no sea menor que inicio
+        }
+    }
+
+    // Función debounce
+    function debounce(func, wait) {
+        let timeout;
+        return function (...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    }
+
+    // Reemplazar el event listener con debounce
+    dateFilter1.addEventListener('change', debounce(() => {
+        updateDateLimits();
+        filtrarPorFecha();
+    }, 300));
+    dateFilter2.addEventListener('change', debounce(() => {
+        updateDateLimits();
+        filtrarPorFecha();
+    }, 300));
+
+    // Cargar datos iniciales
     cargarEstadisticas();
     cargarPasajeros();
     cargarPasajerosPorDia();
@@ -311,8 +350,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('prevPage').addEventListener('click', () => cambiarPagina(-1));
     document.getElementById('nextPage').addEventListener('click', () => cambiarPagina(1));
-    document.getElementById('dateFilter1').addEventListener('change', filtrarPorFecha);
-    document.getElementById('dateFilter2').addEventListener('change', filtrarPorFecha);
     document.getElementById('searchInput').addEventListener('keyup', filtrarTabla);
     document.querySelector('.menu-icon').addEventListener('click', toggleSidebar);
     document.querySelector('.close-btn').addEventListener('click', toggleSidebar);

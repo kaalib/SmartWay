@@ -612,35 +612,57 @@ app.post("/login", (req, res) => {
 // Ruta para estadísticas
 app.get('/estadisticas', (req, res) => {
     const { fechaInicio, fechaFin } = req.query;
+
+    // Validar fechas
+    const isValidDate = (dateStr) => {
+        if (!dateStr) return true;
+        const d = new Date(dateStr);
+        return d instanceof Date && !isNaN(d);
+    };
+
+    if (fechaInicio && fechaFin && (!isValidDate(fechaInicio) || !isValidDate(fechaFin))) {
+        return res.status(400).json({ error: 'Fechas inválidas' });
+    }
+
     let query = `
         SELECT 
             COUNT(DISTINCT li.id_empleado) as totalPasajeros,
             (SELECT COUNT(*) FROM historial_rutas h2 WHERE 1=1 ${fechaInicio && fechaFin ? 'AND h2.fecha >= ? AND h2.fecha <= ?' : ''}) as totalRutas,
             AVG(h.tiempo) as tiempoPromedio,
-            COUNT(*) as destinosVisitados,
+            COUNT(DISTINCT h.id) as destinosVisitados,
             AVG(h.distancia) as distanciaPromedio
         FROM logs_ingresos li
         LEFT JOIN historial_rutas h ON li.id_empleado = h.conductor
+        ${fechaInicio && fechaFin ? 'WHERE li.fecha_hora >= ? AND li.fecha_hora <= ?' : ''}
     `;
     const params = [];
 
     if (fechaInicio && fechaFin) {
-        query += ` WHERE li.fecha_hora >= ? AND li.fecha_hora <= ?`;
-        params.push(`${fechaInicio} 00:00:00`, `${fechaFin} 23:59:59`);
+        params.push(`${fechaInicio} 00:00:00`, `${fechaFin} 23:59:59`); // Para la subconsulta
+        params.push(`${fechaInicio} 00:00:00`, `${fechaFin} 23:59:59`); // Para el WHERE principal
     }
 
     db.query(query, params, (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) {
+            console.error('Error en consulta de estadísticas:', err);
+            return res.status(500).json({ error: err.message });
+        }
 
         const conductoresQuery = `
             SELECT e.id, CONCAT(e.nombre, ' ', e.apellido) as nombre, COUNT(h.conductor) as viajes
             FROM empleados e
             LEFT JOIN historial_rutas h ON e.id = h.conductor
+            ${fechaInicio && fechaFin ? 'WHERE h.fecha >= ? AND h.fecha <= ?' : ''}
             WHERE e.id BETWEEN 41 AND 45
             GROUP BY e.id, e.nombre, e.apellido
         `;
-        db.query(conductoresQuery, (err2, conductores) => {
-            if (err2) return res.status(500).json({ error: err2.message });
+        const conductoresParams = fechaInicio && fechaFin ? [`${fechaInicio} 00:00:00`, `${fechaFin} 23:59:59`] : [];
+
+        db.query(conductoresQuery, conductoresParams, (err2, conductores) => {
+            if (err2) {
+                console.error('Error en consulta de conductores:', err2);
+                return res.status(500).json({ error: err2.message });
+            }
 
             res.json({
                 totalPasajeros: results[0].totalPasajeros || 0,
@@ -701,7 +723,7 @@ app.get('/pasajeros', (req, res) => {
                     nombre: `${r.nombre} ${r.apellido}`,
                     fecha: r.fecha, // Ahora es un string como "2025-05-14" gracias a DATE()
                     hora: r.hora,
-                    frecuencia: r.frecuencia >= 10 ? 'Alta' : r.frecuencia >= 5 ? 'Media' : 'Baja'
+                    frecuencia: r.frecuencia >= 15 ? 'Alta' : r.frecuencia >= 10 ? 'Media' : 'Baja'
                 })),
                 totalPages
             });
@@ -752,10 +774,18 @@ app.get('/duracion-por-dia', (req, res) => {
     db.query(query, params, (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
 
+        if (results.length === 0) {
+            return res.json({
+                dias: [],
+                duraciones: [],
+                distancias: []
+            });
+        }
+
         res.json({
             dias: results.map(r => r.dia),
-            duraciones: results.map(r => Math.round(r.duracionPromedio)),
-            distancias: results.map(r => Math.round(r.distanciaPromedio))
+            duraciones: results.map(r => Math.round(r.duracionPromedio) || 0),
+            distancias: results.map(r => Math.round(r.distanciaPromedio) || 0)
         });
     });
 });
