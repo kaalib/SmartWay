@@ -24,13 +24,15 @@ async function cargarEstadisticas(fechaInicio = '', fechaFin = '') {
         document.getElementById('destinosVisitados').textContent = data.destinosVisitados || 0;
         document.getElementById('distanciaPromedio').textContent = data.distanciaPromedio ? `${data.distanciaPromedio} km` : '0 km';
 
-        const conductorIds = ['1', '2', '3', '4', '5'];
+        const conductorIds = [41, 42, 43, 44, 45];
         conductorIds.forEach(id => {
-            const nombreElement = document.getElementById(`conductor${id}Nombre`) || { textContent: `{conductor${id}Nombre}` };
-            const viajesElement = document.getElementById(`conductor${id}Viajes`) || { textContent: `{conductor${id}Viajes}` };
-            const conductor = data.conductores.find(c => c.id === id) || {};
-            nombreElement.textContent = conductor.nombre || `{conductor${id}Nombre}`;
-            viajesElement.textContent = conductor.viajes || `{conductor${id}Viajes}`;
+            const nombreElement = document.getElementById(`conductor${id}Nombre`);
+            const viajesElement = document.getElementById(`conductor${id}Viajes`);
+            if (nombreElement && viajesElement) {
+                const conductor = data.conductores.find(c => c.id === id) || {};
+                nombreElement.textContent = conductor.nombre || `{conductor${id}Nombre}`;
+                viajesElement.textContent = conductor.viajes || 0;
+            }
         });
     } catch (error) {
         console.error('Error al cargar estadísticas:', error);
@@ -45,13 +47,18 @@ async function cargarEstadisticas(fechaInicio = '', fechaFin = '') {
 
 async function cargarPasajeros(fechaInicio = '', fechaFin = '', page = 1) {
     try {
+        console.log(`Solicitando /pasajeros?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&page=${page}`);
         const response = await fetch(`${CONFIG.SERVER_URL}/pasajeros?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&page=${page}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }
         });
 
-        if (!response.ok) throw new Error('Error al obtener pasajeros');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
+        console.log('Datos recibidos:', data);
+
         const tbody = document.getElementById('pasajerosTableBody');
         tbody.innerHTML = '';
 
@@ -75,7 +82,7 @@ async function cargarPasajeros(fechaInicio = '', fechaFin = '', page = 1) {
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: 'No se pudieron cargar los pasajeros. Intente de nuevo.',
+            text: `No se pudieron cargar los pasajeros: ${error.message}`,
             confirmButtonText: 'Aceptar'
         });
     }
@@ -91,21 +98,25 @@ async function cargarPasajerosPorDia(fechaInicio = '', fechaFin = '') {
         if (!response.ok) throw new Error('Error al obtener datos de pasajeros por día');
         const data = await response.json();
 
-        // Destruir la gráfica existente si ya existe
         if (pasajerosChartInstance) {
             pasajerosChartInstance.destroy();
         }
+
+        // Calcular el promedio real de pasajeros
+        const promedioPasajeros = data.pasajeros.length > 0 
+            ? data.pasajeros.reduce((sum, val) => sum + val, 0) / data.pasajeros.length 
+            : 0;
 
         const ctx = document.getElementById('pasajerosChart').getContext('2d');
         pasajerosChartInstance = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: data.dias, // Fechas en el eje X
+                labels: data.dias.map(d => new Date(d).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' })), // Formato MM/DD
                 datasets: [{
                     label: 'Pasajeros por Día',
-                    data: data.pasajeros, // Cantidad de pasajeros en el eje Y
+                    data: data.pasajeros,
                     borderColor: '#0059ff',
-                    backgroundColor: 'rgba(0, 204, 102, 0.2)',
+                    backgroundColor: 'rgba(0, 89, 255, 0.2)',
                     fill: true,
                     tension: 0.4,
                     pointRadius: 5,
@@ -118,7 +129,25 @@ async function cargarPasajerosPorDia(fechaInicio = '', fechaFin = '') {
                     y: { title: { display: true, text: 'Número de Pasajeros' }, beginAtZero: true }
                 },
                 plugins: {
-                    legend: { display: true, position: 'top' }
+                    legend: { display: true, position: 'top' },
+                    // Plugin para dibujar la línea de promedio
+                    afterDatasetDraw: (chart) => {
+                        const ctx = chart.ctx;
+                        const yScale = chart.scales['y'];
+                        const yValue = yScale.getPixelForValue(promedioPasajeros);
+                        const xStart = chart.scales['x'].left;
+                        const xEnd = chart.scales['x'].right;
+
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.setLineDash([5, 5]); // Línea punteada
+                        ctx.moveTo(xStart, yValue);
+                        ctx.lineTo(xEnd, yValue);
+                        ctx.strokeStyle = '#0059ff'; // Mismo color que el dataset
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                        ctx.restore();
+                    }
                 }
             }
         });
@@ -143,34 +172,84 @@ async function cargarDuracionPorDia(fechaInicio = '', fechaFin = '') {
         if (!response.ok) throw new Error('Error al obtener datos de duración por día');
         const data = await response.json();
 
-        // Destruir la gráfica existente si ya existe
         if (duracionChartInstance) {
             duracionChartInstance.destroy();
         }
+
+        // Calcular los promedios reales
+        const promedioDuracion = data.duraciones.length > 0 
+            ? data.duraciones.reduce((sum, val) => sum + val, 0) / data.duraciones.length 
+            : 0;
+        const promedioDistancia = data.distancias.length > 0 
+            ? data.distancias.reduce((sum, val) => sum + val, 0) / data.distancias.length 
+            : 0;
 
         const ctx = document.getElementById('duracionChart').getContext('2d');
         duracionChartInstance = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: data.dias, // Fechas en el eje X
-                datasets: [{
-                    label: 'Duración Promedio (min)',
-                    data: data.duraciones, // Duración promedio en el eje Y
-                    borderColor: '#0059ff',
-                    backgroundColor: 'rgba(255, 153, 0, 0.2)',
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 5,
-                    pointBackgroundColor: '#0059ff'
-                }]
+                labels: data.dias.map(d => new Date(d).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' })), // Formato MM/DD
+                datasets: [
+                    {
+                        label: 'Duración por Día (min)',
+                        data: data.duraciones,
+                        borderColor: '#FF9900',
+                        backgroundColor: 'rgba(255, 153, 0, 0.2)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#FF9900'
+                    },
+                    {
+                        label: 'Distancia por Día (km)',
+                        data: data.distancias,
+                        borderColor: '#FF4444',
+                        backgroundColor: 'rgba(255, 68, 68, 0.2)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#FF4444'
+                    }
+                ]
             },
             options: {
                 scales: {
                     x: { title: { display: true, text: 'Día' } },
-                    y: { title: { display: true, text: 'Duración (min)' }, beginAtZero: true }
+                    y: { title: { display: true, text: 'Valor' }, beginAtZero: true }
                 },
                 plugins: {
-                    legend: { display: true, position: 'top' }
+                    legend: { display: true, position: 'top' },
+                    // Plugin para dibujar las líneas de promedio
+                    afterDatasetsDraw: (chart) => {
+                        const ctx = chart.ctx;
+                        const yScale = chart.scales['y'];
+                        const xStart = chart.scales['x'].left;
+                        const xEnd = chart.scales['x'].right;
+
+                        // Línea punteada para duración promedio
+                        const yDuracion = yScale.getPixelForValue(promedioDuracion);
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.setLineDash([5, 5]);
+                        ctx.moveTo(xStart, yDuracion);
+                        ctx.lineTo(xEnd, yDuracion);
+                        ctx.strokeStyle = '#FF9900'; // Mismo color que el dataset de duración
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                        ctx.restore();
+
+                        // Línea punteada para distancia promedio
+                        const yDistancia = yScale.getPixelForValue(promedioDistancia);
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.setLineDash([5, 5]);
+                        ctx.moveTo(xStart, yDistancia);
+                        ctx.lineTo(xEnd, yDistancia);
+                        ctx.strokeStyle = '#FF4444'; // Mismo color que el dataset de distancia
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                        ctx.restore();
+                    }
                 }
             }
         });
@@ -188,7 +267,7 @@ async function cargarDuracionPorDia(fechaInicio = '', fechaFin = '') {
 function filtrarPorFecha() {
     const fechaInicio = document.getElementById('dateFilter1').value;
     const fechaFin = document.getElementById('dateFilter2').value;
-    currentPage = 1; // Reiniciar a la primera página al filtrar
+    currentPage = 1;
     cargarEstadisticas(fechaInicio, fechaFin);
     cargarPasajeros(fechaInicio, fechaFin, currentPage);
     cargarPasajerosPorDia(fechaInicio, fechaFin);
@@ -233,24 +312,16 @@ function filtrarTabla() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Cargar datos iniciales
     cargarEstadisticas();
     cargarPasajeros();
     cargarPasajerosPorDia();
     cargarDuracionPorDia();
 
-    // Configurar eventos de paginación
     document.getElementById('prevPage').addEventListener('click', () => cambiarPagina(-1));
     document.getElementById('nextPage').addEventListener('click', () => cambiarPagina(1));
-
-    // Configurar eventos de filtrado por fecha
     document.getElementById('dateFilter1').addEventListener('change', filtrarPorFecha);
     document.getElementById('dateFilter2').addEventListener('change', filtrarPorFecha);
-
-    // Configurar evento para filtrar la tabla
     document.getElementById('searchInput').addEventListener('keyup', filtrarTabla);
-
-    // Configurar evento para toggleSidebar
     document.querySelector('.menu-icon').addEventListener('click', toggleSidebar);
     document.querySelector('.close-btn').addEventListener('click', toggleSidebar);
 });

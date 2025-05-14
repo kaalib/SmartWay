@@ -615,7 +615,7 @@ app.get('/estadisticas', (req, res) => {
     let query = `
         SELECT 
             COUNT(DISTINCT li.id_empleado) as totalPasajeros,
-            COUNT(*) as totalRutas,
+            (SELECT COUNT(*) FROM historial_rutas h2 WHERE 1=1 ${fechaInicio && fechaFin ? 'AND h2.fecha >= ? AND h2.fecha <= ?' : ''}) as totalRutas,
             AVG(h.tiempo) as tiempoPromedio,
             COUNT(*) as destinosVisitados,
             AVG(h.distancia) as distanciaPromedio
@@ -647,7 +647,7 @@ app.get('/estadisticas', (req, res) => {
                 totalRutas: results[0].totalRutas || 0,
                 tiempoPromedio: Math.round(results[0].tiempoPromedio) || 0,
                 destinosVisitados: results[0].destinosVisitados || 0,
-                distanciaPromedio: Math.round(results[0].distanciaPromedio) || 0, // Redondeado a km
+                distanciaPromedio: Math.round(results[0].distanciaPromedio) || 0,
                 conductores: conductores.map(c => ({
                     id: c.id,
                     nombre: c.nombre,
@@ -738,7 +738,7 @@ app.get('/pasajeros-por-dia', (req, res) => {
 app.get('/duracion-por-dia', (req, res) => {
     const { fechaInicio, fechaFin } = req.query;
     let query = `
-        SELECT DATE(fecha) as dia, AVG(tiempo) as duracionPromedio
+        SELECT DATE(fecha) as dia, AVG(tiempo) as duracionPromedio, AVG(distancia) as distanciaPromedio
         FROM historial_rutas
     `;
     const params = [];
@@ -754,7 +754,8 @@ app.get('/duracion-por-dia', (req, res) => {
 
         res.json({
             dias: results.map(r => r.dia),
-            duraciones: results.map(r => Math.round(r.duracionPromedio))
+            duraciones: results.map(r => Math.round(r.duracionPromedio)),
+            distancias: results.map(r => Math.round(r.distanciaPromedio))
         });
     });
 });
