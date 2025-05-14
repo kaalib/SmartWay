@@ -40,14 +40,13 @@ Chart.register(promedioLinePlugin);
 
 async function cargarEstadisticas(fechaInicio = '', fechaFin = '') {
     try {
-        // Construir la URL solo con parámetros si tienen valor
         let url = `${CONFIG.SERVER_URL}/estadisticas`;
         const params = [];
         if (fechaInicio) params.push(`fechaInicio=${fechaInicio}`);
         if (fechaFin) params.push(`fechaFin=${fechaFin}`);
         if (params.length > 0) url += `?${params.join('&')}`;
 
-        console.log('Solicitando:', url); // Depuración
+        console.log('Solicitando:', url);
         const response = await fetch(url, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }
@@ -56,22 +55,33 @@ async function cargarEstadisticas(fechaInicio = '', fechaFin = '') {
         if (!response.ok) throw new Error('Error al obtener estadísticas');
         const data = await response.json();
 
-        document.getElementById('totalPasajeros').textContent = data.totalPasajeros || 0;
-        document.getElementById('totalRutas').textContent = data.totalRutas || 0;
-        document.getElementById('tiempoPromedio').textContent = data.tiempoPromedio ? `${data.tiempoPromedio} min` : '0 min';
-        document.getElementById('destinosVisitados').textContent = data.destinosVisitados || 0;
-        document.getElementById('distanciaPromedio').textContent = data.distanciaPromedio ? `${data.distanciaPromedio} km` : '0 km';
+        // Verificar si no hay datos (todas las métricas son 0)
+        if (data.totalPasajeros === 0 && data.totalRutas === 0 && data.tiempoPromedio === 0 &&
+            data.destinosVisitados === 0 && data.distanciaPromedio === 0 && (!data.conductores || data.conductores.length === 0)) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Sin Datos',
+                text: 'No hay datos disponibles para las fechas seleccionadas.',
+                confirmButtonText: 'Aceptar'
+            });
+        } else {
+            document.getElementById('totalPasajeros').textContent = data.totalPasajeros || 0;
+            document.getElementById('totalRutas').textContent = data.totalRutas || 0;
+            document.getElementById('tiempoPromedio').textContent = data.tiempoPromedio ? `${data.tiempoPromedio} min` : '0 min';
+            document.getElementById('destinosVisitados').textContent = data.destinosVisitados || 0;
+            document.getElementById('distanciaPromedio').textContent = data.distanciaPromedio ? `${data.distanciaPromedio} km` : '0 km';
 
-        const conductorIds = [41, 42, 43, 44, 45];
-        conductorIds.forEach(id => {
-            const nombreElement = document.getElementById(`conductor${id}Nombre`);
-            const viajesElement = document.getElementById(`conductor${id}Viajes`);
-            if (nombreElement && viajesElement) {
-                const conductor = data.conductores.find(c => c.id === id) || {};
-                nombreElement.textContent = conductor.nombre || `{conductor${id}Nombre}`;
-                viajesElement.textContent = conductor.viajes || 0;
-            }
-        });
+            const conductorIds = [41, 42, 43, 44, 45];
+            conductorIds.forEach(id => {
+                const nombreElement = document.getElementById(`conductor${id}Nombre`);
+                const viajesElement = document.getElementById(`conductor${id}Viajes`);
+                if (nombreElement && viajesElement) {
+                    const conductor = data.conductores.find(c => c.id === id) || {};
+                    nombreElement.textContent = conductor.nombre || `{conductor${id}Nombre}`;
+                    viajesElement.textContent = conductor.viajes || 0;
+                }
+            });
+        }
     } catch (error) {
         console.error('Error al cargar estadísticas:', error);
         Swal.fire({
@@ -100,23 +110,31 @@ async function cargarPasajeros(fechaInicio = '', fechaFin = '', page = 1) {
         const tbody = document.getElementById('pasajerosTableBody');
         tbody.innerHTML = '';
 
-        data.pasajeros.forEach(pasajero => {
-            const row = document.createElement('tr');
-            // Formatear la fecha a "YYYY-MM-DD" si viene como ISO
-            const fechaFormateada = new Date(pasajero.fecha).toISOString().split('T')[0];
-            row.innerHTML = `
-                <td>${pasajero.nombre || 'N/A'}</td>
-                <td>${fechaFormateada || 'N/A'}</td>
-                <td>${pasajero.hora || 'N/A'}</td>
-                <td><span class="frequency-badge ${pasajero.frecuencia === 'Alta' ? 'frequency-high' : pasajero.frecuencia === 'Media' ? 'frequency-medium' : 'frequency-low'}">${pasajero.frecuencia || 'N/A'}</span></td>
-            `;
-            tbody.appendChild(row);
-        });
+        if (data.pasajeros.length === 0) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Sin Datos',
+                text: 'No hay pasajeros registrados para las fechas seleccionadas.',
+                confirmButtonText: 'Aceptar'
+            });
+        } else {
+            data.pasajeros.forEach(pasajero => {
+                const row = document.createElement('tr');
+                const fechaFormateada = new Date(pasajero.fecha).toISOString().split('T')[0];
+                row.innerHTML = `
+                    <td>${pasajero.nombre || 'N/A'}</td>
+                    <td>${fechaFormateada || 'N/A'}</td>
+                    <td>${pasajero.hora || 'N/A'}</td>
+                    <td><span class="frequency-badge ${pasajero.frecuencia === 'Alta' ? 'frequency-high' : pasajero.frecuencia === 'Media' ? 'frequency-medium' : 'frequency-low'}">${pasajero.frecuencia || 'N/A'}</span></td>
+                `;
+                tbody.appendChild(row);
+            });
 
-        const totalPages = data.totalPages || 1;
-        document.getElementById('pageInfo').textContent = `Página ${page} de ${totalPages}`;
-        document.getElementById('prevPage').disabled = page === 1;
-        document.getElementById('nextPage').disabled = page >= totalPages;
+            const totalPages = data.totalPages || 1;
+            document.getElementById('pageInfo').textContent = `Página ${page} de ${totalPages}`;
+            document.getElementById('prevPage').disabled = page === 1;
+            document.getElementById('nextPage').disabled = page >= totalPages;
+        }
     } catch (error) {
         console.error('Error al cargar pasajeros:', error);
         Swal.fire({
@@ -142,7 +160,16 @@ async function cargarPasajerosPorDia(fechaInicio = '', fechaFin = '') {
             pasajerosChartInstance.destroy();
         }
 
-        // Calcular el promedio real de pasajeros
+        if (data.dias.length === 0 || data.pasajeros.length === 0) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Sin Datos',
+                text: 'No hay datos de pasajeros por día para las fechas seleccionadas.',
+                confirmButtonText: 'Aceptar'
+            });
+            return; // Evita crear un gráfico vacío
+        }
+
         const promedioPasajeros = data.pasajeros.length > 0 
             ? data.pasajeros.reduce((sum, val) => sum + val, 0) / data.pasajeros.length 
             : 0;
@@ -151,12 +178,12 @@ async function cargarPasajerosPorDia(fechaInicio = '', fechaFin = '') {
         pasajerosChartInstance = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: data.dias.map(d => new Date(d).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' })), // Formato MM/DD
+                labels: data.dias.map(d => new Date(d).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' })),
                 datasets: [{
                     label: 'Pasajeros por Día',
                     data: data.pasajeros,
-                    borderColor: '#0059ff', // Azul
-                    backgroundColor: 'rgba(0, 89, 255, 0.1)', // Fondo más suave
+                    borderColor: '#0059ff',
+                    backgroundColor: 'rgba(0, 89, 255, 0.1)',
                     fill: true,
                     tension: 0.4,
                     pointRadius: 5,
@@ -203,7 +230,16 @@ async function cargarDuracionPorDia(fechaInicio = '', fechaFin = '') {
             duracionChartInstance.destroy();
         }
 
-        // Calcular los promedios reales
+        if (data.dias.length === 0 || data.duraciones.length === 0 || data.distancias.length === 0) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Sin Datos',
+                text: 'No hay datos de duración o distancia por día para las fechas seleccionadas.',
+                confirmButtonText: 'Aceptar'
+            });
+            return; // Evita crear un gráfico vacío
+        }
+
         const promedioDuracion = data.duraciones.length > 0 
             ? data.duraciones.reduce((sum, val) => sum + val, 0) / data.duraciones.length 
             : 0;
@@ -215,13 +251,13 @@ async function cargarDuracionPorDia(fechaInicio = '', fechaFin = '') {
         duracionChartInstance = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: data.dias.map(d => new Date(d).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' })), // Formato MM/DD
+                labels: data.dias.map(d => new Date(d).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' })),
                 datasets: [
                     {
                         label: 'Duración por Día (min)',
                         data: data.duraciones,
-                        borderColor: '#28A745', // Verde oscuro
-                        backgroundColor: 'rgba(40, 167, 69, 0.1)', // Fondo más suave
+                        borderColor: '#28A745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
                         fill: true,
                         tension: 0.4,
                         pointRadius: 5,
@@ -230,8 +266,8 @@ async function cargarDuracionPorDia(fechaInicio = '', fechaFin = '') {
                     {
                         label: 'Distancia por Día (km)',
                         data: data.distancias,
-                        borderColor: '#FFC107', // Amarillo mostaza
-                        backgroundColor: 'rgba(255, 193, 7, 0.1)', // Fondo más suave
+                        borderColor: '#FFC107',
+                        backgroundColor: 'rgba(255, 193, 7, 0.1)',
                         fill: true,
                         tension: 0.4,
                         pointRadius: 5,
@@ -248,8 +284,8 @@ async function cargarDuracionPorDia(fechaInicio = '', fechaFin = '') {
                     legend: { display: true, position: 'top' },
                     promedioLine: {
                         promedios: [
-                            { value: promedioDuracion, color: '#28A745' }, // Línea para duración
-                            { value: promedioDistancia, color: '#FFC107' } // Línea para distancia
+                            { value: promedioDuracion, color: '#28A745' },
+                            { value: promedioDistancia, color: '#FFC107' }
                         ]
                     }
                 }
