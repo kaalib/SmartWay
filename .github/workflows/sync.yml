@@ -24,4 +24,4 @@ jobs:
             cd PF  # Change to project directory on the EC2 instance
             git pull origin main      # Pull the latest code from the main branch
             sudo pm2 restart server     # Restart the server (use PM2 process manager)
-            sudo pm2 restart route-optimizer   # Restart the python code "IA" (use PM2 process manager)
+            
