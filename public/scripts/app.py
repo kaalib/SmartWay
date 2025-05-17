@@ -86,13 +86,20 @@ POPULATION_SIZE = 50
 GENERATIONS = 100
 MUTATION_RATE = 0.2
 
+# Conjuntos para rastrear pares problemáticos y evitar logs repetitivos
+infinite_distance_pairs = set()
+infinite_time_pairs = set()
+
 def fitness_distance(route, distance_matrix):
     total_distance = 0
     for i in range(len(route) - 1):
         dist = distance_matrix.get((route[i], route[i + 1]), float("inf"))
         total_distance += dist
         if dist == float("inf"):
-            print(f"⚠️ Distancia infinita detectada entre {route[i]} y {route[i + 1]}")
+            pair = (route[i], route[i + 1])
+            if pair not in infinite_distance_pairs:
+                print(f"⚠️ Distancia infinita detectada entre {route[i]} y {route[i + 1]}")
+                infinite_distance_pairs.add(pair)
     return total_distance
 
 def fitness_traffic(route, traffic_matrix):
@@ -101,7 +108,10 @@ def fitness_traffic(route, traffic_matrix):
         time = traffic_matrix.get((route[i], route[i + 1]), float("inf"))
         total_time += time
         if time == float("inf"):
-            print(f"⚠️ Tiempo infinito detectado entre {route[i]} y {route[i + 1]}")
+            pair = (route[i], route[i + 1])
+            if pair not in infinite_time_pairs:
+                print(f"⚠️ Tiempo infinito detectado entre {route[i]} y {route[i + 1]}")
+                infinite_time_pairs.add(pair)
     return total_time
 
 def initialize_population(destinos, origin, destination):
@@ -154,11 +164,25 @@ def process_message():
 
         # Normalizar direcciones y filtrar vacías o inválidas
         def normalize_direccion(d):
+            # Manejar casos de None o diccionarios vacíos
+            if d is None or (isinstance(d, dict) and not d):
+                return None
+            # Manejar diccionarios con lat/lng
             if isinstance(d, dict) and "lat" in d and "lng" in d:
+                if d["lat"] is None or d["lng"] is None:
+                    return None
                 return f"{d['lat']},{d['lng']}"
-            return str(d)  # Convertir todo a string para consistencia
+            # Convertir a string y verificar si es vacío
+            d_str = str(d).strip()
+            if not d_str:
+                return None
+            return d_str
 
-        direcciones = [normalize_direccion(d) for d in direcciones if d and str(d).strip()]  # Filtrar vacíos
+        # Normalizar y filtrar direcciones inválidas (None o vacías)
+        direcciones = [normalize_direccion(d) for d in direcciones]
+        direcciones = [d for d in direcciones if d]  # Filtrar None
+        print(f"📍 Direcciones después de normalización y filtrado: {direcciones}")
+
         if len(direcciones) < 2:
             return jsonify({"status": "error", "message": "No hay suficientes direcciones válidas después de filtrar"}), 400
 
@@ -181,6 +205,17 @@ def process_message():
         # Depurar matrices
         print(f"📏 Distance Matrix: {distance_matrix}")
         print(f"⏱️ Traffic Matrix: {traffic_matrix}")
+
+        # Verificar si todas las distancias o tiempos son infinitos
+        all_distances_infinite = all(dist == float("inf") for dist in distance_matrix.values())
+        all_times_infinite = all(time == float("inf") for time in traffic_matrix.values())
+        if all_distances_infinite or all_times_infinite:
+            print("❌ Error: Todas las distancias o tiempos son infinitos. No se puede calcular una ruta válida.")
+            return jsonify({"status": "error", "message": "No se puede calcular una ruta válida. Todas las distancias o tiempos son infinitos."}), 400
+
+        # Limpiar los conjuntos de pares infinitos antes de ejecutar el algoritmo genético
+        infinite_distance_pairs.clear()
+        infinite_time_pairs.clear()
 
         # Calcular las mejores rutas
         best_route_distance = genetic_algorithm(destinos, origin, destination, distance_matrix, traffic_matrix, fitness_distance)
