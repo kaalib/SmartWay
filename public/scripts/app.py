@@ -28,10 +28,13 @@ def geocode_address(address):
         print("⚠️ No se puede geocodificar: API Key no disponible")
         return None
     url = f"https://maps.googleapis.com/maps/api/geocode/json?address={requests.utils.quote(address)}&key={API_KEY}"
+    print(f"🔍 Intentando geocodificar: {address} -> URL: {url}")  # Depuración
     try:
-        response = requests.get(url)
+        response = requests.get(url, timeout=10)  # Añadir timeout para evitar bloqueos
+        print(f"📡 Respuesta de geocodificación (status): {response.status_code}")
         if response.status_code == 200:
             json_response = response.json()
+            print(f"📊 Respuesta JSON de geocodificación: {json_response}")
             if json_response["status"] == "OK" and json_response["results"]:
                 location = json_response["results"][0]["geometry"]["location"]
                 lat, lng = location["lat"], location["lng"]
@@ -41,8 +44,10 @@ def geocode_address(address):
                 print(f"⚠️ No se pudo geocodificar la dirección: {address} - {json_response.get('status', 'Desconocido')}")
         else:
             print(f"⚠️ Error en la solicitud de geocodificación para {address}: {response.status_code} - {response.text}")
+    except requests.RequestException as e:
+        print(f"⚠️ Excepción en la solicitud de geocodificación para {address}: {str(e)}")
     except Exception as e:
-        print(f"⚠️ Excepción al geocodificar {address}: {str(e)}")
+        print(f"⚠️ Excepción inesperada al geocodificar {address}: {str(e)}")
     return None
 
 # Función para obtener distancia y tráfico entre dos direcciones
@@ -64,13 +69,16 @@ def get_route_data(origin, destination):
         if isinstance(loc, str) and ',' in loc:
             try:
                 lat, lng = map(float, loc.split(','))
+                print(f"📍 Coordenadas parseadas: {loc} -> ({lat}, {lng})")
                 return {"location": {"latLng": {"latitude": lat, "longitude": lng}}}
             except ValueError:
                 print(f"⚠️ Error parseando coordenadas: {loc}")
                 return None
         # Si no es una coordenada, intentar geocodificar la dirección
         elif isinstance(loc, str):
+            print(f"🔎 Intentando geocodificar dirección textual: {loc}")
             return geocode_address(loc)
+        print(f"⚠️ Tipo de ubicación no soportado: {loc} (tipo: {type(loc)})")
         return None
 
     origin_parsed = parse_location(origin)
@@ -89,9 +97,12 @@ def get_route_data(origin, destination):
     }
 
     try:
-        response = requests.post(url, json=body, headers=headers)
+        print(f"🚗 Enviando solicitud a Directions API: {body}")
+        response = requests.post(url, json=body, headers=headers, timeout=10)
+        print(f"📡 Respuesta de Directions API (status): {response.status_code}")
         if response.status_code == 200:
             json_response = response.json()
+            print(f"📊 Respuesta JSON de Directions: {json_response}")
             if "routes" in json_response and json_response["routes"]:
                 distance = json_response["routes"][0].get("distanceMeters", float("inf"))
                 duration_str = json_response["routes"][0].get("duration", "0s")
@@ -102,8 +113,10 @@ def get_route_data(origin, destination):
                 print(f"⚠️ No se encontraron rutas entre {origin} y {destination}: {json_response}")
         else:
             print(f"⚠️ Error en la solicitud a la API de Google Routes: {response.status_code} - {response.text}")
+    except requests.RequestException as e:
+        print(f"⚠️ Excepción en la solicitud a Directions API: {str(e)}")
     except Exception as e:
-        print(f"⚠️ Excepción al obtener datos de la ruta entre {origin} y {destination}: {str(e)}")
+        print(f"⚠️ Excepción inesperada al obtener datos de la ruta: {str(e)}")
 
     return float("inf"), float("inf")
 
