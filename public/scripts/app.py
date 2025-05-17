@@ -22,6 +22,29 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 rutasIA = {}  # Almacena las rutas globalmente como objeto
 
+# Función para geocodificar una dirección textual usando la misma API key
+def geocode_address(address):
+    if not API_KEY:
+        print("⚠️ No se puede geocodificar: API Key no disponible")
+        return None
+    url = f"https://maps.googleapis.com/maps/api/geocode/json?address={requests.utils.quote(address)}&key={API_KEY}"
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            json_response = response.json()
+            if json_response["status"] == "OK" and json_response["results"]:
+                location = json_response["results"][0]["geometry"]["location"]
+                lat, lng = location["lat"], location["lng"]
+                print(f"🌍 Geocodificación exitosa: {address} -> ({lat}, {lng})")
+                return {"location": {"latLng": {"latitude": lat, "longitude": lng}}}
+            else:
+                print(f"⚠️ No se pudo geocodificar la dirección: {address} - {json_response.get('status', 'Desconocido')}")
+        else:
+            print(f"⚠️ Error en la solicitud de geocodificación para {address}: {response.status_code} - {response.text}")
+    except Exception as e:
+        print(f"⚠️ Excepción al geocodificar {address}: {str(e)}")
+    return None
+
 # Función para obtener distancia y tráfico entre dos direcciones
 def get_route_data(origin, destination):
     # Validar que las direcciones no estén vacías
@@ -45,14 +68,17 @@ def get_route_data(origin, destination):
             except ValueError:
                 print(f"⚠️ Error parseando coordenadas: {loc}")
                 return None
-        return {"address": loc}
+        # Si no es una coordenada, intentar geocodificar la dirección
+        elif isinstance(loc, str):
+            return geocode_address(loc)
+        return None
 
     origin_parsed = parse_location(origin)
     destination_parsed = parse_location(destination)
 
-    # Si alguna ubicación no se pudo parsear, retornar infinito
+    # Si alguna ubicación no se pudo parsear o geocodificar, retornar infinito
     if origin_parsed is None or destination_parsed is None:
-        print(f"⚠️ No se pudo parsear una ubicación: origin={origin}, destination={destination}")
+        print(f"⚠️ No se pudo parsear o geocodificar una ubicación: origin={origin}, destination={destination}")
         return float("inf"), float("inf")
 
     body = {
@@ -210,8 +236,8 @@ def process_message():
         all_distances_infinite = all(dist == float("inf") for dist in distance_matrix.values())
         all_times_infinite = all(time == float("inf") for time in traffic_matrix.values())
         if all_distances_infinite or all_times_infinite:
-            print("❌ Error: Todas las distancias o tiempos son infinitos. No se puede calcular una ruta válida.")
-            return jsonify({"status": "error", "message": "No se puede calcular una ruta válida. Todas las distancias o tiempos son infinitos."}), 400
+            print("❌ Error: Todas las distancias o tiempos son infinitos. Posiblemente las direcciones no se geocodificaron correctamente.")
+            return jsonify({"status": "error", "message": "No se puede calcular una ruta válida. Verifica que las direcciones sean válidas y que la API key tenga acceso a la Geocoding API."}), 400
 
         # Limpiar los conjuntos de pares infinitos antes de ejecutar el algoritmo genético
         infinite_distance_pairs.clear()
