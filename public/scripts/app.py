@@ -11,52 +11,43 @@ from pathlib import Path
 dotenv_path = Path(__file__).resolve().parents[2] / ".env"
 load_dotenv(dotenv_path=dotenv_path)
 API_KEY = os.getenv("api_key2")
+API_KEY_WEATHER = os.getenv("api_weather")
 
 if API_KEY:
     print("✅ API Key cargada correctamente")
 else:
     print("⚠️ ERROR: No se pudo cargar la API Key")
 
+if API_KEY_WEATHER:
+    print("✅ API Weather Key cargada correctamente")
+else:
+    print("⚠️ ERROR: No se pudo cargar la API Weather Key")
+
+# Obtener clima en Barranquilla
+def get_weather():
+    location = "Barranquilla"
+    url = f"http://api.weatherapi.com/v1/current.json?key={API_KEY_WEATHER}&q={location}&aqi=no"
+    
+    try:
+        response = requests.get(url).json()
+        if "current" in response:
+            condition = response["current"]["condition"]["text"]
+            temperature = response["current"]["temp_c"]
+            # Convertir condición de clima a 0 (despejado) o 1 (lluvia)
+            is_raining = 1 if "rain" in condition.lower() else 0
+            return condition, temperature, is_raining
+    except Exception as e:
+        print(f"⚠️ ERROR obteniendo el clima: {e}")
+    
+    return None, None, None
+
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 rutasIA = {}  # Almacena las rutas globalmente como objeto
 
-# Función para geocodificar una dirección textual usando la misma API key
-def geocode_address(address):
-    if not API_KEY:
-        print("⚠️ No se puede geocodificar: API Key no disponible")
-        return None
-    url = f"https://maps.googleapis.com/maps/api/geocode/json?address={requests.utils.quote(address)}&key={API_KEY}"
-    print(f"🔍 Intentando geocodificar: {address} -> URL: {url}")  # Depuración
-    try:
-        response = requests.get(url, timeout=10)  # Añadir timeout para evitar bloqueos
-        print(f"📡 Respuesta de geocodificación (status): {response.status_code}")
-        if response.status_code == 200:
-            json_response = response.json()
-            print(f"📊 Respuesta JSON de geocodificación: {json_response}")
-            if json_response["status"] == "OK" and json_response["results"]:
-                location = json_response["results"][0]["geometry"]["location"]
-                lat, lng = location["lat"], location["lng"]
-                print(f"🌍 Geocodificación exitosa: {address} -> ({lat}, {lng})")
-                return {"location": {"latLng": {"latitude": lat, "longitude": lng}}}
-            else:
-                print(f"⚠️ No se pudo geocodificar la dirección: {address} - {json_response.get('status', 'Desconocido')}")
-        else:
-            print(f"⚠️ Error en la solicitud de geocodificación para {address}: {response.status_code} - {response.text}")
-    except requests.RequestException as e:
-        print(f"⚠️ Excepción en la solicitud de geocodificación para {address}: {str(e)}")
-    except Exception as e:
-        print(f"⚠️ Excepción inesperada al geocodificar {address}: {str(e)}")
-    return None
-
 # Función para obtener distancia y tráfico entre dos direcciones
 def get_route_data(origin, destination):
-    # Validar que las direcciones no estén vacías
-    if not origin or not destination:
-        print(f"⚠️ Dirección inválida detectada: origin='{origin}', destination='{destination}'")
-        return float("inf"), float("inf")
-
     url = "https://routes.googleapis.com/directions/v2:computeRoutes"
     headers = {
         "Content-Type": "application/json",
@@ -69,55 +60,28 @@ def get_route_data(origin, destination):
         if isinstance(loc, str) and ',' in loc:
             try:
                 lat, lng = map(float, loc.split(','))
-                print(f"📍 Coordenadas parseadas: {loc} -> ({lat}, {lng})")
                 return {"location": {"latLng": {"latitude": lat, "longitude": lng}}}
             except ValueError:
-                print(f"⚠️ Error parseando coordenadas: {loc}")
-                return None
-        # Si no es una coordenada, intentar geocodificar la dirección
-        elif isinstance(loc, str):
-            print(f"🔎 Intentando geocodificar dirección textual: {loc}")
-            return geocode_address(loc)
-        print(f"⚠️ Tipo de ubicación no soportado: {loc} (tipo: {type(loc)})")
-        return None
-
-    origin_parsed = parse_location(origin)
-    destination_parsed = parse_location(destination)
-
-    # Si alguna ubicación no se pudo parsear o geocodificar, retornar infinito
-    if origin_parsed is None or destination_parsed is None:
-        print(f"⚠️ No se pudo parsear o geocodificar una ubicación: origin={origin}, destination={destination}")
-        return float("inf"), float("inf")
+                pass
+        return {"address": loc}
 
     body = {
-        "origin": origin_parsed,
-        "destination": destination_parsed,
+        "origin": parse_location(origin),
+        "destination": parse_location(destination),
         "travelMode": "DRIVE",
         "routingPreference": "TRAFFIC_AWARE"
     }
 
-    try:
-        print(f"🚗 Enviando solicitud a Directions API: {body}")
-        response = requests.post(url, json=body, headers=headers, timeout=10)
-        print(f"📡 Respuesta de Directions API (status): {response.status_code}")
-        if response.status_code == 200:
-            json_response = response.json()
-            print(f"📊 Respuesta JSON de Directions: {json_response}")
-            if "routes" in json_response and json_response["routes"]:
-                distance = json_response["routes"][0].get("distanceMeters", float("inf"))
-                duration_str = json_response["routes"][0].get("duration", "0s")
-                duration = int("".join(filter(str.isdigit, duration_str)))
-                print(f"📏 Distancia entre {origin} y {destination}: {distance}m, Duración: {duration}s")
-                return distance, duration
-            else:
-                print(f"⚠️ No se encontraron rutas entre {origin} y {destination}: {json_response}")
-        else:
-            print(f"⚠️ Error en la solicitud a la API de Google Routes: {response.status_code} - {response.text}")
-    except requests.RequestException as e:
-        print(f"⚠️ Excepción en la solicitud a Directions API: {str(e)}")
-    except Exception as e:
-        print(f"⚠️ Excepción inesperada al obtener datos de la ruta: {str(e)}")
+    response = requests.post(url, json=body, headers=headers)
 
+    if response.status_code == 200:
+        json_response = response.json()
+        if "routes" in json_response and json_response["routes"]:
+            distance = json_response["routes"][0].get("distanceMeters", float("inf"))
+            duration_str = json_response["routes"][0].get("duration", "0s")
+            duration = int("".join(filter(str.isdigit, duration_str)))
+            return distance, duration
+    
     return float("inf"), float("inf")
 
 # Algoritmo genético para optimizar la ruta
@@ -125,33 +89,11 @@ POPULATION_SIZE = 50
 GENERATIONS = 100
 MUTATION_RATE = 0.2
 
-# Conjuntos para rastrear pares problemáticos y evitar logs repetitivos
-infinite_distance_pairs = set()
-infinite_time_pairs = set()
-
 def fitness_distance(route, distance_matrix):
-    total_distance = 0
-    for i in range(len(route) - 1):
-        dist = distance_matrix.get((route[i], route[i + 1]), float("inf"))
-        total_distance += dist
-        if dist == float("inf"):
-            pair = (route[i], route[i + 1])
-            if pair not in infinite_distance_pairs:
-                print(f"⚠️ Distancia infinita detectada entre {route[i]} y {route[i + 1]}")
-                infinite_distance_pairs.add(pair)
-    return total_distance
+    return sum(distance_matrix.get((route[i], route[i + 1]), float("inf")) for i in range(len(route) - 1))
 
 def fitness_traffic(route, traffic_matrix):
-    total_time = 0
-    for i in range(len(route) - 1):
-        time = traffic_matrix.get((route[i], route[i + 1]), float("inf"))
-        total_time += time
-        if time == float("inf"):
-            pair = (route[i], route[i + 1])
-            if pair not in infinite_time_pairs:
-                print(f"⚠️ Tiempo infinito detectado entre {route[i]} y {route[i + 1]}")
-                infinite_time_pairs.add(pair)
-    return total_time
+    return sum(traffic_matrix.get((route[i], route[i + 1]), float("inf")) for i in range(len(route) - 1))
 
 def initialize_population(destinos, origin, destination):
     population = []
@@ -188,8 +130,7 @@ def genetic_algorithm(destinos, origin, destination, distance_matrix, traffic_ma
             child2 = mutate(crossover(parent2, parent1, destination))
             new_population.extend([child1, child2])
         population = sorted(new_population, key=lambda x: fitness_func(x, distance_matrix if fitness_func == fitness_distance else traffic_matrix))[:POPULATION_SIZE]
-    best_route = min(population, key=lambda x: fitness_func(x, distance_matrix if fitness_func == fitness_distance else traffic_matrix))
-    return best_route
+    return min(population, key=lambda x: fitness_func(x, distance_matrix if fitness_func == fitness_distance else traffic_matrix))
 
 @app.route('/api/process', methods=['POST'])
 def process_message():
@@ -200,38 +141,20 @@ def process_message():
         direcciones = data.get("direcciones", [])
         if not direcciones or len(direcciones) < 2:
             return jsonify({"status": "error", "message": "Lista de direcciones insuficiente"}), 400
-
-        # Normalizar direcciones y filtrar vacías o inválidas
+        
+        # Normalizar direcciones
         def normalize_direccion(d):
-            # Manejar casos de None o diccionarios vacíos
-            if d is None or (isinstance(d, dict) and not d):
-                return None
-            # Manejar diccionarios con lat/lng
             if isinstance(d, dict) and "lat" in d and "lng" in d:
-                if d["lat"] is None or d["lng"] is None:
-                    return None
                 return f"{d['lat']},{d['lng']}"
-            # Convertir a string y verificar si es vacío
-            d_str = str(d).strip()
-            if not d_str:
-                return None
-            return d_str
+            return str(d)  # Convertir todo a string para consistencia
 
-        # Normalizar y filtrar direcciones inválidas (None o vacías)
         direcciones = [normalize_direccion(d) for d in direcciones]
-        direcciones = [d for d in direcciones if d]  # Filtrar None
-        print(f"📍 Direcciones después de normalización y filtrado: {direcciones}")
-
-        if len(direcciones) < 2:
-            return jsonify({"status": "error", "message": "No hay suficientes direcciones válidas después de filtrar"}), 400
-
         origin = direcciones[0]  # Posición del bus
         destination = direcciones[-1]  # Punto final
         destinos = direcciones[1:-1]  # Paradas intermedias
 
-        print(f"📍 Direcciones normalizadas y filtradas: {direcciones}")
+        print(f"📍 Direcciones normalizadas: {direcciones}")
 
-        # Construir matrices de distancia y tráfico
         distance_matrix = {}
         traffic_matrix = {}
         for i in range(len(direcciones)):
@@ -241,39 +164,21 @@ def process_message():
                     distance_matrix[(direcciones[i], direcciones[j])] = distance
                     traffic_matrix[(direcciones[i], direcciones[j])] = duration
 
-        # Depurar matrices
-        print(f"📏 Distance Matrix: {distance_matrix}")
-        print(f"⏱️ Traffic Matrix: {traffic_matrix}")
-
-        # Verificar si todas las distancias o tiempos son infinitos
-        all_distances_infinite = all(dist == float("inf") for dist in distance_matrix.values())
-        all_times_infinite = all(time == float("inf") for time in traffic_matrix.values())
-        if all_distances_infinite or all_times_infinite:
-            print("❌ Error: Todas las distancias o tiempos son infinitos. Posiblemente las direcciones no se geocodificaron correctamente.")
-            return jsonify({"status": "error", "message": "No se puede calcular una ruta válida. Verifica que las direcciones sean válidas y que la API key tenga acceso a la Geocoding API."}), 400
-
-        # Limpiar los conjuntos de pares infinitos antes de ejecutar el algoritmo genético
-        infinite_distance_pairs.clear()
-        infinite_time_pairs.clear()
-
-        # Calcular las mejores rutas
         best_route_distance = genetic_algorithm(destinos, origin, destination, distance_matrix, traffic_matrix, fitness_distance)
         best_route_traffic = genetic_algorithm(destinos, origin, destination, distance_matrix, traffic_matrix, fitness_traffic)
 
-        # Calcular métricas finales
-        total_distance_km = fitness_distance(best_route_distance, distance_matrix) / 1000
-        total_time_min = fitness_traffic(best_route_traffic, traffic_matrix) / 60
-
-        # Validar si las métricas son infinitas
-        if total_distance_km == float("inf") or total_time_min == float("inf"):
-            print("❌ Error: No se pudo calcular una ruta válida. Posiblemente una dirección no es válida o no hay ruta disponible.")
-            return jsonify({"status": "error", "message": "No se pudo calcular una ruta válida. Revisa las direcciones proporcionadas."}), 400
+        weather_description, temperature, is_raining = get_weather()
 
         rutasIA = {
             "mejor_ruta_distancia": best_route_distance,
-            "distancia_total_km": total_distance_km,
+            "distancia_total_km": fitness_distance(best_route_distance, distance_matrix) / 1000,
             "mejor_ruta_trafico": best_route_traffic,
-            "tiempo_total_min": total_time_min
+            "tiempo_total_min": fitness_traffic(best_route_traffic, traffic_matrix) / 60,
+            "clima": {
+                "descripcion": weather_description,
+                "temperatura": temperature,
+                "lluvia": is_raining
+            }
         }
 
         print(f"✅ Rutas calculadas: {rutasIA}")
