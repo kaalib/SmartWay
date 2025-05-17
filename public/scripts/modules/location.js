@@ -1,8 +1,26 @@
 import CONFIG from '../config.js';
 
 let watchId = null;
-let locationInterval = null; // Variable para el temporizador
+let locationInterval = null;
 
+// Verificar el estado de los permisos de geolocalización
+async function checkGeolocationPermission() {
+    if (!('permissions' in navigator)) {
+        console.warn("⚠️ API de permisos no soportada en este navegador");
+        return 'prompt'; // Asumimos que se necesita solicitar permisos si la API no está soportada
+    }
+
+    try {
+        const result = await navigator.permissions.query({ name: 'geolocation' });
+        console.log(`🔍 Estado de permisos de geolocalización: ${result.state}`);
+        return result.state; // 'granted', 'prompt', o 'denied'
+    } catch (error) {
+        console.error("❌ Error verificando permisos de geolocalización:", error);
+        return 'prompt'; // Fallback: asumir que se necesita solicitar permisos
+    }
+}
+
+// Solicitar permisos de notificación (sin cambios)
 async function requestNotificationPermission() {
     if ('Notification' in window) {
         console.log("🔔 Solicitando permisos de notificación...");
@@ -74,7 +92,7 @@ async function closeTrackingNotification() {
 }
 
 async function gestionarUbicacion(primeraVezOverride = null) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         if (!navigator.geolocation) {
             Swal.fire({
                 icon: "error",
@@ -82,6 +100,17 @@ async function gestionarUbicacion(primeraVezOverride = null) {
                 text: "Tu navegador no soporta la geolocalización."
             });
             return reject("Geolocalización no disponible");
+        }
+
+        // Verificar el estado de los permisos de geolocalización
+        const permissionState = await checkGeolocationPermission();
+        if (permissionState === 'denied') {
+            Swal.fire({
+                icon: "warning",
+                title: "Permiso denegado",
+                text: "Activa la ubicación para continuar."
+            });
+            return reject(new Error("Permiso de geolocalización denegado"));
         }
 
         // Limpiar cualquier temporizador existente
@@ -116,7 +145,7 @@ async function gestionarUbicacion(primeraVezOverride = null) {
                     ubicacion.lat === window.ultimaUbicacionBus.lat &&
                     ubicacion.lng === window.ultimaUbicacionBus.lng) {
                     console.log("🔄 Ubicación sin cambios:", ubicacion);
-                    return; // No enviar si no ha cambiado
+                    return;
                 }
 
                 window.ultimaUbicacionBus = ubicacion;
@@ -139,38 +168,44 @@ async function gestionarUbicacion(primeraVezOverride = null) {
                     body: JSON.stringify(payload)
                 });
 
-                if (!response.ok) throw new Error(`Error: ${response.status}`);
+                if (!response.ok) {
+                    throw new Error(`Error del servidor: ${response.status}`);
+                }
 
                 if (isPrimeraVez) window.primeraVez = false;
                 console.log("✅ Ubicación enviada al servidor");
             } catch (error) {
-                console.error("❌ Error obteniendo o enviando ubicación:", error);
+                console.error("❌ Error obteniendo o enviando ubicación:", error.message);
                 if (error.code === error.PERMISSION_DENIED) {
                     Swal.fire({
                         icon: "warning",
                         title: "Permiso denegado",
                         text: "Activa la ubicación para continuar."
                     });
-                    clearInterval(locationInterval); // Detener el temporizador si no hay permisos
+                    clearInterval(locationInterval);
                     locationInterval = null;
-                    reject(error);
+                    throw new Error("Permiso de geolocalización denegado");
+                } else {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Error al enviar ubicación",
+                        text: `No se pudo enviar la ubicación al servidor: ${error.message}`
+                    });
+                    throw error;
                 }
             }
         };
 
         // Ejecutar inmediatamente la primera vez
-        obtenerYEnviarUbicacion().then(async () => {
-            // Mostrar la notificación persistente
+        try {
+            await obtenerYEnviarUbicacion();
             await showTrackingNotification();
-
-            // Configurar el temporizador para ejecutarse cada 10 segundos
             locationInterval = setInterval(obtenerYEnviarUbicacion, 10000);
             console.log("⏲️ Temporizador de ubicación iniciado (cada 10 segundos)");
-
             resolve();
-        }).catch(error => {
+        } catch (error) {
             reject(error);
-        });
+        }
     });
 }
 
@@ -181,7 +216,6 @@ async function detenerUbicacion() {
         console.log("🛑 Temporizador de ubicación detenido");
     }
 
-    // Cerrar la notificación
     await closeTrackingNotification();
 }
 
@@ -193,7 +227,6 @@ async function actualizarMarcadorBus(ubicacion) {
 
     console.log("🖌️ Intentando actualizar marcador del bus:", ubicacion);
 
-    // Verificar si la ubicación ha cambiado
     if (window.ultimaUbicacionBus &&
         ubicacion.lat === window.ultimaUbicacionBus.lat &&
         ubicacion.lng === window.ultimaUbicacionBus.lng) {
@@ -201,20 +234,17 @@ async function actualizarMarcadorBus(ubicacion) {
         return;
     }
 
-    // Crear el ícono del bus
     const svgIcon = document.createElement("img");
     svgIcon.src = "/media/iconobus.svg";
     svgIcon.style.width = "40px";
     svgIcon.style.height = "40px";
     svgIcon.onerror = () => console.error("❌ Error cargando iconobus.svg");
 
-    // Eliminar el marcador anterior del bus, si existe
     if (window.marcadores.bus) {
         window.marcadores.bus.setMap(null);
         console.log("🗑️ Marcador anterior del bus eliminado del mapa");
     }
 
-    // Crear un nuevo marcador en la nueva posición
     window.marcadores.bus = new google.maps.marker.AdvancedMarkerElement({
         position: ubicacion,
         map: window.map,
@@ -226,4 +256,4 @@ async function actualizarMarcadorBus(ubicacion) {
     console.log("✅ Marcador del bus actualizado:", ubicacion);
 }
 
-export { gestionarUbicacion, detenerUbicacion, actualizarMarcadorBus };
+export { checkGeolocationPermission, gestionarUbicacion, detenerUbicacion, actualizarMarcadorBus };

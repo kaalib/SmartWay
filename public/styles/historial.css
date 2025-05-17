@@ -134,17 +134,18 @@
 }
 
 .chart-card h3 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  color: #333;
-  font-size: 18px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 10px;
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 18px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
 }
 
 .chart-wrapper {
     width: 100%; /* Responsivo, ocupa todo el ancho del chart-card */
     min-height: 500px; /* Mínimo alto deseado */
+    max-width: 800px; /* Limitamos el ancho máximo para evitar que se estire demasiado */
     position: relative;
     margin: 0 auto;
     flex-grow: 1;
@@ -401,6 +402,7 @@ table tbody tr:hover {
 
     .chart-wrapper {
         min-height: 500px;
+        max-width: 700px; /* Ajustamos el ancho máximo para que las gráficas no se estiren demasiado en columnas */
     }
 }
 
@@ -413,6 +415,7 @@ table tbody tr:hover {
     .chart-wrapper {
         min-width: 100%;
         min-height: 400px;
+        max-width: 100%; /* En pantallas medianas, permitimos que ocupe todo el ancho */
     }
 }
 
@@ -477,10 +480,10 @@ table tbody tr:hover {
     .history-map {
         height: 300px;
     }
-
-    .chart-wrapper {
+.chart-wrapper {
         min-width: 100%;
-        min-height: 350px;
+        min-height: 450px; /* Aumentamos la altura para que las gráficas sean más visibles */
+        max-width: 100%; /* Mantenemos el ancho completo */
     }
 
     .table-pagination {
@@ -533,7 +536,8 @@ table tbody tr:hover {
         font-size: 16px;
     }
 
-    .chart-wrapper {
-        min-height: 300px;
+.chart-wrapper {
+        min-height: 400px; /* Ajustamos ligeramente para pantallas muy pequeñas */
+        max-width: 100%;
     }
 }
