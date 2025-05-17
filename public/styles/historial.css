@@ -25,12 +25,11 @@
 }
 
 .date-filter {
-  display:flex;
+  display: flex;
   justify-content: center;
   align-items: center;
   gap: 10px;
   max-width: 300px; /* Ancho máximo para la fecha */
-  
 }
 
 .date-filter label {
@@ -47,12 +46,12 @@
 
 /* Tarjetas de estadísticas */
 .stats-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 20px; /* Espacio entre los stat-card */
-    margin-bottom: 30px;
-    width: 100%;
-    box-sizing: border-box; /* Asegura que el padding/margin no desborde */
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px; /* Espacio entre los stat-card */
+  margin-bottom: 30px;
+  width: 100%;
+  box-sizing: border-box; /* Asegura que el padding/margin no desborde */
 }
 
 .stat-card {
@@ -64,8 +63,6 @@
   align-items: center;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
-
-
 
 .stat-icon {
   background-color: #f0f8ff;
@@ -96,59 +93,58 @@
 
 /* Layout principal de dos columnas */
 .main-layout {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    max-width: 1800px;
-    margin: 0 auto;
-    width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  max-width: 1800px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .left-column,
 .right-column {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    min-width: 0; /* Evita desbordamiento */
-    overflow-x: auto; /* Permite desplazamiento horizontal si es necesario */
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0; /* Evita desbordamiento */
+  overflow-x: auto; /* Permite desplazamiento horizontal si es necesario */
 }
 
 /* Contenedor de gráficas */
 .charts-container {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px; /* Espacio entre los chart-card */
-    width: 100%;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px; /* Espacio entre los chart-card */
+  width: 100%;
 }
 
 .chart-card {
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    padding: 20px;
-    width: 100%;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    box-sizing: border-box; /* Evita desbordamiento por padding */
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box; /* Evita desbordamiento por padding */
 }
 
 .chart-card h3 {
-    margin-top: 0;
-    margin-bottom: 15px;
-    color: #333;
-    font-size: 18px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 18px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
 }
 
 .chart-wrapper {
-    width: 100%; /* Responsivo, ocupa todo el ancho del chart-card */
-    min-height: 500px; /* Mínimo alto deseado */
-    max-width: 800px; /* Limitamos el ancho máximo para evitar que se estire demasiado */
-    position: relative;
-    margin: 0 auto;
-    flex-grow: 1;
+  width: 100%; /* Ocupa todo el ancho del chart-card */
+  min-height: 400px; /* Altura mínima inicial para todas las pantallas */
+  position: relative;
+  margin: 0 auto;
+  flex-grow: 1; /* Ocupa todo el espacio disponible verticalmente */
 }
 
 /* Contenedor de mapa histórico */
@@ -334,8 +330,6 @@ table tbody tr:hover {
   transition: transform 0.2s ease;
 }
 
-
-
 .driver-avatar {
   width: 60px;
   height: 60px;
@@ -391,153 +385,150 @@ table tbody tr:hover {
   color: #0066cc;
 }
 
-
-
 /* Responsive para pantallas grandes (>1600px) */
 @media (min-width: 1601px) {
-    .main-layout {
-        grid-template-columns: 1fr 1fr;
-        max-width: 1800px;
-    }
+  .main-layout {
+    grid-template-columns: 1fr 1fr;
+    max-width: 1800px;
+  }
 
-    .chart-wrapper {
-        min-height: 500px;
-        max-width: 700px; /* Ajustamos el ancho máximo para que las gráficas no se estiren demasiado en columnas */
-    }
+  .chart-wrapper {
+    min-height: 500px; /* Ajuste para pantallas grandes */
+    width: 100%; /* Ocupa todo el ancho disponible */
+  }
 }
 
 /* Responsive para tablets y pantallas medianas (hasta 1200px) */
 @media (max-width: 1200px) {
-    .main-layout {
-        grid-template-columns: 1fr;
-    }
+  .main-layout {
+    grid-template-columns: 1fr;
+  }
 
-    .chart-wrapper {
-        min-width: 100%;
-        min-height: 400px;
-        max-width: 100%; /* En pantallas medianas, permitimos que ocupe todo el ancho */
-    }
+  .chart-wrapper {
+    min-height: 400px; /* Ajuste para pantallas medianas */
+    width: 100%; /* Ocupa todo el ancho disponible */
+  }
 }
 
 /* Responsive para móviles (hasta 768px) */
 @media (max-width: 768px) {
-    .dashboard-header {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        padding-top: 40px;
-    }
-    
-    .dashboard-header h1 {
-        margin-bottom: 15px;
-        margin-right: 0;
-    }
-    
-    .header-actions {
-        width: 100%;
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
-    }
-    
-    .date-filter {
-        max-width: 250px;
-        margin: 0 auto 10px;
-        width: 100%;
-    }
+  .dashboard-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-top: 40px;
+  }
 
-    .stats-container {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    }
+  .dashboard-header h1 {
+    margin-bottom: 15px;
+    margin-right: 0;
+  }
 
-    .stat-card {
-        flex-direction: column;
-        text-align: center;
-        padding: 15px;
-    }
+  .header-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
 
-    .stat-icon {
-        margin-right: 0;
-        margin-bottom: 10px;
-        width: 40px;
-        height: 40px;
-        font-size: 16px;
-    }
+  .date-filter {
+    max-width: 250px;
+    margin: 0 auto 10px;
+    width: 100%;
+  }
 
-    .stat-info p {
-        font-size: 20px;
-    }
+  .stats-container {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
 
-    .map-controls {
-        flex-direction: column;
-        width: 100%;
-    }
+  .stat-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 15px;
+  }
 
-    .map-controls .btn {
-        width: 100%;
-    }
+  .stat-icon {
+    margin-right: 0;
+    margin-bottom: 10px;
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
 
-    .history-map {
-        height: 300px;
-    }
-.chart-wrapper {
-        min-width: 100%;
-        min-height: 450px; /* Aumentamos la altura para que las gráficas sean más visibles */
-        max-width: 100%; /* Mantenemos el ancho completo */
-    }
+  .stat-info p {
+    font-size: 20px;
+  }
 
-    .table-pagination {
-        flex-direction: column;
-        gap: 10px;
-        align-items: center;
-    }
+  .map-controls {
+    flex-direction: column;
+    width: 100%;
+  }
 
-    .table-pagination .btn {
-        width: 100%;
-    }
+  .map-controls .btn {
+    width: 100%;
+  }
 
-    .route-selector {
-        flex-direction: column;
-        align-items: flex-start;
-    }
+  .history-map {
+    height: 300px;
+  }
 
-    .route-selector select {
-        width: 100%;
-    }
+  .chart-wrapper {
+    min-height: 450px; /* Aumentamos la altura para que las gráficas sean visibles */
+    width: 100%; /* Ocupa todo el ancho disponible */
+  }
+
+  .table-pagination {
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .table-pagination .btn {
+    width: 100%;
+  }
+
+  .route-selector {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .route-selector select {
+    width: 100%;
+  }
 }
 
 /* Responsive para pantallas muy pequeñas (hasta 576px) */
 @media (max-width: 576px) {
-    .stats-container {
-        grid-template-columns: 1fr;
-        gap: 10px;
-    }
+  .stats-container {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
 
-    .driver-card {
-        flex-direction: column;
-        text-align: center;
-    }
+  .driver-card {
+    flex-direction: column;
+    text-align: center;
+  }
 
-    .driver-avatar {
-        margin-right: 0;
-        margin-bottom: 10px;
-    }
+  .driver-avatar {
+    margin-right: 0;
+    margin-bottom: 10px;
+  }
 
-    .driver-stats {
-        flex-direction: column;
-        gap: 5px;
-        align-items: center;
-    }
+  .driver-stats {
+    flex-direction: column;
+    gap: 5px;
+    align-items: center;
+  }
 
-    .chart-card h3,
-    .history-map-container h3,
-    .history-table-container h3,
-    .drivers-section h3 {
-        font-size: 16px;
-    }
+  .chart-card h3,
+  .history-map-container h3,
+  .history-table-container h3,
+  .drivers-section h3 {
+    font-size: 16px;
+  }
 
-.chart-wrapper {
-        min-height: 400px; /* Ajustamos ligeramente para pantallas muy pequeñas */
-        max-width: 100%;
-    }
+  .chart-wrapper {
+    min-height: 400px; /* Ajuste para pantallas muy pequeñas */
+    width: 100%; /* Ocupa todo el ancho disponible */
+  }
 }
