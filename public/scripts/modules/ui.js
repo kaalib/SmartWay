@@ -267,134 +267,173 @@ function setupUIEvents() {
     }
 
     document.getElementById("btnSeleccionarUbicacion").addEventListener("click", async () => {
-        let success = false;
-        try {
-            await cerrarUbicacionModal();
-            await mostrarLoader();
-
-            const btnInicio = document.getElementById("btnInicio");
-            const btnSeleccionRuta = document.getElementById("btnSeleccionRuta");
-            const btnFin = document.getElementById("btnFin");
-            const modalText = document.getElementById("modalText");
-
-            const opcionSeleccionada = document.querySelector('input[name="ubicacion"]:checked').value;
-            console.log("📍 Ubicación seleccionada:", opcionSeleccionada);
-            window.ultimaParada = opcionSeleccionada === "parqueadero" ? "Carrera 15 #27A-40, Barranquilla" : "actual";
-
-            await gestionarUbicacion(true);
-            await iniciarEnvioActualizacion();
-
-            let response;
-            const esLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-            if (esLocalhost) {
-                console.log("🖥️ Ejecutando en localhost, usando datos simulados...");
-                const simularError = false;
-                response = await simularFetchMessages(simularError);
-            } else {
-                console.log("🌐 Ejecutando en producción, usando fetch real...");
-                response = await fetch("/messages");
-            }
-
-            if (!response.ok) {
-                throw new Error(`Error en la solicitud: ${response.status}`);
-            }
-            const data = await response.json();
-
-            if (!data.rutasIA) {
-                throw new Error("No se recibieron rutasIA del servidor");
-            }
-
-            window.rutaDistancia = data.rutasIA.mejor_ruta_distancia;
-            window.rutaTrafico = data.rutasIA.mejor_ruta_trafico;
-            window.distanciaTotalKm = data.rutasIA.distancia_total_km;
-            window.tiempoTotalMin = data.rutasIA.tiempo_total_min;
-
-            const transformarRuta = (ruta, tcp) => {
-                return ruta.map((direccion, index) => {
-                    let nombre;
-                    if (index === 0) {
-                        nombre = "Inicio";
-                    } else if (index === ruta.length - 1) {
-                        nombre = "Destino";
-                    } else {
-                        const entradaTcp = tcp.find(t => {
-                            if (typeof t.direccion === "object") {
-                                return `${t.direccion.lat},${t.direccion.lng}` === direccion;
-                            }
-                            return t.direccion === direccion;
-                        });
-                        nombre = entradaTcp ? `${entradaTcp.nombre} ${entradaTcp.apellido}`.trim() : `Parada ${index}`;
-                    }
-
-                    return {
-                        direccion: direccion,
-                        nombre: nombre,
-                        bus: index > 0 && index < ruta.length - 1 ? 1 : undefined
-                    };
-                });
-            };
-
-            const rutasIA = {
-                mejor_ruta_distancia: transformarRuta(data.rutasIA.mejor_ruta_distancia, data.tcp),
-                mejor_ruta_trafico: transformarRuta(data.rutasIA.mejor_ruta_trafico, data.tcp)
-            };
-
-            localStorage.setItem('rutaDistancia', JSON.stringify(rutasIA.mejor_ruta_distancia));
-            localStorage.setItem('rutaTrafico', JSON.stringify(rutasIA.mejor_ruta_trafico));
-            localStorage.setItem('rutaEnProgreso', 'true');
-
-            console.log("🗺️ Dibujando rutas iniciales:", {
-                mejor_ruta_distancia: rutasIA.mejor_ruta_distancia,
-                mejor_ruta_trafico: rutasIA.mejor_ruta_trafico
+    let success = false;
+    try {
+        // Verificar permisos de geolocalización antes de proceder
+        const permissionState = await checkGeolocationPermission();
+        if (permissionState === 'denied') {
+            Swal.fire({
+                icon: "warning",
+                title: "Permiso denegado",
+                text: "Activa la ubicación para continuar."
             });
-
-            success = await dibujarRutasPrimeraVez(rutasIA);
-            if (!success) {
-                throw new Error("No se pudieron dibujar las rutas iniciales");
-            }
-
-            modalText.textContent = "Datos cargados. Escoja la mejor ruta según la información brindada.";
-        } catch (error) {
-            console.error("❌ Error:", error);
-            modalText.textContent = "Error procesando la solicitud. Intente de nuevo.";
-        } finally {
-            const btnInicio = document.getElementById("btnInicio");
-            const btnSeleccionRuta = document.getElementById("btnSeleccionRuta");
-            const btnNavegacion = document.getElementById("btnNavegacion");
-            const btnFin = document.getElementById("btnFin");
-
-            if (success) {
-                btnInicio.disabled = true;
-                btnSeleccionRuta.disabled = false;
-                btnNavegacion.disabled = true;
-                btnFin.disabled = true;
-
-                localStorage.setItem('btnInicioHabilitado', 'false');
-                localStorage.setItem('btnSeleccionRutaHabilitado', 'true');
-                localStorage.setItem('btnNavegacionHabilitado', 'false');
-                localStorage.setItem('btnFinHabilitado', 'false');
-            } else {
-                btnInicio.disabled = true;
-                btnSeleccionRuta.disabled = false;
-                btnNavegacion.disabled = true;
-                btnFin.disabled = true;
-
-                localStorage.setItem('btnInicioHabilitado', 'false');
-                localStorage.setItem('btnSeleccionRutaHabilitado', 'true');
-                localStorage.setItem('btnNavegacionHabilitado', 'false');
-                localStorage.setItem('btnFinHabilitado', 'false');
-                localStorage.setItem('rutaEnProgreso', 'false');
-            }
-
-            const esLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-            if (!esLocalhost && success) {
-                const socket = setupSocket();
-                socket.emit("solicitar_mensajes_tcp");
-            }
-
-            await cerrarLoader();
+            return; // Detener el flujo si los permisos no están otorgados
         }
-    });
+
+        // Si los permisos están en 'prompt', intentar obtener la ubicación para solicitarlos
+        if (permissionState === 'prompt') {
+            try {
+                await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(
+                        () => resolve(),
+                        (error) => {
+                            if (error.code === error.PERMISSION_DENIED) {
+                                Swal.fire({
+                                    icon: "warning",
+                                    title: "Permiso denegado",
+                                    text: "Activa la ubicación para continuar."
+                                });
+                                reject(new Error("Permiso de geolocalización denegado"));
+                            } else {
+                                reject(error);
+                            }
+                        },
+                        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                    );
+                });
+            } catch (error) {
+                console.error("❌ Error solicitando permisos de geolocalización:", error);
+                return; // Detener el flujo si no se otorgan los permisos
+            }
+        }
+
+        // Si llegamos aquí, los permisos están otorgados, proceder con el flujo normal
+        await cerrarUbicacionModal();
+        await mostrarLoader();
+
+        const btnInicio = document.getElementById("btnInicio");
+        const btnSeleccionRuta = document.getElementById("btnSeleccionRuta");
+        const btnFin = document.getElementById("btnFin");
+        const modalText = document.getElementById("modalText");
+
+        const opcionSeleccionada = document.querySelector('input[name="ubicacion"]:checked').value;
+        console.log("📍 Ubicación seleccionada:", opcionSeleccionada);
+        window.ultimaParada = opcionSeleccionada === "parqueadero" ? "Carrera 15 #27A-40, Barranquilla" : "actual";
+
+        await gestionarUbicacion(true);
+        await iniciarEnvioActualizacion();
+
+        let response;
+        const esLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+        if (esLocalhost) {
+            console.log("🖥️ Ejecutando en localhost, usando datos simulados...");
+            const simularError = false;
+            response = await simularFetchMessages(simularError);
+        } else {
+            console.log("🌐 Ejecutando en producción, usando fetch real...");
+            response = await fetch("/messages");
+        }
+
+        if (!response.ok) {
+            throw new Error(`Error en la solicitud: ${response.status}`);
+        }
+        const data = await response.json();
+
+        if (!data.rutasIA) {
+            throw new Error("No se recibieron rutasIA del servidor");
+        }
+
+        window.rutaDistancia = data.rutasIA.mejor_ruta_distancia;
+        window.rutaTrafico = data.rutasIA.mejor_ruta_trafico;
+        window.distanciaTotalKm = data.rutasIA.distancia_total_km;
+        window.tiempoTotalMin = data.rutasIA.tiempo_total_min;
+
+        const transformarRuta = (ruta, tcp) => {
+            return ruta.map((direccion, index) => {
+                let nombre;
+                if (index === 0) {
+                    nombre = "Inicio";
+                } else if (index === ruta.length - 1) {
+                    nombre = "Destino";
+                } else {
+                    const entradaTcp = tcp.find(t => {
+                        if (typeof t.direccion === "object") {
+                            return `${t.direccion.lat},${t.direccion.lng}` === direccion;
+                        }
+                        return t.direccion === direccion;
+                    });
+                    nombre = entradaTcp ? `${entradaTcp.nombre} ${entradaTcp.apellido}`.trim() : `Parada ${index}`;
+                }
+
+                return {
+                    direccion: direccion,
+                    nombre: nombre,
+                    bus: index > 0 && index < ruta.length - 1 ? 1 : undefined
+                };
+            });
+        };
+
+        const rutasIA = {
+            mejor_ruta_distancia: transformarRuta(data.rutasIA.mejor_ruta_distancia, data.tcp),
+            mejor_ruta_trafico: transformarRuta(data.rutasIA.mejor_ruta_trafico, data.tcp)
+        };
+
+        localStorage.setItem('rutaDistancia', JSON.stringify(rutasIA.mejor_ruta_distancia));
+        localStorage.setItem('rutaTrafico', JSON.stringify(rutasIA.mejor_ruta_trafico));
+        localStorage.setItem('rutaEnProgreso', 'true');
+
+        console.log("🗺️ Dibujando rutas iniciales:", {
+            mejor_ruta_distancia: rutasIA.mejor_ruta_distancia,
+            mejor_ruta_trafico: rutasIA.mejor_ruta_trafico
+        });
+
+        success = await dibujarRutasPrimeraVez(rutasIA);
+        if (!success) {
+            throw new Error("No se pudieron dibujar las rutas iniciales");
+        }
+
+        modalText.textContent = "Datos cargados. Escoja la mejor ruta según la información brindada.";
+    } catch (error) {
+        console.error("❌ Error:", error);
+        modalText.textContent = "Error procesando la solicitud. Intente de nuevo.";
+    } finally {
+        const btnInicio = document.getElementById("btnInicio");
+        const btnSeleccionRuta = document.getElementById("btnSeleccionRuta");
+        const btnNavegacion = document.getElementById("btnNavegacion");
+        const btnFin = document.getElementById("btnFin");
+
+        if (success) {
+            btnInicio.disabled = true;
+            btnSeleccionRuta.disabled = false;
+            btnNavegacion.disabled = true;
+            btnFin.disabled = true;
+
+            localStorage.setItem('btnInicioHabilitado', 'false');
+            localStorage.setItem('btnSeleccionRutaHabilitado', 'true');
+            localStorage.setItem('btnNavegacionHabilitado', 'false');
+            localStorage.setItem('btnFinHabilitado', 'false');
+        } else {
+            btnInicio.disabled = true;
+            btnSeleccionRuta.disabled = false;
+            btnNavegacion.disabled = true;
+            btnFin.disabled = true;
+
+            localStorage.setItem('btnInicioHabilitado', 'false');
+            localStorage.setItem('btnSeleccionRutaHabilitado', 'true');
+            localStorage.setItem('btnNavegacionHabilitado', 'false');
+            localStorage.setItem('btnFinHabilitado', 'false');
+            localStorage.setItem('rutaEnProgreso', 'false');
+        }
+
+        const esLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+        if (!esLocalhost && success) {
+            const socket = setupSocket();
+            socket.emit("solicitar_mensajes_tcp");
+        }
+
+        await cerrarLoader();
+    }
+});
 
     function simularFetchMessagesBtnInicio(simularError = false) {
         return new Promise((resolve) => {

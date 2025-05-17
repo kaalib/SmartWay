@@ -105,11 +105,7 @@ async function gestionarUbicacion(primeraVezOverride = null) {
         // Verificar el estado de los permisos de geolocalización
         const permissionState = await checkGeolocationPermission();
         if (permissionState === 'denied') {
-            Swal.fire({
-                icon: "warning",
-                title: "Permiso denegado",
-                text: "Activa la ubicación para continuar."
-            });
+            // No mostramos Swal.fire aquí porque ya se maneja en btnInicio
             return reject(new Error("Permiso de geolocalización denegado"));
         }
 
@@ -177,11 +173,7 @@ async function gestionarUbicacion(primeraVezOverride = null) {
             } catch (error) {
                 console.error("❌ Error obteniendo o enviando ubicación:", error.message);
                 if (error.code === error.PERMISSION_DENIED) {
-                    Swal.fire({
-                        icon: "warning",
-                        title: "Permiso denegado",
-                        text: "Activa la ubicación para continuar."
-                    });
+                    // Eliminamos el Swal.fire para evitar la alerta redundante
                     clearInterval(locationInterval);
                     locationInterval = null;
                     throw new Error("Permiso de geolocalización denegado");
