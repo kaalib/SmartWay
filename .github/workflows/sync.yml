@@ -14,14 +14,13 @@ jobs:
         uses: actions/checkout@v3
 
       # Deploy to EC2 Instance
-      - name: Deploy to EC2 Instance
+      - name: Deploy to EC2 Instance 1
         uses: appleboy/ssh-action@v0.1.5
         with:
-          host: ${{secrets.EC2_HOST}}  # DNS Public IP: ec2-xx-xxx-xxx-xxx.us-west-2.compute.amazonaws.com
-          username: ${{secrets.EC2_USER}} # ubuntu
-          key: ${{secrets.EC2_KEY}}  #.ppk key
+          host: ${{secrets.EC2_HOST_1}}  # DNS Public IP: ec2-xx-xxx-xxx-xxx.us-west-2.compute.amazonaws.com
+          username: ${{secrets.EC2_USER_1}} # ubuntu
+          key: ${{secrets.EC2_KEY_1}}  #.ppk key
           script: |
-            cd PF  # Change to project directory on the EC2 instance
+            cd SmartWay  # Change to project directory on the EC2 instance
             git pull origin main      # Pull the latest code from the main branch
             sudo pm2 restart server     # Restart the server (use PM2 process manager)
-            

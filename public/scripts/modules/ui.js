@@ -3,7 +3,7 @@ import CONFIG from '../config.js';
 import { actualizarMapa, dibujarRutasPrimeraVez } from './map-markers.js';
 import { iniciarActualizacionRuta, detenerActualizacionRuta, actualizarRutaSeleccionada, setupSocket, actualizarMapaConRutaSeleccionada, mostrarMensajesTCP } from './socket.js';
 import { iniciarEnvioActualizacion, detenerEnvioActualizacion, limpiarMapa, solicitarActualizacionRutas } from './api.js';
-import { gestionarUbicacion } from './location.js';
+import { gestionarUbicacion, checkGeolocationPermission } from './location.js';
 import { checkUserRole } from './auth.js';
 import { iniciarNavegacionConductor, detenerNavegacionConductor } from './navigation.js';
 
@@ -86,9 +86,25 @@ async function restaurarEstado() {
     const navegacionActiva = localStorage.getItem('navegacionActiva') === 'true';
     const btnNavegacionHabilitado = localStorage.getItem('btnNavegacionHabilitado') === 'true';
 
-    // Leer la última ruta seleccionada desde localStorage
-    const ultimaRutaSeleccionada = JSON.parse(localStorage.getItem('ultimaRutaSeleccionada') || '[]');
-    const ultimaRutaColor = localStorage.getItem('ultimaRutaColor') || '#00CC66'; // Color por defecto si no está guardado
+    // Leer la última ruta seleccionada desde localStorage con manejo de errores
+    let ultimaRutaSeleccionada = [];
+    const ultimaRutaColor = localStorage.getItem('ultimaRutaColor') || '#00CC66'; // Color por defecto
+
+    try {
+        const storedRuta = localStorage.getItem('ultimaRutaSeleccionada');
+        if (storedRuta && storedRuta !== 'undefined' && storedRuta !== 'null') {
+            ultimaRutaSeleccionada = JSON.parse(storedRuta);
+            if (!Array.isArray(ultimaRutaSeleccionada)) {
+                console.warn("⚠️ El valor de ultimaRutaSeleccionada no es un array válido, usando valor por defecto");
+                ultimaRutaSeleccionada = [];
+            }
+        } else {
+            console.log("📦 ultimaRutaSeleccionada no encontrada en localStorage, usando valor por defecto: []");
+        }
+    } catch (error) {
+        console.error("❌ Error parseando ultimaRutaSeleccionada desde localStorage:", error);
+        ultimaRutaSeleccionada = []; // Valor por defecto en caso de error
+    }
 
     // Aplicar estado de botones desde localStorage
     btnInicio.disabled = !btnInicioHabilitado;
@@ -103,7 +119,6 @@ async function restaurarEstado() {
         const socket = setupSocket();
 
         if (btnFinHabilitado && data.rutaseleccionada && data.rutaseleccionada.length > 0) {
-            // Caso: Ruta activa (btnFin habilitado)
             console.log("📡 Restaurando ruta activa desde servidor:", data.rutaseleccionada);
             window.rutaSeleccionada = data.rutaSeleccionada || rutaSeleccionada || 'mejor_ruta_distancia';
             window.primeraActualizacionMapa = false;
@@ -112,13 +127,11 @@ async function restaurarEstado() {
             const color = window.rutaSeleccionada === "mejor_ruta_distancia" ? '#00CC66' : '#FF9900';
             await actualizarMapaConRutaSeleccionada(data.rutaseleccionada, color);
 
-            // Reactivar actualizaciones en vivo
             await iniciarEnvioActualizacion();
             await iniciarActualizacionRuta(socket);
             await actualizarRutaSeleccionada(socket);
             console.log("🔄 Actualizaciones en vivo reactivadas");
         } else if (btnSeleccionRutaHabilitado && data.rutasIA && data.rutasIA.mejor_ruta_distancia && data.rutasIA.mejor_ruta_trafico) {
-            // Caso: Selección de ruta pendiente
             console.log("📡 Restaurando rutas para selección:", data.rutasIA);
             window.rutaDistancia = data.rutasIA.mejor_ruta_distancia;
             window.rutaTrafico = data.rutasIA.mejor_ruta_trafico;
@@ -127,7 +140,6 @@ async function restaurarEstado() {
 
             await actualizarMapa({ mejor_ruta_distancia: window.rutaDistancia, mejor_ruta_trafico: window.rutaTrafico });
         } else if (ultimaRutaSeleccionada.length > 0) {
-            // Caso: Restaurar la última ruta seleccionada desde localStorage
             console.log("📦 Restaurando última ruta seleccionada desde localStorage:", ultimaRutaSeleccionada);
             window.rutaSeleccionada = rutaSeleccionada || 'mejor_ruta_distancia';
             window.primeraActualizacionMapa = false;
@@ -136,7 +148,6 @@ async function restaurarEstado() {
             await actualizarMapaConRutaSeleccionada(ultimaRutaSeleccionada, ultimaRutaColor);
             console.log("🗺️ Última ruta seleccionada dibujada desde localStorage");
         } else {
-            // Caso: Sin ruta activa
             console.log("📡 Sin ruta activa, inicializando botones");
             btnInicio.disabled = false;
             btnInicio.classList.remove("btn-disabled");
@@ -150,7 +161,6 @@ async function restaurarEstado() {
         }
     } catch (error) {
         console.error("❌ Error al sincronizar con el servidor:", error);
-        // Fallback: Restaurar desde localStorage si hay datos
         if (ultimaRutaSeleccionada.length > 0) {
             console.log("📦 Restaurando última ruta seleccionada desde localStorage (fallback):", ultimaRutaSeleccionada);
             window.rutaSeleccionada = rutaSeleccionada || 'mejor_ruta_distancia';
@@ -160,14 +170,24 @@ async function restaurarEstado() {
             await actualizarMapaConRutaSeleccionada(ultimaRutaSeleccionada, ultimaRutaColor);
             console.log("🗺️ Última ruta seleccionada dibujada desde localStorage (fallback)");
         } else if (btnSeleccionRutaHabilitado) {
-            window.rutaDistancia = JSON.parse(localStorage.getItem('rutaDistancia') || '[]');
-            window.rutaTrafico = JSON.parse(localStorage.getItem('rutaTrafico') || '[]');
-            if (window.rutaDistancia.length > 0 && window.rutaTrafico.length > 0) {
-                await actualizarMapa({ mejor_ruta_distancia: window.rutaDistancia, mejor_ruta_trafico: window.rutaTrafico });
+            let rutaDistancia = [];
+            let rutaTrafico = [];
+            try {
+                const storedRutaDistancia = localStorage.getItem('rutaDistancia');
+                const storedRutaTrafico = localStorage.getItem('rutaTrafico');
+                rutaDistancia = storedRutaDistancia && storedRutaDistancia !== 'undefined' && storedRutaDistancia !== 'null' ? JSON.parse(storedRutaDistancia) : [];
+                rutaTrafico = storedRutaTrafico && storedRutaTrafico !== 'undefined' && storedRutaTrafico !== 'null' ? JSON.parse(storedRutaTrafico) : [];
+            } catch (parseError) {
+                console.error("❌ Error parseando rutaDistancia o rutaTrafico desde localStorage:", parseError);
+                rutaDistancia = [];
+                rutaTrafico = [];
+            }
+
+            if (rutaDistancia.length > 0 && rutaTrafico.length > 0) {
+                await actualizarMapa({ mejor_ruta_distancia: rutaDistancia, mejor_ruta_trafico: rutaTrafico });
                 console.log("🔄 Restaurando rutas desde localStorage como fallback");
             }
         }
-        // No usar localStorage para btnFinHabilitado, confiar en el servidor
     }
 }
 
@@ -200,7 +220,6 @@ function limpiarEstado() {
 }
 
 function setupUIEvents() {
-    // Restaurar estado al cargar la página
     restaurarEstado();
 
     document.querySelectorAll('input[name="ubicacion"]').forEach((radio) => {
@@ -209,51 +228,17 @@ function setupUIEvents() {
         });
     });
 
-    // Inicializar window.primeraVez al cargar el módulo
     window.primeraVez = localStorage.getItem('rutaEnProgreso') !== 'true';
 
-    // Simular la respuesta de fetch("/messages") para pruebas locales
     function simularFetchMessages(simularError = false) {
         return new Promise((resolve) => {
-            // Caso de éxito: devolver datos con rutasIA
             const datosExito = {
                 tcp: [
-                    {
-                        id: "bus",
-                        nombre: "Bus",
-                        apellido: "",
-                        direccion: {
-                            lat: 10.9903872,
-                            lng: -74.7896832
-                        }
-                    },
-                    {
-                        id: 1,
-                        nombre: "Parada",
-                        apellido: "1",
-                        direccion: "Calle 72 #45-20, Barranquilla, Colombia",
-                        bus: 1
-                    },
-                    {
-                        id: 2,
-                        nombre: "Parada",
-                        apellido: "2",
-                        direccion: "Carrera 43 #70-15, Barranquilla, Colombia",
-                        bus: 1
-                    },
-                    {
-                        id: 3,
-                        nombre: "Parada",
-                        apellido: "3",
-                        direccion: "Calle 84 #51-30, Barranquilla, Colombia",
-                        bus: 1
-                    },
-                    {
-                        id: "punto_final",
-                        nombre: "Punto Final",
-                        apellido: "",
-                        direccion: "Carrera 15 #27A-40, Barranquilla, Colombia"
-                    }
+                    { id: "bus", nombre: "Bus", apellido: "", direccion: { lat: 10.9903872, lng: -74.7896832 } },
+                    { id: 1, nombre: "Parada", apellido: "1", direccion: "Calle 72 #45-20, Barranquilla, Colombia", bus: 1 },
+                    { id: 2, nombre: "Parada", apellido: "2", direccion: "Carrera 43 #70-15, Barranquilla, Colombia", bus: 1 },
+                    { id: 3, nombre: "Parada", apellido: "3", direccion: "Calle 84 #51-30, Barranquilla, Colombia", bus: 1 },
+                    { id: "punto_final", nombre: "Punto Final", apellido: "", direccion: "Carrera 15 #27A-40, Barranquilla, Colombia" }
                 ],
                 rutasIA: {
                     mejor_ruta_distancia: [
@@ -274,19 +259,10 @@ function setupUIEvents() {
                     tiempo_total_min: 30
                 }
             };
-    
-            // Caso de error: devolver datos sin rutasIA
-            const datosError = {
-                mensaje: "No hay rutas disponibles"
-            };
-    
-            // Simular una respuesta HTTP
-            const respuestaSimulada = {
-                ok: true,
-                json: () => Promise.resolve(simularError ? datosError : datosExito)
-            };
-    
-            setTimeout(() => resolve(respuestaSimulada), 1000); // Simular un pequeño retraso de red
+
+            const datosError = { mensaje: "No hay rutas disponibles" };
+            const respuestaSimulada = { ok: true, json: () => Promise.resolve(simularError ? datosError : datosExito) };
+            setTimeout(() => resolve(respuestaSimulada), 1000);
         });
     }
 
@@ -295,19 +271,19 @@ function setupUIEvents() {
         try {
             await cerrarUbicacionModal();
             await mostrarLoader();
-    
+
             const btnInicio = document.getElementById("btnInicio");
             const btnSeleccionRuta = document.getElementById("btnSeleccionRuta");
             const btnFin = document.getElementById("btnFin");
             const modalText = document.getElementById("modalText");
-    
+
             const opcionSeleccionada = document.querySelector('input[name="ubicacion"]:checked').value;
             console.log("📍 Ubicación seleccionada:", opcionSeleccionada);
             window.ultimaParada = opcionSeleccionada === "parqueadero" ? "Carrera 15 #27A-40, Barranquilla" : "actual";
-    
+
             await gestionarUbicacion(true);
             await iniciarEnvioActualizacion();
-    
+
             let response;
             const esLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
             if (esLocalhost) {
@@ -318,21 +294,21 @@ function setupUIEvents() {
                 console.log("🌐 Ejecutando en producción, usando fetch real...");
                 response = await fetch("/messages");
             }
-    
+
             if (!response.ok) {
                 throw new Error(`Error en la solicitud: ${response.status}`);
             }
             const data = await response.json();
-    
+
             if (!data.rutasIA) {
                 throw new Error("No se recibieron rutasIA del servidor");
             }
-    
+
             window.rutaDistancia = data.rutasIA.mejor_ruta_distancia;
             window.rutaTrafico = data.rutasIA.mejor_ruta_trafico;
             window.distanciaTotalKm = data.rutasIA.distancia_total_km;
             window.tiempoTotalMin = data.rutasIA.tiempo_total_min;
-    
+
             const transformarRuta = (ruta, tcp) => {
                 return ruta.map((direccion, index) => {
                     let nombre;
@@ -349,7 +325,7 @@ function setupUIEvents() {
                         });
                         nombre = entradaTcp ? `${entradaTcp.nombre} ${entradaTcp.apellido}`.trim() : `Parada ${index}`;
                     }
-    
+
                     return {
                         direccion: direccion,
                         nombre: nombre,
@@ -357,28 +333,26 @@ function setupUIEvents() {
                     };
                 });
             };
-    
+
             const rutasIA = {
                 mejor_ruta_distancia: transformarRuta(data.rutasIA.mejor_ruta_distancia, data.tcp),
                 mejor_ruta_trafico: transformarRuta(data.rutasIA.mejor_ruta_trafico, data.tcp)
             };
-    
+
             localStorage.setItem('rutaDistancia', JSON.stringify(rutasIA.mejor_ruta_distancia));
             localStorage.setItem('rutaTrafico', JSON.stringify(rutasIA.mejor_ruta_trafico));
             localStorage.setItem('rutaEnProgreso', 'true');
-    
+
             console.log("🗺️ Dibujando rutas iniciales:", {
                 mejor_ruta_distancia: rutasIA.mejor_ruta_distancia,
                 mejor_ruta_trafico: rutasIA.mejor_ruta_trafico
             });
-    
-            // Usar la nueva función para dibujar las rutas iniciales
+
             success = await dibujarRutasPrimeraVez(rutasIA);
             if (!success) {
                 throw new Error("No se pudieron dibujar las rutas iniciales");
             }
-    
-            // Actualizar UI si el dibujo fue exitoso
+
             modalText.textContent = "Datos cargados. Escoja la mejor ruta según la información brindada.";
         } catch (error) {
             console.error("❌ Error:", error);
@@ -419,13 +393,11 @@ function setupUIEvents() {
             }
 
             await cerrarLoader();
-                }
+        }
     });
-    
-    // Simular la respuesta de fetch("/messages") para pruebas locales
+
     function simularFetchMessagesBtnInicio(simularError = false) {
         return new Promise((resolve) => {
-            // Caso de éxito: devolver datos con tcp con más de 2 elementos
             const datosExito = {
                 tcp: [
                     { direccion: "10.9903872,-74.7896832", nombre: "Pasajero 1" },
@@ -434,32 +406,63 @@ function setupUIEvents() {
                 ]
             };
 
-            // Caso de error: devolver datos con tcp con menos de 2 elementos
             const datosError = {
                 tcp: [
                     { direccion: "10.9903872,-74.7896832", nombre: "Pasajero 1" }
                 ]
             };
 
-            // Simular una respuesta HTTP
-            const respuestaSimulada = {
-                ok: true,
-                json: () => Promise.resolve(simularError ? datosError : datosExito)
-            };
-
-            setTimeout(() => resolve(respuestaSimulada), 1000); // Simular un pequeño retraso de red
+            const respuestaSimulada = { ok: true, json: () => Promise.resolve(simularError ? datosError : datosExito) };
+            setTimeout(() => resolve(respuestaSimulada), 1000);
         });
     }
 
     document.getElementById('btnInicio').addEventListener("click", async () => {
         try {
-            // Determinar si estamos en localhost
-            const esLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+            // Verificar permisos de geolocalización antes de proceder
+            const permissionState = await checkGeolocationPermission();
+            if (permissionState === 'denied') {
+                Swal.fire({
+                    icon: "warning",
+                    title: "Permiso denegado",
+                    text: "Activa la ubicación para continuar."
+                });
+                return; // No continuar hasta que el usuario active los permisos
+            }
 
+            // Si los permisos están en 'prompt', intentar obtener la ubicación para solicitarlos
+            if (permissionState === 'prompt') {
+                try {
+                    await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(
+                            () => resolve(),
+                            (error) => {
+                                if (error.code === error.PERMISSION_DENIED) {
+                                    Swal.fire({
+                                        icon: "warning",
+                                        title: "Permiso denegado",
+                                        text: "Activa la ubicación para continuar."
+                                    });
+                                    reject(new Error("Permiso de geolocalización denegado"));
+                                } else {
+                                    reject(error);
+                                }
+                            },
+                            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                        );
+                    });
+                } catch (error) {
+                    console.error("❌ Error solicitando permisos de geolocalización:", error);
+                    return; // No continuar si no se otorgan los permisos
+                }
+            }
+
+            // Si llegamos aquí, los permisos están otorgados, proceder con el flujo normal
+            const esLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
             let response;
             if (esLocalhost) {
                 console.log("🖥️ Ejecutando en localhost, usando datos simulados para btnInicio...");
-                const simularError = false; // Cambia a true para simular el caso de error en localhost
+                const simularError = false;
                 response = await simularFetchMessagesBtnInicio(simularError);
             } else {
                 console.log("🌐 Ejecutando en producción, usando fetch real para btnInicio...");
