@@ -14,14 +14,14 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('/home/ubuntu/PF/IA/historical_data.log'),
+        logging.FileHandler('/home/ubuntu/SmartWay/IA/historical_data.log'),
         logging.StreamHandler()
     ]
 )
 logger = logging.getLogger(__name__)
 
 # Cargar variables de entorno
-env_path = "/home/ubuntu/PF/.env"  # Ruta absoluta
+env_path = "/home/ubuntu/SmartWay/.env"  # Ruta absoluta
 if not os.path.exists(env_path):
     logger.error(f"No se encontró .env en {env_path}")
     raise FileNotFoundError(f"No se encontró .env en {env_path}")
