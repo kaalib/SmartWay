@@ -360,7 +360,6 @@ int findLastUsedID() {
     if (p == FINGERPRINT_OK) {
       lastID = id;
     } else if (p != FINGERPRINT_NOFINGER && p != FINGERPRINT_PACKETRECIEVEERR && p != FINGERPRINT_BADLOCATION) {
-      Serial.println("⚠️ Error al verificar ID " + String(id) + ": " + String(p));
     }
   }
   Serial.println("Último ID usado: " + String(lastID));
@@ -400,7 +399,7 @@ void enrollFingerprint() {
       continue;
     }
     if (p != FINGERPRINT_OK) {
-      lv_label_set_text(label_status, "Error, coloque el dedo una vez de nuevo");
+      lv_label_set_text(label_status, "Error, coloque el dedo\nde nuevo");
       Serial.println("❌ Error al leer huella (primera vez): " + String(p));
       lv_task_handler();
       delay(3000);
@@ -412,7 +411,7 @@ void enrollFingerprint() {
 
   p = finger.image2Tz(1);
   if (p != FINGERPRINT_OK) {
-    lv_label_set_text(label_status, "Error, coloque el dedo una vez de nuevo");
+    lv_label_set_text(label_status, "Error, coloque el dedo\nde nuevo");
     Serial.println("❌ Error en image2Tz(1): " + String(p));
     lv_task_handler();
     delay(3000);
@@ -436,7 +435,7 @@ void enrollFingerprint() {
       continue;
     }
     if (p != FINGERPRINT_OK) {
-      lv_label_set_text(label_status, "Error, coloque el dedo una vez de nuevo");
+      lv_label_set_text(label_status, "Error, coloque el dedo\nde nuevo");
       Serial.println("❌ Error al leer huella (segunda vez): " + String(p));
       lv_task_handler();
       delay(3000);
@@ -448,7 +447,7 @@ void enrollFingerprint() {
 
   p = finger.image2Tz(2);
   if (p != FINGERPRINT_OK) {
-    lv_label_set_text(label_status, "Error, coloque el dedo una vez de nuevo");
+    lv_label_set_text(label_status, "Error, coloque el dedo\nde nuevo");
     Serial.println("❌ Error en image2Tz(2): " + String(p));
     lv_task_handler();
     delay(3000);
@@ -459,7 +458,7 @@ void enrollFingerprint() {
 
   p = finger.createModel();
   if (p != FINGERPRINT_OK) {
-    lv_label_set_text(label_status, "Error, coloque el dedo una vez de nuevo");
+    lv_label_set_text(label_status, "Error, coloque el dedo\nde nuevo");
     Serial.println("❌ Error en createModel: " + String(p));
     lv_task_handler();
     delay(3000);
@@ -470,7 +469,7 @@ void enrollFingerprint() {
 
   p = finger.storeModel(id);
   if (p != FINGERPRINT_OK) {
-    lv_label_set_text(label_status, "Error, coloque el dedo una vez de nuevo");
+    lv_label_set_text(label_status, "Error, coloque el dedo\nde nuevo");
     Serial.println("❌ Error en storeModel: " + String(p));
     lv_task_handler();
     delay(3000);

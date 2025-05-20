@@ -327,7 +327,7 @@ def select_route_pairs(addresses):
         available_pairs = all_possible_pairs
     
     # Seleccionar 50 pares únicos aleatoriamente
-    selected_pairs = random.sample(available_pairs, min(70, len(available_pairs)))  #solo genera 50 pares
+    selected_pairs = random.sample(available_pairs, min(20, len(available_pairs)))  #solo genera 50 pares
     
     # Actualizar los pares usados y guardar en el archivo
     last_used_pairs = set(selected_pairs)
