@@ -202,9 +202,14 @@ async function cargarPasajerosPorDia(fechaInicio = '', fechaFin = '') {
                             { value: promedioPasajeros, color: '#0059ff' }
                         ]
                     }
-                }
+                },
+                responsive: true, // Asegura que la gráfica sea responsiva
+                maintainAspectRatio: false // Permite que la gráfica se ajuste al contenedor
             }
         });
+
+        // Forzar redimensionamiento después de crear la gráfica
+        pasajerosChartInstance.resize();
     } catch (error) {
         console.error('Error al cargar gráfica de pasajeros por día:', error);
         Swal.fire({
@@ -288,9 +293,14 @@ async function cargarDuracionPorDia(fechaInicio = '', fechaFin = '') {
                             { value: promedioDistancia, color: '#FFC107' }
                         ]
                     }
-                }
+                },
+                responsive: true, // Asegura que la gráfica sea responsiva
+                maintainAspectRatio: false // Permite que la gráfica se ajuste al contenedor
             }
         });
+
+        // Forzar redimensionamiento después de crear la gráfica
+        duracionChartInstance.resize();
     } catch (error) {
         console.error('Error al cargar gráfica de duración por día:', error);
         Swal.fire({
