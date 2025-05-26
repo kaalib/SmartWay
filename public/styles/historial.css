@@ -128,6 +128,7 @@
   display: flex;
   flex-direction: column;
   box-sizing: border-box; /* Evita desbordamiento por padding */
+  min-height: 300px; /* Asegura un mínimo de altura para el contenedor */
 }
 
 .chart-card h3 {
@@ -141,10 +142,13 @@
 
 .chart-wrapper {
   width: 100%; /* Ocupa todo el ancho del chart-card */
-  min-height: 400px; /* Altura mínima inicial para todas las pantallas */
+  min-height: 300px; /* Altura mínima inicial para todas las pantallas */
+  max-height: 500px; /* Limita la altura máxima para evitar cortes */
+  aspect-ratio: 4 / 3; /* Mantiene una proporción adecuada */
   position: relative;
   margin: 0 auto;
-  flex-grow: 1; /* Ocupa todo el espacio disponible verticalmente */
+  flex-grow: 1; /* Ocupa el espacio disponible verticalmente */
+  overflow: hidden; /* Evita desbordamiento */
 }
 
 /* Contenedor de mapa histórico */
@@ -393,7 +397,9 @@ table tbody tr:hover {
   }
 
   .chart-wrapper {
-    min-height: 500px; /* Ajuste para pantallas grandes */
+    min-height: 300px; /* Reducimos la altura mínima */
+    max-height: 450px; /* Limitamos la altura máxima */
+    aspect-ratio: 4 / 3; /* Mantenemos proporción */
     width: 100%; /* Ocupa todo el ancho disponible */
   }
 }
@@ -405,7 +411,9 @@ table tbody tr:hover {
   }
 
   .chart-wrapper {
-    min-height: 400px; /* Ajuste para pantallas medianas */
+    min-height: 350px; /* Ajuste para pantallas medianas */
+    max-height: 400px; /* Limitamos para evitar cortes */
+    aspect-ratio: 4 / 3;
     width: 100%; /* Ocupa todo el ancho disponible */
   }
 }
@@ -474,6 +482,8 @@ table tbody tr:hover {
 
   .chart-wrapper {
     min-height: 450px; /* Aumentamos la altura para que las gráficas sean visibles */
+    max-height: 500px;
+    aspect-ratio: 4 / 3;
     width: 100%; /* Ocupa todo el ancho disponible */
   }
 
@@ -529,6 +539,8 @@ table tbody tr:hover {
 
   .chart-wrapper {
     min-height: 400px; /* Ajuste para pantallas muy pequeñas */
+    max-height: 450px;
+    aspect-ratio: 4 / 3;
     width: 100%; /* Ocupa todo el ancho disponible */
   }
 }
